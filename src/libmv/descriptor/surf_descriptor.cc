@@ -83,8 +83,8 @@ void USURFDescriptor(const TImage &integral_image,
           dxy << HarrX(integral_image, sample_row, sample_col, int_scale),
                  HarrY(integral_image, sample_row, sample_col, int_scale);
           dxy *= weight;
-          components.head<2>() += dxy;
-          components.tail<2>() += dxy.array().abs();
+          components.head<2>() += dxy.matrix();
+          components.tail<2>() += dxy.array().abs().matrix();
         }
       }
       (*descriptor).segment<4>(done_dims) = components;
@@ -146,7 +146,7 @@ void MSURFDescriptor(const TImage &integral_image,
         }
       }
       float gauss_BigBox = Gaussian2D(row/half_region, col/half_region, 1.0f);
-      (*descriptor).segment<4>(done_dims) = components*gauss_BigBox;
+      (*descriptor).segment<4>(done_dims).matrix() = components*gauss_BigBox;
       done_dims += 4;
     }
   }
