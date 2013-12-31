@@ -70,9 +70,23 @@ ENDIF(MSVC)
 OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." ON)
 
 INCLUDE(ConfigureBuild)
+INCLUDE(Documentation)
+INCLUDE(Installation)
+INCLUDE(Testing)
 
+# All common includ edirectories
 INCLUDE_DIRECTORIES(
   .
+)
+
+# Add third_party directory before rest of include directories so
+# there're no possible conflict in headers.
+#
+# Mainly to make Ceres happy with two gflags.h in the working tree.
+ADD_SUBDIRECTORY(third_party)
+
+# Rest of the include directories and al lactual source files goes now.
+INCLUDE_DIRECTORIES(
   third_party/daisy/include
   third_party/gtest
   third_party/gtest/include
@@ -102,12 +116,8 @@ IF (APPLE)
   )
 ENDIF (APPLE)
 
-INCLUDE(Documentation)
-INCLUDE(Installation)
-INCLUDE(Testing)
 
 ADD_SUBDIRECTORY(libmv)
-ADD_SUBDIRECTORY(third_party)
 
 IF (BUILD_TESTS)
   ADD_SUBDIRECTORY(testing)
