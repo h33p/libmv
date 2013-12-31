@@ -35,8 +35,8 @@
 #include "ceres/internal/eigen.h"
 #include "ceres/internal/scoped_ptr.h"
 #include "ceres/linear_least_squares_problems.h"
-#include "ceres/matrix_proto.h"
 #include "ceres/triplet_sparse_matrix.h"
+#include "glog/logging.h"
 #include "gtest/gtest.h"
 
 namespace ceres {
@@ -76,6 +76,14 @@ class CompressedRowSparseMatrixTest : public ::testing::Test {
 
     num_rows = tsm->num_rows();
     num_cols = tsm->num_cols();
+
+    vector<int>* row_blocks = crsm->mutable_row_blocks();
+    row_blocks->resize(num_rows);
+    std::fill(row_blocks->begin(), row_blocks->end(), 1);
+
+    vector<int>* col_blocks = crsm->mutable_col_blocks();
+    col_blocks->resize(num_cols);
+    std::fill(col_blocks->begin(), col_blocks->end(), 1);
   }
 
   int num_rows;
@@ -126,6 +134,9 @@ TEST_F(CompressedRowSparseMatrixTest, Scale) {
 }
 
 TEST_F(CompressedRowSparseMatrixTest, DeleteRows) {
+  // Clear the row and column blocks as these are purely scalar tests.
+  crsm->mutable_row_blocks()->clear();
+  crsm->mutable_col_blocks()->clear();
   for (int i = 0; i < num_rows; ++i) {
     tsm->Resize(num_rows - i, num_cols);
     crsm->DeleteRows(crsm->num_rows() - tsm->num_rows());
@@ -134,6 +145,10 @@ TEST_F(CompressedRowSparseMatrixTest, DeleteRows) {
 }
 
 TEST_F(CompressedRowSparseMatrixTest, AppendRows) {
+  // Clear the row and column blocks as these are purely scalar tests.
+  crsm->mutable_row_blocks()->clear();
+  crsm->mutable_col_blocks()->clear();
+
   for (int i = 0; i < num_rows; ++i) {
     TripletSparseMatrix tsm_appendage(*tsm);
     tsm_appendage.Resize(i, num_cols);
@@ -146,29 +161,46 @@ TEST_F(CompressedRowSparseMatrixTest, AppendRows) {
   }
 }
 
-#ifndef CERES_NO_PROTOCOL_BUFFERS
-TEST_F(CompressedRowSparseMatrixTest, Serialization) {
-  SparseMatrixProto proto;
-  crsm->ToProto(&proto);
+TEST_F(CompressedRowSparseMatrixTest, AppendAndDeleteBlockDiagonalMatrix) {
+  int num_diagonal_rows = crsm->num_cols();
 
-  CompressedRowSparseMatrix n(proto);
-  ASSERT_EQ(n.num_rows(), crsm->num_rows());
-  ASSERT_EQ(n.num_cols(), crsm->num_cols());
-  ASSERT_EQ(n.num_nonzeros(), crsm->num_nonzeros());
-
-  for (int i = 0; i < n.num_rows() + 1; ++i) {
-    ASSERT_EQ(crsm->rows()[i], proto.compressed_row_matrix().rows(i));
-    ASSERT_EQ(crsm->rows()[i], n.rows()[i]);
+  scoped_array<double> diagonal(new double[num_diagonal_rows]);
+  for (int i = 0; i < num_diagonal_rows; ++i) {
+    diagonal[i] =i;
   }
 
-  for (int i = 0; i < crsm->num_nonzeros(); ++i) {
-    ASSERT_EQ(crsm->cols()[i], proto.compressed_row_matrix().cols(i));
-    ASSERT_EQ(crsm->cols()[i], n.cols()[i]);
-    ASSERT_EQ(crsm->values()[i], proto.compressed_row_matrix().values(i));
-    ASSERT_EQ(crsm->values()[i], n.values()[i]);
-  }
+  vector<int> row_and_column_blocks;
+  row_and_column_blocks.push_back(1);
+  row_and_column_blocks.push_back(2);
+  row_and_column_blocks.push_back(2);
+
+  const vector<int> pre_row_blocks = crsm->row_blocks();
+  const vector<int> pre_col_blocks = crsm->col_blocks();
+
+  scoped_ptr<CompressedRowSparseMatrix> appendage(
+      CompressedRowSparseMatrix::CreateBlockDiagonalMatrix(
+          diagonal.get(), row_and_column_blocks));
+  LOG(INFO) << appendage->row_blocks().size();
+
+  crsm->AppendRows(*appendage);
+
+  const vector<int> post_row_blocks = crsm->row_blocks();
+  const vector<int> post_col_blocks = crsm->col_blocks();
+
+  vector<int> expected_row_blocks = pre_row_blocks;
+  expected_row_blocks.insert(expected_row_blocks.end(),
+                             row_and_column_blocks.begin(),
+                             row_and_column_blocks.end());
+
+  vector<int> expected_col_blocks = pre_col_blocks;
+
+  EXPECT_EQ(expected_row_blocks, crsm->row_blocks());
+  EXPECT_EQ(expected_col_blocks, crsm->col_blocks());
+
+  crsm->DeleteRows(num_diagonal_rows);
+  EXPECT_EQ(crsm->row_blocks(), pre_row_blocks);
+  EXPECT_EQ(crsm->col_blocks(), pre_col_blocks);
 }
-#endif
 
 TEST_F(CompressedRowSparseMatrixTest, ToDenseMatrix) {
   Matrix tsm_dense;
@@ -197,6 +229,156 @@ TEST_F(CompressedRowSparseMatrixTest, ToCRSMatrix) {
     EXPECT_EQ(crsm->cols()[i], crs_matrix.cols[i]);
     EXPECT_EQ(crsm->values()[i], crs_matrix.values[i]);
   }
+}
+
+TEST(CompressedRowSparseMatrix, CreateBlockDiagonalMatrix) {
+  vector<int> blocks;
+  blocks.push_back(1);
+  blocks.push_back(2);
+  blocks.push_back(2);
+
+  Vector diagonal(5);
+  for (int i = 0; i < 5; ++i) {
+    diagonal(i) = i + 1;
+  }
+
+  scoped_ptr<CompressedRowSparseMatrix> matrix(
+      CompressedRowSparseMatrix::CreateBlockDiagonalMatrix(
+          diagonal.data(), blocks));
+
+  EXPECT_EQ(matrix->num_rows(), 5);
+  EXPECT_EQ(matrix->num_cols(), 5);
+  EXPECT_EQ(matrix->num_nonzeros(), 9);
+  EXPECT_EQ(blocks, matrix->row_blocks());
+  EXPECT_EQ(blocks, matrix->col_blocks());
+
+  Vector x(5);
+  Vector y(5);
+
+  x.setOnes();
+  y.setZero();
+  matrix->RightMultiply(x.data(), y.data());
+  for (int i = 0; i < diagonal.size(); ++i) {
+    EXPECT_EQ(y[i], diagonal[i]);
+  }
+
+  y.setZero();
+  matrix->LeftMultiply(x.data(), y.data());
+  for (int i = 0; i < diagonal.size(); ++i) {
+    EXPECT_EQ(y[i], diagonal[i]);
+  }
+
+  Matrix dense;
+  matrix->ToDenseMatrix(&dense);
+  EXPECT_EQ((dense.diagonal() - diagonal).norm(), 0.0);
+}
+
+class SolveLowerTriangularTest : public ::testing::Test {
+ protected:
+  void SetUp() {
+    matrix_.reset(new CompressedRowSparseMatrix(4, 4, 7));
+    int* rows = matrix_->mutable_rows();
+    int* cols = matrix_->mutable_cols();
+    double* values = matrix_->mutable_values();
+
+    rows[0] = 0;
+    cols[0] = 0;
+    values[0] = 0.50754;
+
+    rows[1] = 1;
+    cols[1] = 1;
+    values[1] = 0.80483;
+
+    rows[2] = 2;
+    cols[2] = 1;
+    values[2] = 0.14120;
+    cols[3] = 2;
+    values[3] = 0.3;
+
+    rows[3] = 4;
+    cols[4] = 0;
+    values[4] = 0.77696;
+    cols[5] = 1;
+    values[5] = 0.41860;
+    cols[6] = 3;
+    values[6] = 0.88979;
+
+    rows[4] = 7;
+  }
+
+  scoped_ptr<CompressedRowSparseMatrix> matrix_;
+};
+
+TEST_F(SolveLowerTriangularTest, SolveInPlace) {
+  double rhs_and_solution[] = {1.0, 1.0, 2.0, 2.0};
+  double expected[] = {1.970288,  1.242498,  6.081864, -0.057255};
+  matrix_->SolveLowerTriangularInPlace(rhs_and_solution);
+  for (int i = 0; i < 4; ++i) {
+    EXPECT_NEAR(rhs_and_solution[i], expected[i], 1e-4) << i;
+  }
+}
+
+TEST_F(SolveLowerTriangularTest, TransposeSolveInPlace) {
+  double rhs_and_solution[] = {1.0, 1.0, 2.0, 2.0};
+  const double expected[] = { -1.4706, -1.0962, 6.6667, 2.2477};
+
+  matrix_->SolveLowerTriangularTransposeInPlace(rhs_and_solution);
+  for (int i = 0; i < 4; ++i) {
+    EXPECT_NEAR(rhs_and_solution[i], expected[i], 1e-4) << i;
+  }
+}
+
+TEST(CompressedRowSparseMatrix, Transpose) {
+  //  0  1  0  2  3  0
+  //  4  6  7  0  0  8
+  //  9 10  0 11 12  0
+  // 13  0 14 15  9  0
+  //  0 16 17  0  0  0
+
+  CompressedRowSparseMatrix matrix(5, 6, 30);
+  int* rows = matrix.mutable_rows();
+  int* cols = matrix.mutable_cols();
+  double* values = matrix.mutable_values();
+
+  rows[0] = 0;
+  cols[0] = 1;
+  cols[1] = 3;
+  cols[2] = 4;
+
+  rows[1] = 3;
+  cols[3] = 0;
+  cols[4] = 1;
+  cols[5] = 2;
+  cols[6] = 5;
+
+
+  rows[2] = 7;
+  cols[7] = 0;
+  cols[8] = 1;
+  cols[9] = 3;
+  cols[10] = 4;
+
+  rows[3] = 11;
+  cols[11] = 0;
+  cols[12] = 2;
+  cols[13] = 3;
+  cols[14] = 4;
+
+  rows[4] = 15;
+  cols[15] = 1;
+  cols[16] = 2;
+  rows[5] = 17;
+
+  copy(values, values + 17, cols);
+
+  scoped_ptr<CompressedRowSparseMatrix> transpose(matrix.Transpose());
+
+  Matrix dense_matrix;
+  matrix.ToDenseMatrix(&dense_matrix);
+
+  Matrix dense_transpose;
+  transpose->ToDenseMatrix(&dense_transpose);
+  EXPECT_NEAR((dense_matrix - dense_transpose.transpose()).norm(), 0.0, 1e-14);
 }
 
 }  // namespace internal

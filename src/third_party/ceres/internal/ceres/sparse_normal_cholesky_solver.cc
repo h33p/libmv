@@ -36,11 +36,8 @@
 #include <cstring>
 #include <ctime>
 
-#ifndef CERES_NO_CXSPARSE
-#include "cs.h"
-#endif
-
 #include "ceres/compressed_row_sparse_matrix.h"
+#include "ceres/cxsparse.h"
 #include "ceres/internal/eigen.h"
 #include "ceres/internal/scoped_ptr.h"
 #include "ceres/linear_solver.h"
@@ -54,14 +51,9 @@ namespace internal {
 
 SparseNormalCholeskySolver::SparseNormalCholeskySolver(
     const LinearSolver::Options& options)
-    : options_(options) {
-#ifndef CERES_NO_SUITESPARSE
-  factor_ = NULL;
-#endif
-
-#ifndef CERES_NO_CXSPARSE
-  cxsparse_factor_ = NULL;
-#endif  // CERES_NO_CXSPARSE
+    : factor_(NULL),
+      cxsparse_factor_(NULL),
+      options_(options) {
 }
 
 SparseNormalCholeskySolver::~SparseNormalCholeskySolver() {
@@ -85,18 +77,18 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImpl(
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
     double * x) {
-  switch (options_.sparse_linear_algebra_library) {
+  switch (options_.sparse_linear_algebra_library_type) {
     case SUITE_SPARSE:
       return SolveImplUsingSuiteSparse(A, b, per_solve_options, x);
     case CX_SPARSE:
       return SolveImplUsingCXSparse(A, b, per_solve_options, x);
     default:
       LOG(FATAL) << "Unknown sparse linear algebra library : "
-                 << options_.sparse_linear_algebra_library;
+                 << options_.sparse_linear_algebra_library_type;
   }
 
   LOG(FATAL) << "Unknown sparse linear algebra library : "
-             << options_.sparse_linear_algebra_library;
+             << options_.sparse_linear_algebra_library_type;
   return LinearSolver::Summary();
 }
 
@@ -110,6 +102,9 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImplUsingCXSparse(
 
   LinearSolver::Summary summary;
   summary.num_iterations = 1;
+  summary.termination_type = LINEAR_SOLVER_SUCCESS;
+  summary.message = "Success.";
+
   const int num_cols = A->num_cols();
   Vector Atb = Vector::Zero(num_cols);
   A->LeftMultiply(b, Atb.data());
@@ -117,8 +112,15 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImplUsingCXSparse(
   if (per_solve_options.D != NULL) {
     // Temporarily append a diagonal block to the A matrix, but undo
     // it before returning the matrix to the user.
-    CompressedRowSparseMatrix D(per_solve_options.D, num_cols);
-    A->AppendRows(D);
+    scoped_ptr<CompressedRowSparseMatrix> regularizer;
+    if (A->col_blocks().size() > 0) {
+      regularizer.reset(CompressedRowSparseMatrix::CreateBlockDiagonalMatrix(
+                            per_solve_options.D, A->col_blocks()));
+    } else {
+      regularizer.reset(new CompressedRowSparseMatrix(
+                            per_solve_options.D, num_cols));
+    }
+    A->AppendRows(*regularizer);
   }
 
   VectorRef(x, num_cols).setZero();
@@ -133,34 +135,39 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImplUsingCXSparse(
   // factorized. CHOLMOD/SuiteSparse on the other hand can just work
   // off of Jt to compute the Cholesky factorization of the normal
   // equations.
-  cs_di* A2 = cs_transpose(&At, 1);
-  cs_di* AtA = cs_multiply(&At, A2);
+  cs_di* A2 = cxsparse_.TransposeMatrix(&At);
+  cs_di* AtA = cxsparse_.MatrixMatrixMultiply(&At, A2);
 
   cxsparse_.Free(A2);
   if (per_solve_options.D != NULL) {
     A->DeleteRows(num_cols);
   }
-
   event_logger.AddEvent("Setup");
 
   // Compute symbolic factorization if not available.
   if (cxsparse_factor_ == NULL) {
-    cxsparse_factor_ = CHECK_NOTNULL(cxsparse_.AnalyzeCholesky(AtA));
+    if (options_.use_postordering) {
+      cxsparse_factor_ = cxsparse_.BlockAnalyzeCholesky(AtA,
+                                                        A->col_blocks(),
+                                                        A->col_blocks());
+    } else {
+      cxsparse_factor_ = cxsparse_.AnalyzeCholeskyWithNaturalOrdering(AtA);
+    }
   }
-
   event_logger.AddEvent("Analysis");
 
-
-  // Solve the linear system.
-  if (cxsparse_.SolveCholesky(AtA, cxsparse_factor_, Atb.data())) {
+  if (cxsparse_factor_ == NULL) {
+    summary.termination_type = LINEAR_SOLVER_FATAL_ERROR;
+    summary.message =
+        "CXSparse failure. Unable to find symbolic factorization.";
+  } else if (cxsparse_.SolveCholesky(AtA, cxsparse_factor_, Atb.data())) {
     VectorRef(x, Atb.rows()) = Atb;
-    summary.termination_type = TOLERANCE;
+  } else {
+    summary.termination_type = LINEAR_SOLVER_FAILURE;
   }
-
   event_logger.AddEvent("Solve");
 
   cxsparse_.Free(AtA);
-
   event_logger.AddEvent("Teardown");
   return summary;
 }
@@ -184,54 +191,75 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImplUsingSuiteSparse(
     const LinearSolver::PerSolveOptions& per_solve_options,
     double * x) {
   EventLogger event_logger("SparseNormalCholeskySolver::SuiteSparse::Solve");
+  LinearSolver::Summary summary;
+  summary.termination_type = LINEAR_SOLVER_SUCCESS;
+  summary.num_iterations = 1;
+  summary.message = "Success.";
 
   const int num_cols = A->num_cols();
-  LinearSolver::Summary summary;
   Vector Atb = Vector::Zero(num_cols);
   A->LeftMultiply(b, Atb.data());
 
   if (per_solve_options.D != NULL) {
-    // Temporarily append a diagonal block to the A matrix, but undo it before
-    // returning the matrix to the user.
-    CompressedRowSparseMatrix D(per_solve_options.D, num_cols);
-    A->AppendRows(D);
+    // Temporarily append a diagonal block to the A matrix, but undo
+    // it before returning the matrix to the user.
+    scoped_ptr<CompressedRowSparseMatrix> regularizer;
+    if (A->col_blocks().size() > 0) {
+      regularizer.reset(CompressedRowSparseMatrix::CreateBlockDiagonalMatrix(
+                            per_solve_options.D, A->col_blocks()));
+    } else {
+      regularizer.reset(new CompressedRowSparseMatrix(
+                            per_solve_options.D, num_cols));
+    }
+    A->AppendRows(*regularizer);
   }
 
   VectorRef(x, num_cols).setZero();
-
   cholmod_sparse lhs = ss_.CreateSparseMatrixTransposeView(A);
-  cholmod_dense* rhs = ss_.CreateDenseVector(Atb.data(), num_cols, num_cols);
   event_logger.AddEvent("Setup");
 
   if (factor_ == NULL) {
     if (options_.use_postordering) {
       factor_ = ss_.BlockAnalyzeCholesky(&lhs,
                                          A->col_blocks(),
-                                         A->row_blocks());
+                                         A->row_blocks(),
+                                         &summary.message);
     } else {
-      factor_ = ss_.AnalyzeCholeskyWithNaturalOrdering(&lhs);
+      factor_ = ss_.AnalyzeCholeskyWithNaturalOrdering(&lhs, &summary.message);
     }
   }
-
   event_logger.AddEvent("Analysis");
 
-  cholmod_dense* sol = ss_.SolveCholesky(&lhs, factor_, rhs);
+  if (factor_ == NULL) {
+    if (per_solve_options.D != NULL) {
+      A->DeleteRows(num_cols);
+    }
+    summary.termination_type = LINEAR_SOLVER_FATAL_ERROR;
+    return summary;
+  }
+
+  summary.termination_type = ss_.Cholesky(&lhs, factor_, &summary.message);
+  if (summary.termination_type != LINEAR_SOLVER_SUCCESS) {
+    if (per_solve_options.D != NULL) {
+      A->DeleteRows(num_cols);
+    }
+    return summary;
+  }
+
+  cholmod_dense* rhs = ss_.CreateDenseVector(Atb.data(), num_cols, num_cols);
+  cholmod_dense* sol = ss_.Solve(factor_, rhs, &summary.message);
   event_logger.AddEvent("Solve");
 
   ss_.Free(rhs);
-  rhs = NULL;
-
   if (per_solve_options.D != NULL) {
     A->DeleteRows(num_cols);
   }
 
-  summary.num_iterations = 1;
   if (sol != NULL) {
     memcpy(x, sol->x, num_cols * sizeof(*x));
-
     ss_.Free(sol);
-    sol = NULL;
-    summary.termination_type = TOLERANCE;
+  } else {
+    summary.termination_type = LINEAR_SOLVER_FAILURE;
   }
 
   event_logger.AddEvent("Teardown");

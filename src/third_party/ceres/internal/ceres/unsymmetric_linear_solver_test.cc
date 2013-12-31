@@ -56,12 +56,7 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
     sol_regularized_.reset(problem->x_D.release());
   }
 
-  void TestSolver(
-      LinearSolverType linear_solver_type,
-      SparseLinearAlgebraLibraryType sparse_linear_algebra_library) {
-    LinearSolver::Options options;
-    options.type = linear_solver_type;
-    options.sparse_linear_algebra_library = sparse_linear_algebra_library;
+  void TestSolver(const LinearSolver::Options& options) {
     scoped_ptr<LinearSolver> solver(LinearSolver::Create(options));
 
     LinearSolver::PerSolveOptions per_solve_options;
@@ -72,13 +67,22 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
 
     scoped_ptr<SparseMatrix> transformed_A;
 
-    if (linear_solver_type == DENSE_QR ||
-        linear_solver_type == DENSE_NORMAL_CHOLESKY) {
+    if (options.type == DENSE_QR ||
+        options.type == DENSE_NORMAL_CHOLESKY) {
       transformed_A.reset(new DenseSparseMatrix(*A_));
-    } else if (linear_solver_type == SPARSE_NORMAL_CHOLESKY) {
-      transformed_A.reset(new   CompressedRowSparseMatrix(*A_));
+    } else if (options.type == SPARSE_NORMAL_CHOLESKY) {
+      CompressedRowSparseMatrix* crsm =  new CompressedRowSparseMatrix(*A_);
+      // Add row/column blocks structure.
+      for (int i = 0; i < A_->num_rows(); ++i) {
+        crsm->mutable_row_blocks()->push_back(1);
+      }
+
+      for (int i = 0; i < A_->num_cols(); ++i) {
+        crsm->mutable_col_blocks()->push_back(1);
+      }
+      transformed_A.reset(crsm);
     } else {
-      LOG(FATAL) << "Unknown linear solver : " << linear_solver_type;
+      LOG(FATAL) << "Unknown linear solver : " << options.type;
     }
     // Unregularized
     unregularized_solve_summary =
@@ -95,13 +99,15 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
                       per_solve_options,
                       x_regularized.data());
 
-    EXPECT_EQ(unregularized_solve_summary.termination_type, TOLERANCE);
+    EXPECT_EQ(unregularized_solve_summary.termination_type,
+              LINEAR_SOLVER_SUCCESS);
 
     for (int i = 0; i < A_->num_cols(); ++i) {
       EXPECT_NEAR(sol_unregularized_[i], x_unregularized[i], 1e-8);
     }
 
-    EXPECT_EQ(regularized_solve_summary.termination_type, TOLERANCE);
+    EXPECT_EQ(regularized_solve_summary.termination_type,
+              LINEAR_SOLVER_SUCCESS);
     for (int i = 0; i < A_->num_cols(); ++i) {
       EXPECT_NEAR(sol_regularized_[i], x_regularized[i], 1e-8);
     }
@@ -114,23 +120,73 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
   scoped_array<double> sol_regularized_;
 };
 
-TEST_F(UnsymmetricLinearSolverTest, DenseQR) {
-  TestSolver(DENSE_QR, SUITE_SPARSE);
+TEST_F(UnsymmetricLinearSolverTest, EigenDenseQR) {
+  LinearSolver::Options options;
+  options.type = DENSE_QR;
+  options.dense_linear_algebra_library_type = EIGEN;
+  TestSolver(options);
 }
 
-TEST_F(UnsymmetricLinearSolverTest, DenseNormalCholesky) {
-  TestSolver(DENSE_NORMAL_CHOLESKY, SUITE_SPARSE);
+TEST_F(UnsymmetricLinearSolverTest, EigenDenseNormalCholesky) {
+  LinearSolver::Options options;
+  options.dense_linear_algebra_library_type = EIGEN;
+  options.type = DENSE_NORMAL_CHOLESKY;
+  TestSolver(options);
 }
+
+#ifndef CERES_NO_LAPACK
+TEST_F(UnsymmetricLinearSolverTest, LAPACKDenseQR) {
+  LinearSolver::Options options;
+  options.type = DENSE_QR;
+  options.dense_linear_algebra_library_type = LAPACK;
+  TestSolver(options);
+}
+
+TEST_F(UnsymmetricLinearSolverTest, LAPACKDenseNormalCholesky) {
+  LinearSolver::Options options;
+  options.dense_linear_algebra_library_type = LAPACK;
+  options.type = DENSE_NORMAL_CHOLESKY;
+  TestSolver(options);
+}
+#endif
 
 #ifndef CERES_NO_SUITESPARSE
-TEST_F(UnsymmetricLinearSolverTest, SparseNormalCholeskyUsingSuiteSparse) {
-  TestSolver(SPARSE_NORMAL_CHOLESKY, SUITE_SPARSE);
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingSuiteSparsePreOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = false;
+  TestSolver(options);
+}
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingSuiteSparsePostOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = true;
+  TestSolver(options);
 }
 #endif
 
 #ifndef CERES_NO_CXSPARSE
-TEST_F(UnsymmetricLinearSolverTest, SparseNormalCholeskyUsingCXSparse) {
-  TestSolver(SPARSE_NORMAL_CHOLESKY, CX_SPARSE);
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingCXSparsePreOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = CX_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = false;
+  TestSolver(options);
+}
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingCXSparsePostOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = CX_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = true;
+  TestSolver(options);
 }
 #endif
 

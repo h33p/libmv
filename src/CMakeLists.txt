@@ -31,7 +31,8 @@ ENABLE_TESTING()
 
 SET(CMAKE_MODULE_PATH
   "${LIBMV_SOURCE_DIR}/CMake"
-  "${LIBMV_SOURCE_DIR}/CMake/modules")
+  "${LIBMV_SOURCE_DIR}/CMake/modules"
+  "${LIBMV_SOURCE_DIR}/third_party/ceres/cmake")
 
 INCLUDE(LibmvVersion)
 

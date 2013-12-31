@@ -109,7 +109,7 @@ class ImplicitSchurComplementTest : public ::testing::Test {
     solution->setZero();
     VectorRef schur_solution(solution->data() + num_cols_ - num_schur_rows,
                              num_schur_rows);
-    schur_solution = lhs->selfadjointView<Eigen::Upper>().ldlt().solve(*rhs);
+    schur_solution = lhs->selfadjointView<Eigen::Upper>().llt().solve(*rhs);
     eliminator->BackSubstitute(A_.get(), b_.get(), D,
                                schur_solution.data(), solution->data());
   }
@@ -120,7 +120,10 @@ class ImplicitSchurComplementTest : public ::testing::Test {
     Vector reference_solution;
     ReducedLinearSystemAndSolution(D, &lhs, &rhs, &reference_solution);
 
-    ImplicitSchurComplement isc(num_eliminate_blocks_, true);
+    LinearSolver::Options options;
+    options.elimination_groups.push_back(num_eliminate_blocks_);
+    options.preconditioner_type = JACOBI;
+    ImplicitSchurComplement isc(options);
     isc.Init(*A_, D, b_.get());
 
     int num_sc_cols = lhs.cols();
@@ -156,7 +159,7 @@ class ImplicitSchurComplementTest : public ::testing::Test {
 
     // Reference solution to the f_block.
     const Vector reference_f_sol =
-        lhs.selfadjointView<Eigen::Upper>().ldlt().solve(rhs);
+        lhs.selfadjointView<Eigen::Upper>().llt().solve(rhs);
 
     // Backsubstituted solution from the implicit schur solver using the
     // reference solution to the f_block.

@@ -1,0 +1,96 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 521684c..4f88737 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -63,9 +63,6 @@ IF (EXISTS ${LOCAL_GIT_DIRECTORY})
+   ENDIF (NOT EXISTS ${LOCAL_GIT_DIRECTORY}/hooks/commit-msg)
+ ENDIF (EXISTS ${LOCAL_GIT_DIRECTORY})
+ 
+-# Make CMake aware of the cmake folder for local FindXXX scripts.
+-SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+-
+ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+ SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+@@ -666,13 +663,15 @@ IF (MINIGLOG)
+           DESTINATION include/ceres/internal/miniglog/glog)
+ ENDIF (MINIGLOG)
+ 
+-# Add an uninstall target to remove all installed files.
+-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
+-               "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
+-               IMMEDIATE @ONLY)
++IF (EXISTS "${CMAKE_SOURCE_DIR}/cmake")
++  # Add an uninstall target to remove all installed files.
++  CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
++                 "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
++                 IMMEDIATE @ONLY)
+ 
+-ADD_CUSTOM_TARGET(uninstall
+-                  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
++  ADD_CUSTOM_TARGET(uninstall
++                    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
++ENDIF ()
+ 
+ # Set relative install paths, which are appended to CMAKE_INSTALL_PREFIX to
+ # generate the absolute install paths.
+@@ -703,14 +702,14 @@ FILE(RELATIVE_PATH INSTALL_ROOT_REL_CONFIG_INSTALL_DIR
+ # Create a CeresConfig.cmake file. <name>Config.cmake files are searched by
+ # FIND_PACKAGE() automatically. We configure that file so that we can put any
+ # information we want in it, e.g. version numbers, include directories, etc.
+-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
+                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake" @ONLY)
+ 
+ # Additionally, when CMake has found a CeresConfig.cmake, it can check for a
+ # CeresConfigVersion.cmake in the same directory when figuring out the version
+ # of the package when a version has been specified in the FIND_PACKAGE() call,
+ # e.g. FIND_PACKAGE(Ceres [1.4.2] REQUIRED). The version argument is optional.
+-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake" @ONLY)
+ 
+ # Install these files into the same directory as the generated exports-file,
+diff --git a/internal/ceres/CMakeLists.txt b/internal/ceres/CMakeLists.txt
+index 87faf2b..95f1c3c 100644
+--- a/internal/ceres/CMakeLists.txt
++++ b/internal/ceres/CMakeLists.txt
+@@ -184,22 +184,31 @@ INSTALL(TARGETS ceres
+         ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ 
+ IF (BUILD_TESTING AND GFLAGS)
+-  ADD_LIBRARY(gtest gmock_gtest_all.cc gmock_main.cc)
++  ADD_LIBRARY(gmock_gtest gmock_gtest_all.cc gmock_main.cc)
+   ADD_LIBRARY(test_util
+               evaluator_test_utils.cc
+               numeric_diff_test_utils.cc
+               test_util.cc)
+ 
+-  TARGET_LINK_LIBRARIES(gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
++  TARGET_LINK_LIBRARIES(gmock_gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+   TARGET_LINK_LIBRARIES(test_util ceres gtest ${GLOG_LIBRARIES})
+ 
+   MACRO (CERES_TEST NAME)
+-    ADD_EXECUTABLE(${NAME}_test ${NAME}_test.cc)
+-    TARGET_LINK_LIBRARIES(${NAME}_test test_util ceres gtest)
+-    ADD_TEST(NAME ${NAME}_test
+-             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME}_test
++    get_filename_component(CERES_TESTS_DATA
++                           "${CMAKE_CURRENT_SOURCE_DIR}/../../data"
++                           ABSOLUTE)
++
++    ADD_EXECUTABLE(ceres_${NAME}_test ${NAME}_test.cc)
++    TARGET_LINK_LIBRARIES(ceres_${NAME}_test test_util ceres gmock_gtest)
++    SET_TARGET_PROPERTIES(ceres_${NAME}_test PROPERTIES
++       RUNTIME_OUTPUT_DIRECTORY         ${LIBMV_TESTS_OUTPUT_DIR}/ceres
++       RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBMV_TESTS_OUTPUT_DIR}/ceres
++       RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${LIBMV_TESTS_OUTPUT_DIR}/ceres
++       OUTPUT_NAME ${NAME}_test)
++    ADD_TEST(NAME ceres_${NAME}_test
++             COMMAND ${LIBMV_TESTS_OUTPUT_DIR}/ceres/${NAME}_test
+              --test_srcdir
+-             ${CMAKE_SOURCE_DIR}/data)
++             ${CERES_TESTS_DATA}/data)
+   ENDMACRO (CERES_TEST)
+ 
+   CERES_TEST(array_utils)
