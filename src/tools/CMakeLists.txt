@@ -9,6 +9,7 @@ TARGET_LINK_LIBRARIES(experimental
                       multiview_test_data
                       multiview
                       numeric
+                      ceres
                       pthread
                       gflags
                       glog
