@@ -69,9 +69,9 @@ TEST(Intersect, EuclideanIntersect) {
     reconstruction.InsertCamera(2, R2, t2);
 
     vector<Marker> markers;
-    Marker a = { 1, 0, x1.x(), x1.y() };
+    Marker a = { 1, 0, x1.x(), x1.y(), 1.0 };
     markers.push_back(a);
-    Marker b = { 2, 0, x2.x(), x2.y() };
+    Marker b = { 2, 0, x2.x(), x2.y(), 1.0 };
     markers.push_back(b);
 
     EuclideanIntersect(markers, &reconstruction);
