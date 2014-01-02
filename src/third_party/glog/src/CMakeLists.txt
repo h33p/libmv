@@ -1,8 +1,14 @@
 IF (WIN32)
   INCLUDE_DIRECTORIES(
     windows
-    ../../msinttypes
   )
+
+  IF (NOT MINGW)
+    INCLUDE_DIRECTORIES(
+      ../../msinttypes
+    )
+  ENDIF (NOT MINGW)
+
 ELSE (WIN32)
   INCLUDE_DIRECTORIES(
     .

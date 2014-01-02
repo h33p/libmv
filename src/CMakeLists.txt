@@ -97,6 +97,7 @@ INCLUDE_DIRECTORIES(
   third_party/eigen/unsupported
   third_party/ssba
   third_party/glog/src
+  third_party/gflags
   third_party/OpenExif/src
   third_party/OpenExif/src/OpenExifJpeg
   third_party/ceres/include

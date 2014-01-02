@@ -40,8 +40,8 @@
 #include <cstdio>
 #include <string>
 #include "base/commandlineflags.h"
-#include <glog/logging.h>
-#include <glog/raw_logging.h>
+#include "glog/logging.h"
+#include "glog/raw_logging.h"
 #include "base/googleinit.h"
 
 // glog doesn't have annotation
@@ -61,12 +61,6 @@ GLOG_DEFINE_string(vmodule, "", "per-module verbose level."
 _START_GOOGLE_NAMESPACE_
 
 namespace glog_internal_namespace_ {
-
-// Put protytype here to suppress strict compiler flags
-GOOGLE_GLOG_DLL_DECL bool SafeFNMatch_(const char* pattern,
-                                       size_t patt_len,
-                                       const char* str,
-                                       size_t str_len);
 
 // Implementation of fnmatch that does not need 0-termination
 // of arguments and does not allocate any memory,

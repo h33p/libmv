@@ -1,0 +1,173 @@
+diff --git a/src/third_party/glog/src/CMakeLists.txt b/src/third_party/glog/src/CMakeLists.txt
+index 9e7be90..6ba4192 100644
+--- a/src/third_party/glog/src/CMakeLists.txt
++++ b/src/third_party/glog/src/CMakeLists.txt
+@@ -1,8 +1,14 @@
+ IF (WIN32)
+   INCLUDE_DIRECTORIES(
+     windows
+-    ../../msinttypes
+   )
++
++  IF (NOT MINGW)
++    INCLUDE_DIRECTORIES(
++      ../../msinttypes
++    )
++  ENDIF (NOT MINGW)
++
+ ELSE (WIN32)
+   INCLUDE_DIRECTORIES(
+     .
+diff --git a/src/third_party/glog/src/glog/logging.h b/src/third_party/glog/src/glog/logging.h
+index 11c92e2..247c046 100644
+--- a/src/third_party/glog/src/glog/logging.h
++++ b/src/third_party/glog/src/glog/logging.h
+@@ -33,6 +33,10 @@
+ // Pretty much everybody needs to #include this file so that they can
+ // log various happenings.
+ //
++#ifdef WIN32
++#  include "windows/glog/logging.h"
++#else  // WIN32
++
+ #ifndef _LOGGING_H_
+ #define _LOGGING_H_
+ 
+@@ -1601,3 +1605,5 @@ GOOGLE_GLOG_DLL_DECL void InstallFailureWriter(
+ }
+ 
+ #endif // _LOGGING_H_
++
++#endif  // WIN32
+diff --git a/src/third_party/glog/src/glog/raw_logging.h b/src/third_party/glog/src/glog/raw_logging.h
+index 65278f6..b030f7f 100644
+--- a/src/third_party/glog/src/glog/raw_logging.h
++++ b/src/third_party/glog/src/glog/raw_logging.h
+@@ -33,6 +33,10 @@
+ // acquire any locks, and can therefore be used by low-level memory
+ // allocation and synchronization code.
+ 
++#ifdef WIN32
++#  include "windows/glog/raw_logging.h"
++#else  // WIN32
++
+ #ifndef BASE_RAW_LOGGING_H_
+ #define BASE_RAW_LOGGING_H_
+ 
+@@ -183,3 +187,5 @@ GOOGLE_GLOG_DLL_DECL void RawLog__SetLastTime(const struct tm& t, int usecs);
+ }
+ 
+ #endif  // BASE_RAW_LOGGING_H_
++
++#endif  // WIN32
+diff --git a/src/third_party/glog/src/logging.cc b/src/third_party/glog/src/logging.cc
+index 81d966f..d78677d 100644
+--- a/src/third_party/glog/src/logging.cc
++++ b/src/third_party/glog/src/logging.cc
+@@ -1454,7 +1454,7 @@ static void logging_fail() {
+ #if defined(_DEBUG) && defined(_MSC_VER)
+   // When debugging on windows, avoid the obnoxious dialog and make
+   // it possible to continue past a LOG(FATAL) in the debugger
+-  _asm int 3
++  __debugbreak();
+ #else
+   abort();
+ #endif
+diff --git a/src/third_party/glog/src/utilities.h b/src/third_party/glog/src/utilities.h
+index 5f79968..4f41c92 100644
+--- a/src/third_party/glog/src/utilities.h
++++ b/src/third_party/glog/src/utilities.h
+@@ -101,7 +101,9 @@
+ // correctly when GetStackTrace() is called with max_depth == 0.
+ // Some code may do that.
+ 
+-#if defined(HAVE_LIB_UNWIND)
++#if defined(__MINGW32__) || defined(__FreeBSD__)
++# undef STACKTRACE_H
++#elif defined(HAVE_LIB_UNWIND)
+ # define STACKTRACE_H "stacktrace_libunwind-inl.h"
+ #elif !defined(NO_FRAME_POINTER)
+ # if defined(__i386__) && __GNUC__ >= 2
+diff --git a/src/third_party/glog/src/windows/config.h b/src/third_party/glog/src/windows/config.h
+index 2d23fb0..9fb3cc5 100644
+--- a/src/third_party/glog/src/windows/config.h
++++ b/src/third_party/glog/src/windows/config.h
+@@ -1,5 +1,8 @@
+ /* src/config.h.in.  Generated from configure.ac by autoheader.  */
+ 
++/* define if you have google gflags library */
++#define HAVE_LIB_GFLAGS 1
++
+ /* Namespace for Google classes */
+ #define GOOGLE_NAMESPACE google
+ 
+diff --git a/src/third_party/glog/src/windows/glog/logging.h b/src/third_party/glog/src/windows/glog/logging.h
+index bab8c61..db92913 100644
+--- a/src/third_party/glog/src/windows/glog/logging.h
++++ b/src/third_party/glog/src/windows/glog/logging.h
+@@ -85,10 +85,19 @@
+ #include <inttypes.h>           // a third place for uint16_t or u_int16_t
+ #endif
+ 
+-#if 0
++#if HAVE_LIB_GFLAGS
+ #include <gflags/gflags.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#  include <stdlib.h>
++#  include <unistd.h>
++#  include <stdint.h>             // the normal place uint16_t is defined
++#  include <sys/types.h>          // the normal place u_int16_t is defined
++#  include <inttypes.h>           // a third place for uint16_t or u_int16_t
++#  define _exit(x) exit(x)
++#endif
++
+ namespace google {
+ 
+ #if 0      // the C99 format
+diff --git a/src/third_party/glog/src/windows/port.h b/src/third_party/glog/src/windows/port.h
+index 24d7677..4879cbf 100644
+--- a/src/third_party/glog/src/windows/port.h
++++ b/src/third_party/glog/src/windows/port.h
+@@ -129,6 +129,9 @@ extern int safe_vsnprintf(char *str, size_t size,
+ typedef int pid_t;
+ #define getpid  _getpid
+ 
++#include <BaseTsd.h>
++typedef SSIZE_T ssize_t;
++
+ #endif  // _MSC_VER
+ 
+ // ----------------------------------- THREADS
+@@ -140,13 +143,30 @@ enum { PTHREAD_ONCE_INIT = 0 };   // important that this be 0! for SpinLock
+ #define pthread_equal(pthread_t_1, pthread_t_2)  ((pthread_t_1)==(pthread_t_2))
+ 
+ inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
++#if __MINGW32__
++   struct tm *local_result;
++   local_result = localtime (timep);
++
++   if (local_result == NULL || result == NULL)
++     return NULL;
++
++   memcpy (result, local_result, sizeof (result));
++
++   return result;
++#else
+   localtime_s(result, timep);
+   return result;
++#endif
+ }
+ 
+ inline char* strerror_r(int errnum, char* buf, size_t buflen) {
++#if __MINGW32__
++  strncpy(buf, "Not implemented yet", buflen);
++  return buf;
++#else
+   strerror_s(buf, buflen, errnum);
+   return buf;
++#endif
+ }
+ 
+ #ifndef __cplusplus
