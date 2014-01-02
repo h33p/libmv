@@ -27,8 +27,7 @@
 #include "libmv/numeric/numeric.h"
 #include "libmv/logging/logging.h"
 
-namespace {
-using namespace libmv;
+namespace libmv {
 
 TEST(Intersect, EuclideanIntersect) {
   Mat3 K1 = Mat3::Identity();

@@ -86,7 +86,8 @@ UncalibratedReconstructor::UncalibratedReconstructor(int width,
 
   LG << "Complete the projective reconstruction.";
   getchar();
-  ProjectiveCompleteReconstruction(normalized_tracks_, &projective_reconstruction_);
+  ProjectiveCompleteReconstruction(normalized_tracks_,
+                                   &projective_reconstruction_);
   ProjectiveReprojectionError(normalized_tracks_,
                               projective_reconstruction_,
                               default_intrinsics);
