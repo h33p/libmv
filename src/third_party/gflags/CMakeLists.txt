@@ -12,4 +12,10 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 ADD_LIBRARY(gflags gflags.cc gflags_reporting.cc gflags_completions.cc)
 TARGET_LINK_LIBRARIES(gflags pthread)
 
+INSTALL(TARGETS gflags
+        EXPORT  CeresExport
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib${LIB_SUFFIX}
+        ARCHIVE DESTINATION lib${LIB_SUFFIX})
+
 LIBMV_INSTALL_THIRD_PARTY_LIB(gflags)

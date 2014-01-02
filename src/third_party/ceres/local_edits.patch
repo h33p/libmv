@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 521684c..4f88737 100644
+index 521684c..033ae41 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -63,9 +63,6 @@ IF (EXISTS ${LOCAL_GIT_DIRECTORY})
@@ -51,6 +51,15 @@ index 521684c..4f88737 100644
                 "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake" @ONLY)
  
  # Install these files into the same directory as the generated exports-file,
+@@ -718,6 +717,6 @@ CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+ # in the public API of Ceres and should thus be present in CERES_INCLUDE_DIRS.
+ INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake"
+               "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake"
+-              "${CMAKE_SOURCE_DIR}/cmake/FindEigen.cmake"
+-              "${CMAKE_SOURCE_DIR}/cmake/FindGlog.cmake"
++              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindEigen.cmake"
++              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindGlog.cmake"
+         DESTINATION ${RELATIVE_CMAKECONFIG_INSTALL_DIR})
 diff --git a/internal/ceres/CMakeLists.txt b/internal/ceres/CMakeLists.txt
 index 87faf2b..95f1c3c 100644
 --- a/internal/ceres/CMakeLists.txt

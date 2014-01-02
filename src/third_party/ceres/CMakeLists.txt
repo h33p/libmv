@@ -717,6 +717,6 @@ CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
 # in the public API of Ceres and should thus be present in CERES_INCLUDE_DIRS.
 INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake"
-              "${CMAKE_SOURCE_DIR}/cmake/FindEigen.cmake"
-              "${CMAKE_SOURCE_DIR}/cmake/FindGlog.cmake"
+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindEigen.cmake"
+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindGlog.cmake"
         DESTINATION ${RELATIVE_CMAKECONFIG_INSTALL_DIR})
