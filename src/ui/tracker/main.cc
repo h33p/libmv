@@ -312,11 +312,23 @@ void MainWindow::toggleUndistort(bool undistort) {
 #endif
 
 void MainWindow::detect() {
-  QImage image = clip_->Image(current_frame_);
+  QImage qt_image = clip_->Image(current_frame_);
+  libmv::FloatImage image;
+  image.Resize(qt_image.width(), qt_image.height(), 1);
+  const unsigned char *bits = qt_image.constBits();
+  for (int y = 0; y < qt_image.height(); y++) {
+    for (int x = 0; x < qt_image.width(); x++)  {
+      image(y, x, 0) = bits[y * qt_image.width() + x] / 255.0;
+    }
+  }
   int count=16;
-  libmv::Feature detected[count];
-  libmv::DetectMORAVEC((libmv::ubyte*)image.constBits(), image.bytesPerLine(), image.width(), image.height(), detected, &count, 32, 0);
-  for(int i=0; i<count; i++) {
+  libmv::DetectOptions options;
+  options.type = libmv::DetectOptions::MORAVEC;
+  options.moravec_max_count = count;
+  options.min_distance = 32;
+  libmv::vector<libmv::Feature> detected;
+  libmv::Detect(image, options, &detected);
+  for(int i=0; i<detected.size(); i++) {
     tracker_->AddTrack(detected[i].x, detected[i].y );
   }
 }
