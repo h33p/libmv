@@ -405,7 +405,7 @@ void EuclideanBundleCommonIntrinsics(const Tracks &tracks,
 
       if (bundle_constraints & BUNDLE_NO_TRANSLATION) {
         problem.SetParameterization(current_camera_R_t,
-                                  constant_translation_parameterization);
+                                    constant_translation_parameterization);
       }
     }
 
