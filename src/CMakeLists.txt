@@ -80,6 +80,8 @@ INCLUDE_DIRECTORIES(
   .
 )
 
+OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
+
 # Add third_party directory before rest of include directories so
 # there're no possible conflict in headers.
 #
@@ -117,7 +119,6 @@ IF (APPLE)
   )
 ENDIF (APPLE)
 
-OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
 
 ADD_SUBDIRECTORY(libmv)
 
