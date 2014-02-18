@@ -663,7 +663,7 @@ IF (MINIGLOG)
           DESTINATION include/ceres/internal/miniglog/glog)
 ENDIF (MINIGLOG)
 
-IF (EXISTS "${CMAKE_SOURCE_DIR}/cmake")
+IF (EXISTS "${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in")
   # Add an uninstall target to remove all installed files.
   CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
                  "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
