@@ -67,7 +67,8 @@ IF(MSVC)
   SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBMV_BINARY_DIR})
 ENDIF(MSVC)
 
-# To build shared libs
+OPTION(WITH_SYSTEM_CERES "Use the system Ceres library instead of bundled one" OFF)
+OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
 OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." ON)
 
 INCLUDE(ConfigureBuild)
@@ -75,12 +76,20 @@ INCLUDE(Documentation)
 INCLUDE(Installation)
 INCLUDE(Testing)
 
+IF(WITH_SYSTEM_CERES)
+  find_package(Ceres)
+  IF(NOT CERES_FOUND)
+    MESSAGE(FATAL_ERROR "Unable to find Ceres installed in your system!")
+  ENDIF(NOT CERES_FOUND)
+ELSE(WITH_SYSTEM_CERES)
+  SET(CERES_INCLUDE_DIRS third_party/ceres/include)
+  SET(CERES_LIBRARIES ceres)
+ENDIF(WITH_SYSTEM_CERES)
+
 # All common includ edirectories
 INCLUDE_DIRECTORIES(
   .
 )
-
-OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
 
 # Add third_party directory before rest of include directories so
 # there're no possible conflict in headers.
@@ -100,7 +109,7 @@ INCLUDE_DIRECTORIES(
   third_party/gflags
   third_party/OpenExif/src
   third_party/OpenExif/src/OpenExifJpeg
-  third_party/ceres/include
+  ${CERES_INCLUDE_DIRS}
 )
 
 IF (WIN32)

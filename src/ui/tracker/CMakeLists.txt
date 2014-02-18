@@ -15,5 +15,5 @@ TARGET_LINK_LIBRARIES(qt-tracker
                       tracking
                       multiview
                       image
-                      ceres)
+                      ${CERES_LIBRARIES})
 LIBMV_INSTALL_EXE(qt-tracker)
