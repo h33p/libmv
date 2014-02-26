@@ -62,6 +62,8 @@ _START_GOOGLE_NAMESPACE_
 
 namespace glog_internal_namespace_ {
 
+namespace {
+
 // Implementation of fnmatch that does not need 0-termination
 // of arguments and does not allocate any memory,
 // but we only support "*" and "?" wildcards, not the "[...]" patterns.
@@ -94,6 +96,8 @@ GOOGLE_GLOG_DLL_DECL bool SafeFNMatch_(const char* pattern,
     return false;
   }
 }
+
+}  // namespace
 
 }  // namespace glog_internal_namespace_
 

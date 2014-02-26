@@ -301,7 +301,7 @@ WORD GetColorAttribute(GLogColor color) {
 #else
 
 // Returns the ANSI color code for the given color.
-const char* GetAnsiColorCode(GLogColor color) {
+static const char* GetAnsiColorCode(GLogColor color) {
   switch (color) {
   case COLOR_RED:     return "1";
   case COLOR_GREEN:   return "2";
@@ -1663,6 +1663,8 @@ void LogToStderr() {
 namespace base {
 namespace internal {
 
+namespace {
+
 bool GetExitOnDFatal() {
   MutexLock l(&log_mutex);
   return exit_on_dfatal;
@@ -1682,6 +1684,8 @@ void SetExitOnDFatal(bool value) {
   MutexLock l(&log_mutex);
   exit_on_dfatal = value;
 }
+
+}  // namespace
 
 }  // namespace internal
 }  // namespace base
