@@ -116,8 +116,10 @@ void RotateImage(const FloatImage &image_in,
   Hr << cos(angle), -sin(angle),  0,
         sin(angle),  cos(angle),  0,
                0,           0,    1;
-  Ht << 1, 0, -image_in.Height()/2.0,
-        0, 1, -image_in.Width()/2.0,
+  // Add an offset of 0.5 pixels to be sure we're rotating
+  // the image around the middle of the pixel.
+  Ht << 1, 0, -image_in.Height() / 2.0 + 0.5,
+        0, 1, -image_in.Width() / 2.0 + 0.5,
         0, 0,  1;
   H = Ht.inverse() * Hr * Ht;
   if (adapt_img_size) {

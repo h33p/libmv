@@ -28,7 +28,6 @@
 #include "testing/testing.h"
 
 using namespace libmv;
-
 /** 
  * Methods to test:
  * 
@@ -40,7 +39,7 @@ using namespace libmv;
 
 // Assert that pixels was drawn at the good place
 TEST(ImageTransform, RotateImage90) {
-  const int w = 10, h = 10;
+  const int w = 11, h = 11;
   FloatImage image(h, w);
   image.Fill(0);
 
@@ -82,6 +81,36 @@ TEST(ImageTransform, RotateImage90) {
   }
 }
 
+TEST(ImageTransform, RotateImage90CornerOddSize) {
+  // Here we test that rotating odd sized image happens
+  // exactly around it's center.
+
+  const int w = 11, h = 11;
+
+  FloatImage image(h, w);
+  image.Fill(0);
+  image(1, 1) = 1.0;
+  WriteImage(image, "i.png");
+
+  FloatImage image_rot(h, w);
+  image_rot.Fill(0);
+
+  RotateImage(image, M_PI / 2.0, &image_rot, false);
+  EXPECT_EQ(1.0, image_rot(1, w - 2));
+  image = image_rot;
+
+  RotateImage(image, M_PI / 2.0, &image_rot, false);
+  EXPECT_EQ(1.0, image_rot(h - 2, w - 2));
+  image = image_rot;
+
+  RotateImage(image, M_PI / 2.0, &image_rot, false);
+  EXPECT_EQ(1.0, image_rot(h - 2, 1));
+  image = image_rot;
+
+  RotateImage(image, M_PI / 2.0, &image_rot, false);
+  EXPECT_EQ(1.0, image_rot(1, 1));
+}
+
 // Assert that pixels was drawn at the good place
 TEST(ImageTransform, TranslateImage) {
   const int w = 10, h = 10;
@@ -114,7 +143,7 @@ TEST(ImageTransform, TranslateImage) {
 // Lines with a given angle +/-45°
 // Assert that pixels was drawn at the good place
 TEST(ImageTransform, RotateImage45) {
-  const int w = 10, h = 10;
+  const int w = 11, h = 11;
   FloatImage image(h, w);
   image.Fill(0);
 
@@ -151,21 +180,23 @@ TEST(ImageTransform, RescaleImageTranslation) {
   Mat3 Hreg;
   Vec4i bbox;
 
-  const int dx = 2, dy = -7;
+  const int dx = -2, dy = -7;
   H << 1, 0, dx,
        0, 1, dy,
        0, 0, 1;
   // TODO(julien) Test with random affine transformations
   ResizeImage(image_size, H, &image_rs, &Hreg, &bbox);
 
-  EXPECT_EQ(image_rs.Width(),  w + dx);
-  EXPECT_EQ(image_rs.Height(), h + dy);
-  EXPECT_EQ(image_rs.Depth(), 1);
+  // Translation doesn't change image dimensions.
+  EXPECT_EQ(image.Width(), image_rs.Width());
+  EXPECT_EQ(image.Height(), image_rs.Height());
+  EXPECT_EQ(1, image_rs.Depth());
 
-  EXPECT_EQ(bbox(0), std::min(0, dx));
-  EXPECT_EQ(bbox(1), w + dx);
-  EXPECT_EQ(bbox(2), std::min(0, dy));
-  EXPECT_EQ(bbox(3), h + dy);
+  EXPECT_EQ(dx, bbox(0));
+  EXPECT_EQ(w + dx, bbox(1));
+  EXPECT_EQ(dy, bbox(2));
+  EXPECT_EQ(h + dy, bbox(3));
 
-  EXPECT_MATRIX_EQ(Hreg, H);
+  // TODO(sergey): Doublecheck registration is indeed identity here.
+  EXPECT_MATRIX_EQ(Mat3::Identity(), Hreg);
 }
