@@ -23,6 +23,8 @@
 #include <iostream>
 
 #include "testing/testing.h"
+#include "libmv/image/image.h"
+#include "libmv/image/image_drawing.h"
 #include "libmv/logging/logging.h"
 
 namespace libmv {
@@ -168,6 +170,68 @@ TEST(PolynomialCameraIntrinsics, ApplyIsInvertibleSimple) {
       EXPECT_NEAR(y, yp, 1e-8) << "x: " << x;
       LG << "Error x: " << (x - xp);
       LG << "Error y: " << (y - yp);
+    }
+  }
+}
+
+TEST(PolynomialCameraIntrinsics, IdentityDistortBuffer) {
+  const int w = 101, h = 101;
+  FloatImage image(h, w);
+  image.Fill(0);
+
+  DrawLine(0.0, h / 2.0, w - 1, h / 2.0, 1.0, &image);
+  DrawLine(0.0, h / 4.0, w - 1, h / 4.0, 1.0, &image);
+  DrawLine(0.0, h / 4.0 * 3.0, w - 1.0, h / 4.0 * 3.0, 1.0, &image);
+  DrawLine(w / 2.0, 0.0, w / 2.0, h - 1.0, 1.0, &image);
+  DrawLine(w / 4.0, 0.0, w / 4.0, h - 1.0, 1.0, &image);
+  DrawLine(w / 4.0 * 3.0, 0.0, w / 4.0 * 3.0, h - 1.0, 1.0, &image);
+
+  PolynomialCameraIntrinsics intrinsics;
+  FloatImage distorted_image(h, w);
+  intrinsics.SetImageSize(w, h);
+  intrinsics.SetFocalLength(10.0, 10.0);
+  intrinsics.SetPrincipalPoint((double) w / 2.0, (double) h / 2.0);
+  intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
+  intrinsics.DistortBuffer(image.Data(),
+                           image.Width(), image.Height(),
+                           0.0,
+                           image.Depth(),
+                           distorted_image.Data());
+
+  for (int x = 0; x < image.Width(); ++x) {
+    for (int y = 0; y < image.Height(); ++y) {
+      EXPECT_EQ(image(y, x), distorted_image(y, x));
+    }
+  }
+}
+
+TEST(PolynomialCameraIntrinsics, IdentityUndistortBuffer) {
+  const int w = 101, h = 101;
+  FloatImage image(h, w);
+  image.Fill(0);
+
+  DrawLine(0.0, h / 2.0, w - 1, h / 2.0, 1.0, &image);
+  DrawLine(0.0, h / 4.0, w - 1, h / 4.0, 1.0, &image);
+  DrawLine(0.0, h / 4.0 * 3.0, w - 1.0, h / 4.0 * 3.0, 1.0, &image);
+  DrawLine(w / 2.0, 0.0, w / 2.0, h - 1.0, 1.0, &image);
+  DrawLine(w / 4.0, 0.0, w / 4.0, h - 1.0, 1.0, &image);
+  DrawLine(w / 4.0 * 3.0, 0.0, w / 4.0 * 3.0, h - 1.0, 1.0, &image);
+
+  PolynomialCameraIntrinsics intrinsics;
+  FloatImage distorted_image(h, w);
+  intrinsics.SetImageSize(w, h);
+  intrinsics.SetFocalLength(10.0, 10.0);
+  intrinsics.SetPrincipalPoint((double) w / 2.0, (double) h / 2.0);
+  intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
+  intrinsics.UndistortBuffer(image.Data(),
+                             image.Width(), image.Height(),
+                             0.0,
+                             image.Depth(),
+                             distorted_image.Data());
+
+  for (int x = 0; x < image.Width(); ++x) {
+    for (int y = 0; y < image.Height(); ++y) {
+      EXPECT_EQ(image(y, x), distorted_image(y, x));
     }
   }
 }
