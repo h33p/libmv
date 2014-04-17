@@ -30,7 +30,8 @@
 #include <QWidget>
 class QDoubleSpinBox;
 
-class Calibration : public QWidget, public libmv::CameraIntrinsics {
+class Calibration
+    : public QWidget, public libmv::PolynomialCameraIntrinsics {
   Q_OBJECT
  public:
   Calibration(QString path, QSize size);

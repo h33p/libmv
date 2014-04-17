@@ -23,7 +23,7 @@
 
 namespace libmv {
 
-class CameraIntrinsics;
+class PolynomialCameraIntrinsics;
 class EuclideanReconstruction;
 class ProjectiveReconstruction;
 
@@ -44,7 +44,7 @@ void UpgradeProjectiveReconstructionToEuclidean(
     int keyframe2,
     const ProjectiveReconstruction &projective_reconstruction,
     EuclideanReconstruction *euclidean_reconstruction,
-    CameraIntrinsics *camera_intrinsics);
+    PolynomialCameraIntrinsics *camera_intrinsics);
 
 }  // namespace libmv
 

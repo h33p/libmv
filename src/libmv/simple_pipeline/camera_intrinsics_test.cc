@@ -27,8 +27,8 @@
 
 namespace libmv {
 
-TEST(CameraIntrinsics, ApplyOnFocalCenter) {
-  CameraIntrinsics intrinsics;
+TEST(PolynomialCameraIntrinsics2, ApplyOnFocalCenter) {
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
   intrinsics.SetRadialDistortion(-0.2, -0.1, -0.05);
@@ -40,8 +40,8 @@ TEST(CameraIntrinsics, ApplyOnFocalCenter) {
   EXPECT_NEAR(540.0, distorted_y, 1e-8);
 }
 
-TEST(CameraIntrinsics, InvertOnFocalCenter) {
-  CameraIntrinsics intrinsics;
+TEST(PolynomialCameraIntrinsics, InvertOnFocalCenter) {
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
   intrinsics.SetRadialDistortion(-0.2, -0.1, -0.05);
@@ -53,7 +53,7 @@ TEST(CameraIntrinsics, InvertOnFocalCenter) {
   EXPECT_NEAR(0.0, normalized_y, 1e-8);
 }
 
-TEST(CameraIntrinsics, ApplyIntrinsics) {
+TEST(PolynomialCameraIntrinsics, ApplyIntrinsics) {
   const int N = 5;
 
   double expected[N][N][2] = {
@@ -78,7 +78,7 @@ TEST(CameraIntrinsics, ApplyIntrinsics) {
         {1204.687500, 1104.687500}}
     };
 
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
   intrinsics.SetRadialDistortion(-0.2, -0.1, -0.05);
@@ -100,7 +100,7 @@ TEST(CameraIntrinsics, ApplyIntrinsics) {
   }
 }
 
-TEST(CameraIntrinsics, InvertIntrinsics) {
+TEST(PolynomialCameraIntrinsics, InvertIntrinsics) {
   const int N = 5;
 
   double expected[N][N][2] = {
@@ -125,7 +125,7 @@ TEST(CameraIntrinsics, InvertIntrinsics) {
         { 0.684740, 0.584043}}
     };
 
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(600.0, 500.0);
   intrinsics.SetRadialDistortion(-0.2, -0.1, -0.05);
@@ -148,8 +148,8 @@ TEST(CameraIntrinsics, InvertIntrinsics) {
   }
 }
 
-TEST(CameraIntrinsics, ApplyIsInvertibleSimple) {
-  CameraIntrinsics intrinsics;
+TEST(PolynomialCameraIntrinsics, ApplyIsInvertibleSimple) {
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
   intrinsics.SetRadialDistortion(-0.2, -0.1, -0.05);

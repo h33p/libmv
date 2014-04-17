@@ -1,5 +1,6 @@
 SET(SIMPLE_PIPELINE_SRC
     detect.cc
+    distortion_models.cc
     resect.cc
     intersect.cc
     bundle.cc

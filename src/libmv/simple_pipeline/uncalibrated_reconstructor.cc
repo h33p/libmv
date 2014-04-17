@@ -79,7 +79,7 @@ UncalibratedReconstructor::UncalibratedReconstructor(int width,
   vector<Marker> initial_markers =
       normalized_tracks_.MarkersForTracksInBothImages(keyframe1, keyframe2);
   ProjectiveReconstructTwoFrames(initial_markers, &projective_reconstruction_);
-  CameraIntrinsics default_intrinsics;
+  PolynomialCameraIntrinsics default_intrinsics;
   ProjectiveReprojectionError(normalized_tracks_,
                               projective_reconstruction_,
                               default_intrinsics);

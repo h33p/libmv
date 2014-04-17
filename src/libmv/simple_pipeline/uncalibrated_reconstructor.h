@@ -75,7 +75,7 @@ class UncalibratedReconstructor {
 
   EuclideanReconstruction euclidean_reconstruction_;
 
-  CameraIntrinsics camera_intrinsics_;
+  PolynomialCameraIntrinsics camera_intrinsics_;
 
   Mat3 normalizer_matrix_;
 };

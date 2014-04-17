@@ -39,7 +39,8 @@ struct Parameter {
   double value;
 };
 
-Calibration::Calibration(QString path, QSize size) : CameraIntrinsics(), path_(path) {
+Calibration::Calibration(QString path, QSize size)
+    : PolynomialCameraIntrinsics(), path_(path) {
   setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
 
   const int kCount = 11;

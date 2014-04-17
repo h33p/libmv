@@ -29,7 +29,7 @@ namespace libmv {
 // Synthetic test, N markers with the same translation
 // Should not be keyframe
 TEST(KeyframeSelection, SyntheticNeighborFrame) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(900.0,900.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
@@ -61,7 +61,7 @@ TEST(KeyframeSelection, SyntheticNeighborFrame) {
 // Frames 1 and 2 of FabrikEingang footage
 // Only one wall is tracked, should not be keyframes
 TEST(KeyframeSelection, FabrikEingangNeighborFrames) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1605.797, 1605.797);
   intrinsics.SetPrincipalPoint(960.000, 544.000);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
@@ -103,7 +103,7 @@ TEST(KeyframeSelection, FabrikEingangNeighborFrames) {
 // Frames 120 and 200 from FabrikEingang footage
 // Should be enough of parallax for keyframing
 TEST(KeyframeSelection, FabrikEingangFarFrames) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1605.797, 1605.797);
   intrinsics.SetPrincipalPoint(960.000, 544.000);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
@@ -138,7 +138,7 @@ TEST(KeyframeSelection, FabrikEingangFarFrames) {
 // Manually selected keyframes from copter footage from Sebastian
 // Keyframes were 167 and 237
 TEST(KeyframeSelection, CopterManualKeyFrames) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1155.043, 1155.043);
   intrinsics.SetPrincipalPoint(640.000, 360.000);
   intrinsics.SetRadialDistortion(-0.08590, 0.0, 0.0);
@@ -174,7 +174,7 @@ TEST(KeyframeSelection, CopterManualKeyFrames) {
 // and manual outlier elimination and manual keyframe selection
 // Selected keyframes were 29 and 41
 TEST(KeyframeSelection, ElevatorManualKeyframesFrames) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1380.000, 1380.000);
   intrinsics.SetPrincipalPoint(960.000, 540.000);
   intrinsics.SetRadialDistortion(-0.034, 0.0, 0.0);
@@ -243,7 +243,7 @@ TEST(KeyframeSelection, ElevatorManualKeyframesFrames) {
 
 // Elevator scene MMI_2366 with manual tracks, frames 1, 2, 3, 5 and 27
 TEST(KeyframeSelection, ElevatorReconstructionVarianceTest) {
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1380.000, 1380.000);
   intrinsics.SetPrincipalPoint(960.000, 540.000);
   intrinsics.SetRadialDistortion(-0.034, 0.0, 0.0);

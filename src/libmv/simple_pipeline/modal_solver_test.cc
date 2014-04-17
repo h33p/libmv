@@ -32,7 +32,7 @@ namespace libmv {
 TEST(ModalSolver, SyntheticCubeSceneMotion) {
   double kTolerance = 1e-8;
 
-  CameraIntrinsics intrinsics;
+  PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(658.286, 658.286);
   intrinsics.SetPrincipalPoint(480.0, 270.0);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
