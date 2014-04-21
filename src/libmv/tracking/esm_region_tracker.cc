@@ -283,8 +283,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
       // for sanity.
       double correlation = PearsonProductMomentCorrelation(
               image_and_gradient1_sampled,
-              image_and_gradient2_sampled[new_image],
-              width);
+              image_and_gradient2_sampled[new_image]);
       LG << "Final correlation: " << correlation;
 
       // Note: Do the comparison here to handle nan's correctly (since all
