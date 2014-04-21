@@ -70,8 +70,8 @@ void ResizeImage(const Vec2u &image_size,
     bbox_ptr = &bbox_loc;
 
   ComputeBoundingBox(image_size, H, bbox_ptr);
-  assert((*bbox_ptr)(1) < (*bbox_ptr)(0));
-  assert((*bbox_ptr)(3) < (*bbox_ptr)(2));
+  assert((*bbox_ptr)(0) < (*bbox_ptr)(1));
+  assert((*bbox_ptr)(2) < (*bbox_ptr)(3));
 
   const unsigned int w = (*bbox_ptr)(1) - (*bbox_ptr)(0);
   const unsigned int h = (*bbox_ptr)(3) - (*bbox_ptr)(2);
