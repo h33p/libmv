@@ -28,7 +28,7 @@
 
 namespace mv {
 
-using libmv::Vec2f
+using libmv::Vec2f;
 
 // A marker is the 2D location of a tracked region (quad) in an image.
 // Note that some of this information could be normalized by having a

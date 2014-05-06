@@ -20,38 +20,33 @@
 //
 // Author: mierle@gmail.com (Keir Mierle)
 
-#ifndef LIBMV_AUTOTRACK_QUAD_H_
-#define LIBMV_AUTOTRACK_QUAD_H_
+#include "libmv/autotrack/tracks.h"
 
-#include <Eigen/Core>
+#include "testing/testing.h"
+#include "libmv/logging/logging.h"
 
 namespace mv {
 
-template<typename T, int D>
-struct Quad {
-  // A quad is 4 points; generally in 2D or 3D.
-  //
-  //    +----------> x
-  //    |\.
-  //    | \.
-  //    |  z (z goes into screen)
-  //    |   
-  //    |     r0----->r1
-  //    |      ^       |
-  //    |      |   .   |
-  //    |      |       V
-  //    |     r3<-----r2
-  //    |              \.
-  //    |               \.
-  //    v                normal goes away (right handed).
-  //    y   
-  //
-  // Each row is one of the corners coordinates; either (x, y) or (x, y, z).
-  Eigen::Matrix<T, 4, D> coordinates;
-};
+TEST(Tracks, MaxFrame) {
+  Marker marker;
+  Tracks tracks;
 
-typedef Quad<float, 2> Quad2Df;
+  // Add some markers to clip 0.
+  marker.clip = 0;
+  marker.frame = 1;
+  tracks.AddMarker(marker);
+
+  // Add some markers to clip 1.
+  marker.clip = 1;
+  marker.frame = 1;
+  tracks.AddMarker(marker);
+
+  marker.clip = 1;
+  marker.frame = 12;
+  tracks.AddMarker(marker);
+
+  EXPECT_EQ(1, tracks.MaxFrame(0));
+  EXPECT_EQ(12, tracks.MaxFrame(1));
+}
 
 }  // namespace mv
-
-#endif  // LIBMV_AUTOTRACK_QUAD_H_

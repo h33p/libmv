@@ -37,9 +37,10 @@ class Tracks {
   Tracks(const Tracks &other);
 
   // Create a tracks object with markers already initialized. Copies markers.
-  explicit Tracks(const vector<Marker> &markers);
+  explicit Tracks(const vector<Marker>& markers);
 
   // All getters append to the output argument vector.
+  bool GetMarker(int clip, int frame, int track, Marker* marker) const;
   void GetMarkersForTrack(int track, vector<Marker>* markers) const;
   void GetMarkersInFrame(int clip, int frame, vector<Marker>* markers) const;
 
@@ -52,8 +53,7 @@ class Tracks {
                                        vector<Marker>* markers) const;
 
   void AddMarker(const Marker& marker);
-  void GetMarker(int clip, int frame, int track, Marker* marker) const;
-  void RemoveMarker(int clip, int frame, int track);
+  bool RemoveMarker(int clip, int frame, int track);
   void RemoveMarkersForTrack(int track);
 
   int MaxClip() const;
