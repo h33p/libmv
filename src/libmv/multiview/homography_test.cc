@@ -26,6 +26,27 @@
 namespace {
 using namespace libmv;
 
+namespace {
+
+// Check whether homography transform M actually transforms
+// given vectors x1 to x2. Used to check validness of a reconstructed
+// homography matrix.
+// TODO(sergey): Consider using this in all tests since possible homography
+// matrix is not fixed to a single value and different-looking matrices
+// might actually crrespond to the same exact transform.
+void CheckHomography2DTransform(const Mat3 &H,
+                                const Mat &x1,
+                                const Mat &x2) {
+  for (int i = 0; i < x2.cols(); ++i) {
+    Vec3 x2_expected = x2.col(i);
+    Vec3 x2_observed = H * x1.col(i);
+    x2_observed /= x2_observed(2);
+    EXPECT_MATRIX_NEAR(x2_expected, x2_observed, 1e-8);
+  }
+}
+
+}  // namespace
+
 TEST(Homography2DTest, Rotation45AndTranslationXY) {
   Mat x1(3, 4);
   x1 <<  0, 1, 0, 5,
@@ -52,9 +73,6 @@ TEST(Homography2DTest, Rotation45AndTranslationXY) {
   EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
 }
 
-// TODO(nathanwiegand): This test currently fails. We should really consider
-// simplifying the tests or at least liberally adding comments about what the
-// test should actually do.
 TEST(Homography2DTest, AffineGeneral4) {
   // TODO(julien) find why it doesn't work with 4 points!!!
   Mat x1(3, 4);
@@ -75,7 +93,7 @@ TEST(Homography2DTest, AffineGeneral4) {
   EXPECT_TRUE(Homography2DFromCorrespondencesLinear(x1, x2, &homography_mat));
   VLOG(1) << "Mat Homography2D";
   VLOG(1) << homography_mat;
-  EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
+  CheckHomography2DTransform(homography_mat, x1, x2);
 
   // Test with euclidean coordinates
   Mat eX1, eX2;
@@ -86,7 +104,7 @@ TEST(Homography2DTest, AffineGeneral4) {
 
   VLOG(1) << "Mat Homography2D ";
   VLOG(1) << homography_mat;
-  EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
+  CheckHomography2DTransform(homography_mat, x1, x2);
 }
 
 TEST(Homography2DTest, AffineGeneral5) {
