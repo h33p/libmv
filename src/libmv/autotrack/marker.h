@@ -26,7 +26,9 @@
 #include "libmv/numeric/numeric.h"
 #include "libmv/autotrack/quad.h"
 
-namespace libmv {
+namespace mv {
+
+using libmv::Vec2f
 
 // A marker is the 2D location of a tracked region (quad) in an image.
 // Note that some of this information could be normalized by having a
@@ -96,6 +98,6 @@ struct Marker {
   int reference_frame;
 };
 
-}  // namespace libmv
+}  // namespace mv
 
 #endif  // LIBMV_AUTOTRACK_MARKER_H_

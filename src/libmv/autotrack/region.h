@@ -25,7 +25,9 @@
 
 #include "libmv/numeric/numeric.h"
 
-namespace libmv {
+namespace mv {
+
+using libmv::Vec2i;
 
 // A region is a bounding box within an image.
 //
@@ -50,6 +52,6 @@ struct Region {
   // TODO(keir): Add helpers for width, height, etc.
 };
 
-}  // namespace libmv
+}  // namespace mv
 
 #endif  // LIBMV_AUTOTRACK_MARKER_H_

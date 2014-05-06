@@ -25,7 +25,7 @@
 
 #include "libmv/autotrack/tracks.h"
 
-namespace libmv {
+namespace mv {
 
 class FrameAccessor;
 
@@ -44,6 +44,6 @@ class AutoTrack {
   FrameAccessor* frame_accessor;
 };
 
-}  // namespace libmv
+}  // namespace mv
 
 #endif  // LIBMV_AUTOTRACK_AUTOTRACK_H_

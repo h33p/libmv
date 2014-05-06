@@ -26,7 +26,9 @@
 #include "libmv/base/vector.h"
 #include "libmv/autotrack/marker.h"
 
-namespace libmv {
+namespace mv {
+
+using libmv::vector;
 
 // The Tracks container stores correspondences between frames.
 class Tracks {
@@ -68,6 +70,6 @@ class Tracks {
   // linear lookup penalties for the accessors.
 };
 
-}  // namespace libmv
+}  // namespace mv
 
 #endif  // LIBMV_AUTOTRACK_TRACKS_H_

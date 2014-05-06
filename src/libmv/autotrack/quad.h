@@ -23,9 +23,9 @@
 #ifndef LIBMV_AUTOTRACK_QUAD_H_
 #define LIBMV_AUTOTRACK_QUAD_H_
 
-#include "libmv/numeric/numeric.h"
+#include <Eigen/Core>
 
-namespace libmv {
+namespace mv {
 
 template<typename T, typename D>
 struct Quad {
@@ -52,6 +52,6 @@ struct Quad {
 
 typedef Quad<float, 2> Quad2Df;
 
-}  // namespace libmv
+}  // namespace mv
 
 #endif  // LIBMV_AUTOTRACK_QUAD_H_
