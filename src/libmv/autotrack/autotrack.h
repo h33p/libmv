@@ -23,7 +23,7 @@
 #ifndef LIBMV_AUTOTRACK_AUTOTRACK_H_
 #define LIBMV_AUTOTRACK_AUTOTRACK_H_
 
-#include "libmv/simple_pipleine/tracks.h"
+#include "libmv/autotrack/tracks.h"
 
 namespace libmv {
 
