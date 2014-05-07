@@ -23,9 +23,15 @@
 #ifndef LIBMV_AUTOTRACK_FRAME_ACCESSOR_H_
 #define LIBMV_AUTOTRACK_FRAME_ACCESSOR_H_
 
-namespace libmv {
+#include <stdint.h>
+
+#include "libmv/image/image.h"
+
+namespace mv {
 
 struct Region;
+
+using libmv::FloatImage;
 
 // This is the abstraction to different sources of images that will be part of
 // a reconstruction. These may come from disk or they may come from Blender. In
@@ -36,7 +42,7 @@ struct Region;
 struct FrameAccessor {
   struct Transform {
     // The key should depend on the transform arguments.
-    virtual int64 key() const = 0;
+    virtual int64_t key() const = 0;
 
     // Apply the expected transform. Output is sized correctly already.
     // TODO(keir): What about blurs that need to access pixels outside the ROI?
@@ -51,7 +57,7 @@ struct FrameAccessor {
   };
 
   typedef void* Key;
-  
+
   // Get a possibly-filtered version of a frame of a video. Downscale will
   // cause the input image to get downscaled by 2^downscale for pyramid access.
   // Region is always in original-image coordinates, and describes the
@@ -59,17 +65,17 @@ struct FrameAccessor {
   // to the image before it is returned.
   //
   // When done with an image, you must call ReleaseImage with the returned key.
-  Key GetImage(int clip,
-               int frame,
-               InputMode input_mode,
-               int downscale,
-               const Region& region,
-               const Transform* transform,
-               FloatImage *destination) = 0;
+  virtual Key GetImage(int clip,
+                       int frame,
+                       InputMode input_mode,
+                       int downscale,
+                       const Region& region,
+                       const Transform* transform,
+                       FloatImage *destination) = 0;
 
   // Releases an image from the frame accessor. Non-caching implementations may
   // free the image immediately; others may hold onto the image.
-  void ReleaseImage(CacheKey) = 0;
+  virtual void ReleaseImage(Key) = 0;
 };
 
 }  // namespace libmv
