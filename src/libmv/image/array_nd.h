@@ -90,7 +90,6 @@ class ArrayND : public BaseArray {
 
   /// Create an array of shape s.
   void Resize(const Index &new_shape) {
-    assert(own_data_);
     if (data_ != NULL && shape_ == new_shape) {
       // Don't bother realloacting if the shapes match.
       return;
