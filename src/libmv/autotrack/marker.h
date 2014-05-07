@@ -35,9 +35,9 @@ using libmv::Vec2f;
 // collection of inter-connected structs. Instead the "fat Marker" design below
 // trades memory for data structure simplicity.
 struct Marker {
-  int clip;  // The clip this marker is from.
-  int frame; // The frame within the clip this marker is from.
-  int track; // The track this marker is from.
+  int clip;   // The clip this marker is from.
+  int frame;  // The frame within the clip this marker is from.
+  int track;  // The track this marker is from.
 
   // The center of the marker. This is typically, but not always, the same as
   // the center of the patch.
@@ -46,26 +46,6 @@ struct Marker {
   // A quad defining the part of the image the marker covers. When a marker is
   // used as a reference, the pixel within the patch form the tracking pattern.
   Quad2Df patch;
-
-  // Model related information for non-point tracks.
-  //
-  // Some tracks are on a larger object, such as a plane or a line or perhaps
-  // another primitive (a rectangular prisim). This captures the information
-  // needed to say that for example a collection of markers belongs to model #2
-  // (and model #2 is a plane).
-  enum ModelType {
-    POINT,
-    PLANE,
-    LINE,
-    CUBE
-  };
-  ModelType model_type;
-
-  // The model ID this track (e.g. the second model, which is a plane).
-  int model_id;
-
-  // TODO(keir): Add a "int model_argument" to capture that e.g. a marker is on
-  // the 3rd face of a cube.
 
   // Some markers are less certain than others; the weight determines the
   // amount this marker contributes to the error. 1.0 indicates normal
@@ -96,6 +76,26 @@ struct Marker {
   // For tracked and matched markers, indicates what the reference was.
   int reference_clip;
   int reference_frame;
+
+  // Model related information for non-point tracks.
+  //
+  // Some tracks are on a larger object, such as a plane or a line or perhaps
+  // another primitive (a rectangular prisim). This captures the information
+  // needed to say that for example a collection of markers belongs to model #2
+  // (and model #2 is a plane).
+  enum ModelType {
+    POINT,
+    PLANE,
+    LINE,
+    CUBE
+  };
+  ModelType model_type;
+
+  // The model ID this track (e.g. the second model, which is a plane).
+  int model_id;
+
+  // TODO(keir): Add a "int model_argument" to capture that e.g. a marker is on
+  // the 3rd face of a cube.
 };
 
 }  // namespace mv

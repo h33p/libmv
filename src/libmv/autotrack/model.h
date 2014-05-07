@@ -20,39 +20,25 @@
 //
 // Author: mierle@gmail.com (Keir Mierle)
 
-#ifndef LIBMV_AUTOTRACK_REGION_H_
-#define LIBMV_AUTOTRACK_REGION_H_
+#ifndef LIBMV_AUTOTRACK_MODEL_H_
+#define LIBMV_AUTOTRACK_MODEL_H_
 
 #include "libmv/numeric/numeric.h"
+#include "libmv/autotrack/quad.h"
 
 namespace mv {
 
-using libmv::Vec2i;
+struct Model {
+  enum ModelType {
+    POINT,
+    PLANE,
+    LINE,
+    CUBE
+  };
 
-// A region is a bounding box within an image.
-//
-//    +----------> x
-//    |
-//    |   (min.x, min.y)           (max.x, min.y)
-//    |        +-------------------------+
-//    |        |                         |
-//    |        |                         |
-//    |        |                         |
-//    |        +-------------------------+
-//    v   (min.x, max.y)           (max.x, max.y)
-//    y
-//
-struct Region {
-  Vec2i min;
-  Vec2i max;
-
-  template<typename T>
-  void Offset(const T& offset) {
-    min += offset;
-    max += offset;
-  }
+  // ???
 };
 
 }  // namespace mv
 
-#endif  // LIBMV_AUTOTRACK_REGION_H_
+#endif  // LIBMV_AUTOTRACK_MODEL_H_

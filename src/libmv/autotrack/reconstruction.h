@@ -71,17 +71,17 @@ class Reconstruction {
   }
 
  private:
-   // Indexed by CameraPose::intrinsics. Owns the intrinsics objects.
-   vector<CameraIntrinsics*> camera_intrinsics_;
+  // Indexed by CameraPose::intrinsics. Owns the intrinsics objects.
+  vector<CameraIntrinsics*> camera_intrinsics_;
 
-   // Indexed by Marker::clip then by Marker::frame.
-   vector<vector<CameraPose> > camera_poses_;
+  // Indexed by Marker::clip then by Marker::frame.
+  vector<vector<CameraPose> > camera_poses_;
 
-   // Indexed by Marker::track.
-   vector<Point> points_;
+  // Indexed by Marker::track.
+  vector<Point> points_;
 
-   // Indexed by Marker::model_id. Owns model objects.
-   vector<Model*> models_;
+  // Indexed by Marker::model_id. Owns model objects.
+  vector<Model*> models_;
 };
 
 }  // namespace mv

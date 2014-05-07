@@ -24,8 +24,11 @@
 #define LIBMV_AUTOTRACK_AUTOTRACK_H_
 
 #include "libmv/autotrack/tracks.h"
+#include "libmv/tracking/track_region.h"
 
 namespace mv {
+
+using libmv::TrackRegionOptions;
 
 class FrameAccessor;
 
@@ -54,36 +57,86 @@ class FrameAccessor;
 //                                 options?)
 //
 class AutoTrack {
+  struct Options {
+    // Default configuration for 2D tracking when calling TrackMarkerToFrame().
+    TrackRegionOptions track_region;
+
+    // Default search window for region tracking, in pixels. The origin is the
+    // center of the track, so for a 50x50 track region, the values should be
+    // min = (-25, -25), max = (25, 25).
+    Region search_window;
+  };
 
   // Marker manipulation.
   // Clip manipulation.
 
   // Set the number of clips. These clips will get accessed from the frame
   // accessor, matches between frames found, and a reconstruction created.
-  void SetNumFrames(int clip, int num_frames);
+  //void SetNumFrames(int clip, int num_frames);
 
   // Tracking & Matching
+
+  // Tracks the reference marker into the destination frame. The tracked marker
+  // will get copied into tracked_marker and added to this AutoTrack.
+  //
+  // Caller maintains ownership of *result; AutoTrack does NOT keep a reference.
   void TrackMarkerToFrame(const Marker& reference_marker,
-                          int to_clip, int to_frame,
-                          Marker* tracked_marker);
+                          Marker* tracked_marker,
+                          TrackRegionResult* result);
 
   // TODO(keir): Implement frame matching! This could be very cool for loop
   // closing and connecting across clips.
-  void MatchFrames(int clip1, int frame1, int clip2, int frame2) {}
+  //void MatchFrames(int clip1, int frame1, int clip2, int frame2) {}
 
-  // Reconstruct!
-  // State machine? Have explicit state? Or determine state from existing data?
-  // Probably determine state from existing data.
-  // States
-  //  - No tracks or markers
+  // Reconstruction
+
+  // Create the initial reconstruction,
+  //void FindInitialReconstruction();
+
+  // State machine
+  //
+  // Question: Have explicit state? Or determine state from existing data?
+  // Conclusion: Determine state from existing data.
+  //
+  // Preliminary state thoughts
+  //
+  //  No tracks or markers
+  //  - Tracks empty.
+  //
+  //  Initial tracks found
+  //  - All images have at least 5 tracks
+  //
+  //  Ran RANSAC on tracks to mark inliers / outliers.
+  //  - All images have at least 8 "inlier" tracks
+  //
+  //  Detector matching run to close loops and match across clips
+  //  - At least 5 matching tracks between clips
+  //
+  //  Initial reconstruction found (2 frames)?
+  //  - There exists two cameras with intrinsics / extrinsics
+  //
+  //  Preliminary reconstruction finished
+  //  - Poses for all frames in all clips estimated.
+  //
+  //  Final reconstruction finished
+  //  - Final reconstruction bundle adjusted.
+
+  // For now, expose options directly. In the future this may change.
+  Options options;
 
  private:
   Tracks tracks_;  // May be normalized camera coordinates or raw pixels.
+  //Reconstruction reconstruction_;
+
+  // TODO(keir): Add the motion models here.
+  //vector<MotionModel> motion_models_;
 
   // TODO(keir): Should num_clips and num_frames get moved to FrameAccessor?
+  // TODO(keir): What about masking for clips and frames to prevent various
+  // things like reconstruction or tracking from happening on certain frames?
   FrameAccessor* frame_accessor_;
-  int num_clips_;
-  vector<int> num_frames_;  // Indexed by clip.
+  //int num_clips_;
+  //vector<int> num_frames_;  // Indexed by clip.
 };
 
 }  // namespace mv

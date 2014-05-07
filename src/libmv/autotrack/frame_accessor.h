@@ -41,14 +41,12 @@ using libmv::FloatImage;
 // implementations to cache filtered image pieces).
 struct FrameAccessor {
   struct Transform {
-    // The key should depend on the transform arguments.
+    // The key should depend on the transform arguments. Must be non-zero.
     virtual int64_t key() const = 0;
 
     // Apply the expected transform. Output is sized correctly already.
     // TODO(keir): What about blurs that need to access pixels outside the ROI?
-    virtual void run(const FloatImage& input,
-                     const Region* region,
-                     FloatImage* out) const = 0;
+    virtual void run(const FloatImage& input, FloatImage* output) const = 0;
   };
 
   enum InputMode {
@@ -68,9 +66,9 @@ struct FrameAccessor {
   virtual Key GetImage(int clip,
                        int frame,
                        InputMode input_mode,
-                       int downscale,
-                       const Region& region,
-                       const Transform* transform,
+                       int downscale,               // Downscale by 2^downscale.
+                       const Region* region,        // Get full image if NULL.
+                       const Transform* transform,  // May be NULL.
                        FloatImage* destination) = 0;
 
   // Releases an image from the frame accessor. Non-caching implementations may
