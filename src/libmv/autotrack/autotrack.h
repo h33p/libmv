@@ -33,15 +33,57 @@ class FrameAccessor;
 // relating to tracking and reconstruction; for example, 2D tracks and motion
 // models, reconstructed cameras, points, and planes; tracking settings; etc.
 //
-// TODO(keir): This class is not done yet! Much is to come.
+// Typical usage for full autotrack:
+//
+//   AutoTrack auto_track(image_accessor);
+//   auto_track.SetNumFramesInClip(0, 10);
+//   auto_track.SetNumFramesInClip(1, 54);
+//   auto_track.AutoTrack()
+//
+// It is also possible to specify options to control the reconstruction.
+// Furthermore, the individual methods of reconstruction are exposed to make it
+// possible to interact with the pipeline as it runs. For example, to track one
+// marker across frames,
+//
+//   AutoTrack auto_track(image_accessor);
+//   auto_track.SetNumFramesInClip(0, 10);
+//   auto_track.SetNumFramesInClip(1, 54);
+//   auto_track.AddMarker(...);
+//   auto_track.TrackMarkerToFrame(int clip1, int frame1,
+//                                 int clip2, int frame2,
+//                                 options?)
+//
 class AutoTrack {
 
+  // Marker manipulation.
+  // Clip manipulation.
+
+  // Set the number of clips. These clips will get accessed from the frame
+  // accessor, matches between frames found, and a reconstruction created.
+  void SetNumFrames(int clip, int num_frames);
+
+  // Tracking & Matching
+  void TrackMarkerToFrame(const Marker& reference_marker,
+                          int to_clip, int to_frame,
+                          Marker* tracked_marker);
+
+  // TODO(keir): Implement frame matching! This could be very cool for loop
+  // closing and connecting across clips.
+  void MatchFrames(int clip1, int frame1, int clip2, int frame2) {}
+
+  // Reconstruct!
+  // State machine? Have explicit state? Or determine state from existing data?
+  // Probably determine state from existing data.
+  // States
+  //  - No tracks or markers
 
  private:
-  Tracks tracks;  // Original tracks straight out of the camera.
-  Tracks normalized_tracks;  // Tracks with distortion and focal removed.
+  Tracks tracks_;  // May be normalized camera coordinates or raw pixels.
 
-  FrameAccessor* frame_accessor;
+  // TODO(keir): Should num_clips and num_frames get moved to FrameAccessor?
+  FrameAccessor* frame_accessor_;
+  int num_clips_;
+  vector<int> num_frames_;  // Indexed by clip.
 };
 
 }  // namespace mv
