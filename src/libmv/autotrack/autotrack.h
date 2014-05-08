@@ -88,12 +88,10 @@ class AutoTrack {
                           Marker* tracked_marker,
                           TrackRegionResult* result);
 
-  // Copies the marker into tracks.
+  // Wrapper around Tracks API; however these may add additional processing.
   void AddMarker(const Marker& tracked_marker);
-
-  // Moves the contents of *markers over top of the existing markers. This
-  // destroys *markers in the process (but avoids copies).
   void SetMarkers(vector<Marker>* markers);
+  bool GetMarker(int clip, int frame, int track, Marker* marker) const;
 
   // TODO(keir): Implement frame matching! This could be very cool for loop
   // closing and connecting across clips.

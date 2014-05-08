@@ -146,4 +146,8 @@ void AutoTrack::SetMarkers(vector<Marker>* markers) {
   tracks_.SetMarkers(markers);
 }
 
+void AutoTrack::GetMarker(int clip, int frame, int track, Marker* markers) {
+  tracks_.GetMarker(clip, frame, track, markers);
+}
+
 }  // namespace mv
