@@ -138,4 +138,12 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
   return true;
 }
 
+void AutoTrack::AddMarker(const Marker& marker) {
+  tracks_.AddMarker(marker);
+}
+
+void AutoTrack::SetMarkers(vector<Marker>* markers) {
+  tracks_.SetMarkers(markers);
+}
+
 }  // namespace mv

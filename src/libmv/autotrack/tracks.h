@@ -53,6 +53,10 @@ class Tracks {
                                        vector<Marker>* markers) const;
 
   void AddMarker(const Marker& marker);
+
+  // Moves the contents of *markers over top of the existing markers. This
+  // destroys *markers in the process (but avoids copies).
+  void SetMarkers(vector<Marker>* markers);
   bool RemoveMarker(int clip, int frame, int track);
   void RemoveMarkersForTrack(int track);
 

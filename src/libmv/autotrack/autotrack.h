@@ -91,6 +91,10 @@ class AutoTrack {
   // Copies the marker into tracks.
   void AddMarker(const Marker& tracked_marker);
 
+  // Moves the contents of *markers over top of the existing markers. This
+  // destroys *markers in the process (but avoids copies).
+  void SetMarkers(vector<Marker>* markers);
+
   // TODO(keir): Implement frame matching! This could be very cool for loop
   // closing and connecting across clips.
   //void MatchFrames(int clip1, int frame1, int clip2, int frame2) {}

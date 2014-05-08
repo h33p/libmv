@@ -121,6 +121,10 @@ void Tracks::AddMarker(const Marker& marker) {
   markers_.push_back(marker);
 }
 
+void Tracks::SetMarkers(vector<Marker>* markers) {
+  std::swap(markers_, *markers);
+}
+
 bool Tracks::RemoveMarker(int clip, int frame, int track) {
   int size = markers_.size();
   for (int i = 0; i < markers_.size(); ++i) {
