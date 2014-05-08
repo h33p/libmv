@@ -23,8 +23,11 @@
 #ifndef LIBMV_AUTOTRACK_MARKER_H_
 #define LIBMV_AUTOTRACK_MARKER_H_
 
-#include "libmv/numeric/numeric.h"
+#include <ostream>
+
 #include "libmv/autotrack/quad.h"
+#include "libmv/autotrack/region.h"
+#include "libmv/numeric/numeric.h"
 
 namespace mv {
 
@@ -39,12 +42,12 @@ struct Marker {
   int frame;  // The frame within the clip this marker is from.
   int track;  // The track this marker is from.
 
-  // The center of the marker. This is typically, but not always, the same as
-  // the center of the patch.
+  // The center of the marker in frame coordinates. This is typically, but not
+  // always, the same as the center of the patch.
   Vec2f center;
 
-  // A quad defining the part of the image the marker covers. When a marker is
-  // used as a reference, the pixel within the patch form the tracking pattern.
+  // A frame-realtive quad defining the part of the image the marker covers.
+  // For reference markers, the pixels in the patch are the tracking pattern.
   Quad2Df patch;
 
   // Some markers are less certain than others; the weight determines the
@@ -73,6 +76,12 @@ struct Marker {
   };
   Status status;
 
+  // When doing correlation tracking, where to search in the current frame for
+  // the pattern from the reference frame. This is marker-center-relative; so a
+  // typical search area would be (-25, -25) (25, 25) to create a 50-pixel
+  // window around the marker.
+  Region search_region;
+
   // For tracked and matched markers, indicates what the reference was.
   int reference_clip;
   int reference_frame;
@@ -97,6 +106,17 @@ struct Marker {
   // TODO(keir): Add a "int model_argument" to capture that e.g. a marker is on
   // the 3rd face of a cube.
 };
+
+inline std::ostream& operator<<(std::ostream& out, const Marker& marker) {
+  out << "{"
+      << marker.clip << ", "
+      << marker.frame << ", "
+      << marker.track << ", ("
+      << marker.center.x() << ", "
+      << marker.center.y() << ")"
+      << "}";
+  return out;
+}
 
 }  // namespace mv
 

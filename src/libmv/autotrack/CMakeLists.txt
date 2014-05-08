@@ -1,4 +1,5 @@
 SET(AUTOTRACK_SRC
+    autotrack.cc
     tracks.cc
     )
 

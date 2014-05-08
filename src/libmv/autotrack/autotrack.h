@@ -24,11 +24,13 @@
 #define LIBMV_AUTOTRACK_AUTOTRACK_H_
 
 #include "libmv/autotrack/tracks.h"
+#include "libmv/autotrack/region.h"
 #include "libmv/tracking/track_region.h"
 
 namespace mv {
 
 using libmv::TrackRegionOptions;
+using libmv::TrackRegionResult;
 
 class FrameAccessor;
 
@@ -57,6 +59,7 @@ class FrameAccessor;
 //                                 options?)
 //
 class AutoTrack {
+ public:
   struct Options {
     // Default configuration for 2D tracking when calling TrackMarkerToFrame().
     TrackRegionOptions track_region;
@@ -64,7 +67,7 @@ class AutoTrack {
     // Default search window for region tracking, in pixels. The origin is the
     // center of the track, so for a 50x50 track region, the values should be
     // min = (-25, -25), max = (25, 25).
-    Region search_window;
+    Region search_region;
   };
 
   // Marker manipulation.
@@ -80,9 +83,13 @@ class AutoTrack {
   // will get copied into tracked_marker and added to this AutoTrack.
   //
   // Caller maintains ownership of *result; AutoTrack does NOT keep a reference.
-  void TrackMarkerToFrame(const Marker& reference_marker,
+  bool TrackMarkerToFrame(const Marker& reference_marker,
+                          const TrackRegionOptions& track_options,
                           Marker* tracked_marker,
                           TrackRegionResult* result);
+
+  // Copies the marker into tracks.
+  void AddMarker(const Marker& tracked_marker);
 
   // TODO(keir): Implement frame matching! This could be very cool for loop
   // closing and connecting across clips.

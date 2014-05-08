@@ -48,8 +48,8 @@ struct Region {
 
   template<typename T>
   void Offset(const T& offset) {
-    min += offset;
-    max += offset;
+    min += offset.template cast<int>();
+    max += offset.template cast<int>();
   }
 };
 
