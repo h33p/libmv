@@ -108,7 +108,7 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
 
   // Do the tracking!
   TrackRegionOptions local_track_region_options = track_options;
-  local_track_region_options.num_extra_points = 1;  // For extra center point.
+  local_track_region_options.num_extra_points = 1;  // For center point.
   TrackRegion(reference_image,
               tracked_image,
               x1, y1,
@@ -146,8 +146,9 @@ void AutoTrack::SetMarkers(vector<Marker>* markers) {
   tracks_.SetMarkers(markers);
 }
 
-void AutoTrack::GetMarker(int clip, int frame, int track, Marker* markers) {
-  tracks_.GetMarker(clip, frame, track, markers);
+bool AutoTrack::GetMarker(int clip, int frame, int track,
+                          Marker* markers) const {
+  return tracks_.GetMarker(clip, frame, track, markers);
 }
 
 }  // namespace mv
