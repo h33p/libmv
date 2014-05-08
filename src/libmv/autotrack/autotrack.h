@@ -70,6 +70,9 @@ class AutoTrack {
     Region search_region;
   };
 
+  AutoTrack(FrameAccessor* frame_accessor)
+    : frame_accessor_(frame_accessor) {}
+
   // Marker manipulation.
   // Clip manipulation.
 
