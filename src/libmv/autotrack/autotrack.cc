@@ -62,10 +62,9 @@ FrameAccessor::Key GetImageForMarker(const Marker& marker,
 
 }  // namespace
 
-bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
-                                   const TrackRegionOptions& track_options,
-                                   Marker* tracked_marker,
-                                   TrackRegionResult* result) {
+bool AutoTrack::TrackMarker(Marker* tracked_marker,
+                            TrackRegionResult* result,
+                            const TrackRegionOptions* track_options) {
   // Try to predict the location of the second marker.
   bool predicted_position = false;
   if (PredictMarkerPosition(tracks_, tracked_marker)) {
@@ -74,6 +73,12 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
   } else {
     LG << "Prediction failed; trying to track anyway.";
   }
+
+  Marker reference_marker;
+  tracks_.GetMarker(tracked_marker->reference_clip,
+                    tracked_marker->reference_frame,
+                    tracked_marker->track,
+                    &reference_marker);
 
   // Convert markers into the format expected by TrackRegion.
   double x1[5], y1[5];
@@ -103,7 +108,10 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
   }
 
   // Do the tracking!
-  TrackRegionOptions local_track_region_options = track_options;
+  TrackRegionOptions local_track_region_options;
+  if (track_options) {
+    local_track_region_options = *track_options;
+  }
   local_track_region_options.num_extra_points = 1;  // For center point.
   local_track_region_options.attempt_refine_before_brute = predicted_position;
   TrackRegion(reference_image,
@@ -149,6 +157,80 @@ void AutoTrack::SetMarkers(vector<Marker>* markers) {
 bool AutoTrack::GetMarker(int clip, int frame, int track,
                           Marker* markers) const {
   return tracks_.GetMarker(clip, frame, track, markers);
+}
+
+void AutoTrack::DetectAndTrack(const DetectAndTrackOptions& options) {
+  int num_clips = frame_accessor_->NumClips();
+  for (int clip = 0; clip < num_clips; ++clip) {
+    int num_frames = frame_accessor_->NumFrames(clip);
+    vector<Marker> previous_frame_markers;
+    // Q: How to decide track #s when detecting?
+    // Q: How to match markers from previous frame? set of prev frame tracks?
+    // Q: How to decide what markers should get tracked and which ones should not?
+    for (int frame = 0; frame < num_frames; ++frame) {
+      if (Cancelled()) {
+        LG << "Got cancel message while detecting and tracking...";
+        return;
+      }
+      // First, get or detect markers for this frame.
+      vector<Marker> this_frame_markers;
+      tracks_.GetMarkersInFrame(clip, frame, &this_frame_markers);
+      LG << "Clip " << clip << ", frame " << frame << " have "
+         << this_frame_markers.size();
+      if (this_frame_markers.size() < options.min_num_features) {
+        DetectFeaturesInFrame(clip, frame);
+        this_frame_markers.clear();
+        tracks_.GetMarkersInFrame(clip, frame, &this_frame_markers);
+        LG << "... detected " << this_frame_markers.size() << " features.";
+      }
+      if (previous_frame_markers.empty()) {
+        LG << "First frame; skipping tracking stage.";
+        previous_frame_markers.swap(this_frame_markers);
+        continue;
+      }
+      // Second, find tracks that should get tracked forward into this frame.
+      // To avoid tracking markers that are already tracked to this frame, make
+      // a sorted set of the tracks that exist in the last frame.
+      vector<int> tracks_in_this_frame;
+      for (int i = 0; i < this_frame_markers.size(); ++i) {
+        tracks_in_this_frame.push_back(this_frame_markers[i].track);
+      }
+      std::sort(tracks_in_this_frame.begin(),
+                tracks_in_this_frame.end());
+
+      // Find tracks in the previous frame that are not in this one.
+      vector<Marker*> previous_frame_markers_to_track;
+      int num_skipped = 0;
+      for (int i = 0; i < previous_frame_markers.size(); ++i) {
+        if (std::binary_search(tracks_in_this_frame.begin(),
+                               tracks_in_this_frame.end(),
+                               previous_frame_markers[i].track)) {
+          num_skipped++;
+        } else {
+          previous_frame_markers_to_track.push_back(&previous_frame_markers[i]);
+        }
+      }
+
+      // Finally track the markers from the last frame into this one.
+      // TODO(keir): Use OMP.
+      for (int i = 0; i < previous_frame_markers_to_track.size(); ++i) {
+        Marker this_frame_marker = *previous_frame_markers_to_track[i];
+        this_frame_marker.frame = frame;
+        LG << "Tracking: " << this_frame_marker;
+        TrackRegionResult result;
+        TrackMarker(&this_frame_marker, &result);
+        if (result.is_usable()) {
+          LG << "Success: " << this_frame_marker;
+          AddMarker(this_frame_marker);
+          this_frame_markers.push_back(this_frame_marker);
+        } else {
+          LG << "Failed to track: " << this_frame_marker;
+        }
+      }
+      // Put the markers from this frame
+      previous_frame_markers.swap(this_frame_markers);
+    }
+  }
 }
 
 }  // namespace mv

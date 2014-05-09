@@ -55,8 +55,8 @@ class Point {
 class Reconstruction {
  public:
   // All methods copy their input reference or take ownership of the pointer.
-  void AddCameraPose(const CameraExtrinsics& extrinsics, int intrinsics);
-  int  AddCameraIntrinsics(CameraIntrinsics* intrinsics, int intrinsics_id);
+  void AddCameraPose(const CameraPose& pose);
+  int  AddCameraIntrinsics(CameraIntrinsics* intrinsics);
   int  AddPoint(const Point& point);
   int  AddModel(Model* model);
 

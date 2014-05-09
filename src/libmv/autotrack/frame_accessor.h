@@ -74,6 +74,10 @@ struct FrameAccessor {
   // Releases an image from the frame accessor. Non-caching implementations may
   // free the image immediately; others may hold onto the image.
   virtual void ReleaseImage(Key) = 0;
+
+  virtual bool GetClipDimensions(int clip, int* width, int* height) = 0;
+  virtual int NumClips() = 0;
+  virtual int NumFrames(int clip) = 0;
 };
 
 }  // namespace libmv

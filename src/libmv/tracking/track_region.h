@@ -130,6 +130,11 @@ struct TrackRegionResult {
   };
   Termination termination;
 
+  bool is_usable() {
+    return termination == CONVERGENCE ||
+           termination == NO_CONVERGENCE;
+  }
+
   int num_iterations;
   double correlation;
 

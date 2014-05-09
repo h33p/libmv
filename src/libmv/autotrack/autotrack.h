@@ -27,12 +27,18 @@
 #include "libmv/autotrack/region.h"
 #include "libmv/tracking/track_region.h"
 
+namespace libmv {
+class CameraIntrinsics;
+};
+
 namespace mv {
 
+using libmv::CameraIntrinsics;
 using libmv::TrackRegionOptions;
 using libmv::TrackRegionResult;
 
 class FrameAccessor;
+class OperationListener;
 
 // The coordinator of all tracking operations; keeps track of all state
 // relating to tracking and reconstruction; for example, 2D tracks and motion
@@ -80,14 +86,11 @@ class AutoTrack {
 
   // Tracking & Matching
 
-  // Tracks the reference marker into the destination frame. The tracked marker
-  // will get copied into tracked_marker and added to this AutoTrack.
-  //
-  // Caller maintains ownership of *result; AutoTrack does NOT keep a reference.
-  bool TrackMarkerToFrame(const Marker& reference_marker,
-                          const TrackRegionOptions& track_options,
-                          Marker* tracked_marker,
-                          TrackRegionResult* result);
+  // Find the marker for the track in the frame indicated by the marker.
+  // Caller maintains ownership of *result and *tracked_marker.
+  bool TrackMarker(Marker* tracked_marker,
+                   TrackRegionResult* result,
+                   const TrackRegionOptions* track_options=NULL);
 
   // Wrapper around Tracks API; however these may add additional processing.
   void AddMarker(const Marker& tracked_marker);
@@ -98,7 +101,66 @@ class AutoTrack {
   // closing and connecting across clips.
   //void MatchFrames(int clip1, int frame1, int clip2, int frame2) {}
 
-  // Reconstruction
+  // Wrapper around the Reconstruction API.
+  // Returns the new ID.
+  int AddCameraIntrinsics(CameraIntrinsics* intrinsics) {
+    (void) intrinsics;
+    return 0;
+  }  // XXX
+  int SetClipIntrinsics(int clip, int intrinsics) {
+    (void) clip;
+    (void) intrinsics;
+    return 0;
+  }        // XXX
+
+  enum Motion {
+    GENERAL_CAMERA_MOTION,
+    TRIPOD_CAMERA_MOTION,
+  };
+  int SetClipMotion(int clip, Motion motion) {
+    (void) clip;
+    (void) motion;
+    return 0;
+  } // XXX
+
+  // Decide what to refine for the given intrinsics. bundle_options is from
+  // bundle.h (e.g. BUNDLE_FOCAL_LENGTH | BUNDLE_RADIAL_K1).
+  void SetIntrinsicsRefine(int intrinsics, int bundle_options) {
+    (void) intrinsics;
+    (void) bundle_options;
+  } // XXX
+
+  // Keyframe read/write.
+  struct ClipFrame {
+    int clip;
+    int frame;
+  };
+  const vector<ClipFrame>& keyframes() { return keyframes_; }
+  void ClearKeyframes() { keyframes_.clear(); }
+  void SetKeyframes(const vector<ClipFrame>& keyframes) {
+    keyframes_ = keyframes;
+  }
+
+  // What about reporting what happened? -- callbacks; maybe result struct.
+  void Reconstruct();
+
+  // Detect and track in 2D.
+  struct DetectAndTrackOptions {
+    int min_num_features;
+  };
+  void DetectAndTrack(const DetectAndTrackOptions& options);
+
+  struct DetectFeaturesInFrameOptions {
+  };
+  void DetectFeaturesInFrame(int clip, int frame,
+                             const DetectFeaturesInFrameOptions* options=NULL) {
+    (void) clip;
+    (void) frame;
+    (void) options;
+  } // XXX
+
+  // Does not take ownership of the given listener, but keeps a reference to it.
+  void AddListener(OperationListener* listener) {(void) listener;}  // XXX
 
   // Create the initial reconstruction,
   //void FindInitialReconstruction();
@@ -135,6 +197,10 @@ class AutoTrack {
   Options options;
 
  private:
+  bool Log();
+  bool Progress();
+  bool Cancelled() { return false; }
+
   Tracks tracks_;  // May be normalized camera coordinates or raw pixels.
   //Reconstruction reconstruction_;
 
@@ -147,6 +213,12 @@ class AutoTrack {
   FrameAccessor* frame_accessor_;
   //int num_clips_;
   //vector<int> num_frames_;  // Indexed by clip.
+
+  // The intrinsics for each clip, assuming each clip has fixed intrinsics.
+  // TODO(keir): Decide what the semantics should be for varying focal length.
+  vector<int> clip_intrinsics_;
+
+  vector<ClipFrame> keyframes_;
 };
 
 }  // namespace mv
