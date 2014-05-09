@@ -1,6 +1,7 @@
 SET(AUTOTRACK_SRC
     autotrack.cc
     tracks.cc
+    predict_tracks.cc
     )
 
 # Define the header files so that they appear in IDEs.
@@ -20,3 +21,4 @@ MACRO (AUTOTRACK_TEST NAME)
 ENDMACRO (AUTOTRACK_TEST)
 
 AUTOTRACK_TEST(tracks)
+AUTOTRACK_TEST(predict_tracks)

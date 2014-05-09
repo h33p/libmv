@@ -42,6 +42,9 @@ class Tracks {
   // All getters append to the output argument vector.
   bool GetMarker(int clip, int frame, int track, Marker* marker) const;
   void GetMarkersForTrack(int track, vector<Marker>* markers) const;
+  void GetMarkersForTrackInClip(int clip,
+                                int track,
+                                vector<Marker>* markers) const;
   void GetMarkersInFrame(int clip, int frame, vector<Marker>* markers) const;
 
   // Get the markers in frame1 and frame2 which have a common track.

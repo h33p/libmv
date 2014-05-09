@@ -23,6 +23,7 @@
 #include "libmv/autotrack/autotrack.h"
 #include "libmv/autotrack/quad.h"
 #include "libmv/autotrack/frame_accessor.h"
+#include "libmv/autotrack/predict_tracks.h"
 #include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
 
@@ -77,6 +78,13 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
                                    const TrackRegionOptions& track_options,
                                    Marker* tracked_marker,
                                    TrackRegionResult* result) {
+  // Try to predict the location of the second marker.
+  if (PredictMarkerPosition(tracks_, tracked_marker)) {
+    LG << "Succesfully predicted!";
+  } else {
+    LG << "Prediction failed; trying to track anyway.";
+  }
+
   // Convert markers into the format expected by TrackRegion.
   double x1[5], y1[5];
   Vec2i reference_origin;

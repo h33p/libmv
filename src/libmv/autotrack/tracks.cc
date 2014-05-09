@@ -56,6 +56,17 @@ void Tracks::GetMarkersForTrack(int track, vector<Marker>* markers) const {
   }
 }
 
+void Tracks::GetMarkersForTrackInClip(int clip,
+                                      int track,
+                                      vector<Marker>* markers) const {
+  for (int i = 0; i < markers_.size(); ++i) {
+    if (clip  == markers_[i].clip &&
+        track == markers_[i].track) {
+      markers->push_back(markers_[i]);
+    }
+  }
+}
+
 void Tracks::GetMarkersInFrame(int clip,
                                int frame,
                                vector<Marker>* markers) const {
