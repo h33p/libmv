@@ -54,10 +54,10 @@ const double dt = 3.8;
 // 4 states instead of 6. For ease of implementation, this keeps order 6.
 
 // Choose one or the other model from below (velocity or acceleration).
-#if 1
+
 // For a typical system having constant velocity. This gives smooth-appearing
 // predictions, but they are not always as accurate.
-const double state_transition_data[] = {
+const double velocity_state_transition_data[] = {
   1, dt,       0,  0,  0,        0,
   0,  1,       0,  0,  0,        0,
   0,  0,       1,  0,  0,        0,
@@ -65,10 +65,10 @@ const double state_transition_data[] = {
   0,  0,       0,  0,  1,        0,
   0,  0,       0,  0,  0,        1
 };
-#else
+
 // This 3rd-order system also models acceleration. This makes for "jerky"
 // predictions, but that tend to be more accurate.
-const double state_transition_data[] = {
+const double acceleration_state_transition_data[] = {
   1, dt, dt*dt/2,  0,  0,        0,
   0,  1,      dt,  0,  0,        0,
   0,  0,       1,  0,  0,        0,
@@ -76,7 +76,19 @@ const double state_transition_data[] = {
   0,  0,       0,  0,  1,       dt,
   0,  0,       0,  0,  0,        1
 };
-#endif
+
+// This system (attempts) to add an angular velocity component. However, it's
+// total junk.
+const double angular_state_transition_data[] = {
+  1, dt,     -dt,  0,  0,        0,   // Position x
+  0,  1,       0,  0,  0,        0,   // Velocity x
+  0,  0,       1,  0,  0,        0,   // Angular momentum
+  0,  0,      dt,  1, dt,        0,   // Position y
+  0,  0,       0,  0,  1,        0,   // Velocity y
+  0,  0,       0,  0,  0,        1    // Ignored
+};
+
+const double* state_transition_data = velocity_state_transition_data;
 
 // Observation matrix.
 const double observation_data[] = {

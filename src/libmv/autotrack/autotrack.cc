@@ -121,6 +121,8 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
   }
   tracked_marker->center(0) = x2[4] + tracked_origin[0];
   tracked_marker->center(1) = y2[4] + tracked_origin[1];
+  Vec2f delta = tracked_marker->center - reference_marker.center;
+  tracked_marker->search_region.Offset(delta);
   tracked_marker->source = Marker::TRACKED;
   tracked_marker->status = Marker::UNKNOWN;
   tracked_marker->reference_clip  = reference_marker.clip;
