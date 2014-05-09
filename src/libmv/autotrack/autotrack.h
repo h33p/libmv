@@ -64,9 +64,7 @@ class AutoTrack {
     // Default configuration for 2D tracking when calling TrackMarkerToFrame().
     TrackRegionOptions track_region;
 
-    // Default search window for region tracking, in pixels. The origin is the
-    // center of the track, so for a 50x50 track region, the values should be
-    // min = (-25, -25), max = (25, 25).
+    // Default search window for region tracking, in absolute frame pixels.
     Region search_region;
   };
 

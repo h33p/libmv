@@ -32,6 +32,7 @@ namespace mv {
 namespace {
 
 using libmv::vector;
+using libmv::Vec2;
 
 // Implied time delta between steps. Set empirically by tweaking and seeing
 // what numbers did best at prediction.
@@ -143,11 +144,18 @@ void RunPrediction(const vector<Marker*> previous_markers,
   // TODO(keir): Only works predicting forward.
   for (int i = 1; i < previous_markers.size(); ++i) {
     // Step forward predicting the state until it is on the current marker.
+    int predictions = 0;
     for (; current_frame < previous_markers[i]->frame; ++current_frame) {
       filter.Step(&state);
+      predictions++;
       LG << "Predicted point (frame " << current_frame << "): "
          << state.mean(0) << ", " << state.mean(3);
     }
+    // Log the error -- not actually used, but interesting.
+    Vec2 error = previous_markers[i]->center.cast<double>() -
+                 Vec2(state.mean(0), state.mean(3));
+    LG << "Prediction error for " << predictions << " steps: ("
+       << error.x() << ", " << error.y() << "); norm: " << error.norm();
     // Now that the state is predicted in the current frame, update the state
     // based on the measurement from the current frame.
     filter.Update(previous_markers[i]->center.cast<double>(),

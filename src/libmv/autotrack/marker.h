@@ -77,9 +77,7 @@ struct Marker {
   Status status;
 
   // When doing correlation tracking, where to search in the current frame for
-  // the pattern from the reference frame. This is marker-center-relative; so a
-  // typical search area would be (-25, -25) (25, 25) to create a 50-pixel
-  // window around the marker.
+  // the pattern from the reference frame, in absolute frame coordinates.
   Region search_region;
 
   // For tracked and matched markers, indicates what the reference was.
@@ -105,6 +103,20 @@ struct Marker {
 
   // TODO(keir): Add a "int model_argument" to capture that e.g. a marker is on
   // the 3rd face of a cube.
+
+  // Offset everything (center, patch, search) by the given delta.
+  template<typename T>
+  void Offset(const T& offset) {
+    center += offset.template cast<float>();
+    patch.coordinates.rowwise() += offset.template cast<int>();
+    search_region.Offset(offset);
+  }
+
+  // Shift the center to the given new position (and patch, search).
+  template<typename T>
+  void SetPosition(const T& new_center) {
+    Offset(new_center - center);
+  }
 };
 
 inline std::ostream& operator<<(std::ostream& out, const Marker& marker) {

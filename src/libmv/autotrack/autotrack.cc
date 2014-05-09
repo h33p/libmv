@@ -39,35 +39,23 @@ void QuadToArrays(const QuadT& quad, ArrayT* x, ArrayT* y) {
   }
 }
 
-void MarkerToArrays(const Marker& marker,
-                    Vec2i* origin,
-                    double* x, double* y) {
-  *origin = marker.center.cast<int>() + marker.search_region.min;
+void MarkerToArrays(const Marker& marker, double* x, double* y) {
   Quad2Df offset_quad = marker.patch;
-  for (int i = 0; i < 4; ++i) {
-    offset_quad.coordinates.row(i) -= origin->cast<float>();
-  }
+  Vec2f origin = marker.search_region.min.cast<float>();
+  offset_quad.coordinates.rowwise() -= origin.transpose();
   QuadToArrays(offset_quad, x, y);
-  x[4] = marker.center.x() - (*origin)(0);
-  y[4] = marker.center.y() - (*origin)(1);
+  x[4] = marker.center.x() - origin(0);
+  y[4] = marker.center.y() - origin(1);
 }
 
 FrameAccessor::Key GetImageForMarker(const Marker& marker,
                                      FrameAccessor* frame_accessor,
                                      FloatImage* image) {
-  // The input region has the coordinate centered around the marker center
-  // (e.g. a typical window would have (-20, -20, 20, 20) as the coordinates);
-  // so shift the region so it is centered on the marker in the frame's
-  // coordinate system.
-  // TODO(keir): Perhaps this should be a marker helper?
-  Region region_in_frame = marker.search_region;
-  region_in_frame.Offset(marker.center);
-
   return frame_accessor->GetImage(marker.clip,
                                   marker.frame,
                                   FrameAccessor::MONO,
                                   0,  // No downscale for now.
-                                  &region_in_frame,
+                                  &marker.search_region,
                                   NULL,
                                   image);
 }
@@ -79,20 +67,20 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
                                    Marker* tracked_marker,
                                    TrackRegionResult* result) {
   // Try to predict the location of the second marker.
+  bool predicted_position = false;
   if (PredictMarkerPosition(tracks_, tracked_marker)) {
     LG << "Succesfully predicted!";
+    predicted_position = true;
   } else {
     LG << "Prediction failed; trying to track anyway.";
   }
 
   // Convert markers into the format expected by TrackRegion.
   double x1[5], y1[5];
-  Vec2i reference_origin;
-  MarkerToArrays(reference_marker, &reference_origin, x1, y1);
+  MarkerToArrays(reference_marker, x1, y1);
 
   double x2[5], y2[5];
-  Vec2i tracked_origin;
-  MarkerToArrays(*tracked_marker, &tracked_origin, x2, y2);
+  MarkerToArrays(*tracked_marker, x2, y2);
 
   // TODO(keir): Technically this could take a smaller slice from the source
   // image instead of taking one the size of the search window.
@@ -117,6 +105,7 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
   // Do the tracking!
   TrackRegionOptions local_track_region_options = track_options;
   local_track_region_options.num_extra_points = 1;  // For center point.
+  local_track_region_options.attempt_refine_before_brute = predicted_position;
   TrackRegion(reference_image,
               tracked_image,
               x1, y1,
@@ -125,6 +114,7 @@ bool AutoTrack::TrackMarkerToFrame(const Marker& reference_marker,
               result);
 
   // Copy results over the tracked marker.
+  Vec2f tracked_origin = tracked_marker->search_region.min.cast<float>();
   for (int i = 0; i < 4; ++i) {
     tracked_marker->patch.coordinates(i, 0) = x2[i] + tracked_origin[0];
     tracked_marker->patch.coordinates(i, 1) = y2[i] + tracked_origin[1];
