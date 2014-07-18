@@ -41,7 +41,7 @@ void QuadToArrays(const QuadT& quad, ArrayT* x, ArrayT* y) {
 
 void MarkerToArrays(const Marker& marker, double* x, double* y) {
   Quad2Df offset_quad = marker.patch;
-  Vec2f origin = marker.search_region.min.cast<float>();
+  Vec2f origin = marker.search_region.Rounded().min;
   offset_quad.coordinates.rowwise() -= origin.transpose();
   QuadToArrays(offset_quad, x, y);
   x[4] = marker.center.x() - origin(0);
@@ -51,11 +51,16 @@ void MarkerToArrays(const Marker& marker, double* x, double* y) {
 FrameAccessor::Key GetImageForMarker(const Marker& marker,
                                      FrameAccessor* frame_accessor,
                                      FloatImage* image) {
+  // TODO(sergey): Currently we pass float region to the accessor,
+  // but we don't want the accessor to decide the rounding, so we
+  // do rounding here.
+  // Ideally we would need to pass IntRegion to the frame accessor.
+  Region region = marker.search_region.Rounded();
   return frame_accessor->GetImage(marker.clip,
                                   marker.frame,
                                   FrameAccessor::MONO,
                                   0,  // No downscale for now.
-                                  &marker.search_region,
+                                  &region,
                                   NULL,
                                   image);
 }
@@ -107,6 +112,9 @@ bool AutoTrack::TrackMarker(Marker* tracked_marker,
     return false;
   }
 
+  // Store original position befoer tracking, so we can claculate offset later.
+  Vec2f original_center = tracked_marker->center;
+
   // Do the tracking!
   TrackRegionOptions local_track_region_options;
   if (track_options) {
@@ -122,14 +130,14 @@ bool AutoTrack::TrackMarker(Marker* tracked_marker,
               result);
 
   // Copy results over the tracked marker.
-  Vec2f tracked_origin = tracked_marker->search_region.min.cast<float>();
+  Vec2f tracked_origin = tracked_marker->search_region.Rounded().min;
   for (int i = 0; i < 4; ++i) {
     tracked_marker->patch.coordinates(i, 0) = x2[i] + tracked_origin[0];
     tracked_marker->patch.coordinates(i, 1) = y2[i] + tracked_origin[1];
   }
   tracked_marker->center(0) = x2[4] + tracked_origin[0];
   tracked_marker->center(1) = y2[4] + tracked_origin[1];
-  Vec2f delta = tracked_marker->center - reference_marker.center;
+  Vec2f delta = tracked_marker->center - original_center;
   tracked_marker->search_region.Offset(delta);
   tracked_marker->source = Marker::TRACKED;
   tracked_marker->status = Marker::UNKNOWN;

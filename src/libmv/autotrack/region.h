@@ -27,7 +27,7 @@
 
 namespace mv {
 
-using libmv::Vec2i;
+using libmv::Vec2f;
 
 // A region is a bounding box within an image.
 //
@@ -43,13 +43,22 @@ using libmv::Vec2i;
 //    y
 //
 struct Region {
-  Vec2i min;
-  Vec2i max;
+  Vec2f min;
+  Vec2f max;
 
   template<typename T>
   void Offset(const T& offset) {
-    min += offset.template cast<int>();
-    max += offset.template cast<int>();
+    min += offset.template cast<float>();
+    max += offset.template cast<float>();
+  }
+
+  Region Rounded() const {
+    Region result;
+    result.min(0) = ceil(this->min(0));
+    result.min(1) = ceil(this->min(1));
+    result.max(0) = ceil(this->max(0));
+    result.max(1) = ceil(this->max(1));
+    return result;
   }
 };
 

@@ -195,6 +195,10 @@ void RunPrediction(const vector<Marker*> previous_markers,
   for (int i = 0; i < 4; ++i) {
     predicted_marker->patch.coordinates.row(i) += delta;
   }
+
+  // Alter the search area as well so it always corresponds to the center.
+  predicted_marker->search_region = last_marker.search_region;
+  predicted_marker->search_region.Offset(delta);
 }
 
 }  // namespace
