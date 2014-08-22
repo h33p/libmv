@@ -11,7 +11,7 @@ FILE(GLOB DETECTOR_HDRS *.h)
 
 ADD_LIBRARY(detector ${DETECTOR_SRC} ${DETECTOR_HDRS})
 
-TARGET_LINK_LIBRARIES(detector image fast)
+TARGET_LINK_LIBRARIES(detector image image_io fast)
 
 # make the name of debug libraries end in _d.
 SET_TARGET_PROPERTIES(detector PROPERTIES DEBUG_POSTFIX "_d")

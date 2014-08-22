@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
   FloatImage *image_out = NULL;
   ImageCache cache;
   Vec2u size_image;
+  size_image << image->Width(), image->Height();
   Vec2 q;
   Mat qs_x(0, 0);
   Mat qs_y(0, 0);
@@ -221,8 +222,10 @@ int main(int argc, char **argv) {
         VLOG(1) << "qs_y : \n" << qs_y << std::endl;
       } else {
         // Tests if the size of the image is the same as the previous one
-        if (size_image(0) != image->Width() || size_image(1) != image->Height())
+        if (size_image(0) != image->Width() ||
+            size_image(1) != image->Height()) {
           return 2;
+        }
         // TODO(julien) Put this image undistorting in camera?
         VLOG(0) << "Undistorting image " << i << "..." << std::endl;
         for (size_t x = 0; x < image->Width(); ++x) 

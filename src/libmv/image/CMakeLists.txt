@@ -26,6 +26,7 @@ SET(IMAGE_SRC array_nd.cc
 FILE(GLOB IMAGE_HDRS *.h)
 
 ADD_LIBRARY(image ${IMAGE_SRC} ${IMAGE_HDRS})
+TARGET_LINK_LIBRARIES(image png jpeg glog)
 
 ADD_LIBRARY(image_io image_io.cc image_io.h)
 TARGET_LINK_LIBRARIES(image_io image png jpeg glog)
