@@ -151,13 +151,15 @@ void RunPrediction(const vector<Marker*> previous_markers,
   int current_frame = previous_markers[0]->frame;
   int target_frame = predicted_marker->frame;
 
-  CHECK_LT(current_frame, target_frame) << predicted_marker;
+  bool predict_forward = current_frame < target_frame;
+  int frame_delta = predict_forward ? 1 : -1;
 
-  // TODO(keir): Only works predicting forward.
   for (int i = 1; i < previous_markers.size(); ++i) {
     // Step forward predicting the state until it is on the current marker.
     int predictions = 0;
-    for (; current_frame < previous_markers[i]->frame; ++current_frame) {
+    for (;
+         current_frame != previous_markers[i]->frame;
+         current_frame += frame_delta) {
       filter.Step(&state);
       predictions++;
       LG << "Predicted point (frame " << current_frame << "): "
@@ -178,7 +180,7 @@ void RunPrediction(const vector<Marker*> previous_markers,
   }
   // At this point as all the prediction that's possible is done. Finally
   // predict until the target frame.
-  for (; current_frame < target_frame; ++current_frame) {
+  for (; current_frame != target_frame; current_frame += frame_delta) {
     filter.Step(&state);
     LG << "Final predicted point (frame " << current_frame << "): "
        << state.mean(0) << ", " << state.mean(3);
@@ -268,15 +270,19 @@ bool PredictMarkerPosition(const Tracks& tracks, Marker* marker) {
   }
 
   bool predict_forward = false;
-  LG << backward_scan_begin << ", " << backward_scan_end;
-  if (backward_scan_end <= backward_scan_begin &&
-      backward_scan_begin - backward_scan_end >= num_consecutive_needed) {
+  if (backward_scan_end <= backward_scan_begin) {
     // TODO(keir): Add smarter handling and detecting of consecutive frames!
     predict_forward = true;
   }
 
   const int max_frames_to_predict_from = 20;
   if (predict_forward) {
+    if (backward_scan_begin - backward_scan_end < num_consecutive_needed) {
+      // Not enough information to do a prediction.
+      LG << "Predicting forward impossible, not enough information";
+      return false;
+    }
+    LG << "Predicting forward";
     int predict_begin =
         std::max(backward_scan_begin - max_frames_to_predict_from, 0);
     int predict_end = backward_scan_begin;
@@ -287,7 +293,21 @@ bool PredictMarkerPosition(const Tracks& tracks, Marker* marker) {
     RunPrediction(previous_markers, marker);
     return true;
   } else {
-    LG << "Not implemented yet: predicting backwards.";
+    if (forward_scan_end - forward_scan_begin < num_consecutive_needed) {
+      // Not enough information to do a prediction.
+      LG << "Predicting backward impossible, not enough information";
+      return false;
+    }
+    LG << "Predicting backward";
+    int predict_begin =
+        std::min(forward_scan_begin + max_frames_to_predict_from,
+                 forward_scan_end);
+    int predict_end = forward_scan_begin;
+    vector<Marker*> previous_markers;
+    for (int i = predict_begin; i >= predict_end; --i) {
+      previous_markers.push_back(boxed_markers[i]);
+    }
+    RunPrediction(previous_markers, marker);
     return false;
   }
 

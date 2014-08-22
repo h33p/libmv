@@ -76,6 +76,41 @@ TEST(PredictMarkerPosition, EasyLinearMotion) {
   EXPECT_LT(error, 0.1);
 }
 
+TEST(PredictMarkerPosition, EasyBackwardLinearMotion) {
+  Tracks tracks;
+  AddMarker(8, 1.0,  0.0, &tracks);
+  AddMarker(7, 2.0,  5.0, &tracks);
+  AddMarker(6, 3.0, 10.0, &tracks);
+  AddMarker(5, 4.0, 15.0, &tracks);
+  AddMarker(4, 5.0, 20.0, &tracks);
+  AddMarker(3, 6.0, 25.0, &tracks);
+  AddMarker(2, 7.0, 30.0, &tracks);
+  AddMarker(1, 8.0, 35.0, &tracks);
+
+  Marker predicted;
+  predicted.clip = 0;
+  predicted.track = 0;
+  predicted.frame = 0;
+
+  PredictMarkerPosition(tracks, &predicted);
+  LG << predicted;
+  double error = (libmv::Vec2f(9.0, 40.0) - predicted.center).norm();
+  LG << "Got error: " << error;
+  EXPECT_LT(error, 0.1);
+
+  // Check the patch coordinates as well.
+  double x = 9.0, y = 40.0;
+  Quad2Df expected_patch;
+  expected_patch.coordinates << x - 1, y - 1,
+                                x + 1, y - 1,
+                                x + 1, y + 1,
+                                x - 1, y + 1;
+
+  error = (expected_patch.coordinates - predicted.patch.coordinates).norm();
+  LG << "Patch error: " << error;
+  EXPECT_LT(error, 0.1);
+}
+
 TEST(PredictMarkerPosition, TwoFrameGap) {
   Tracks tracks;
   AddMarker(0, 1.0,  0.0, &tracks);
