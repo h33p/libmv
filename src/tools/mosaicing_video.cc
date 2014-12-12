@@ -352,8 +352,8 @@ int main(int argc, char **argv) {
   usage += "-m MATCHES.txt [-o MOSAIC_IMAGE]";
   usage += "\t - IMAGEX is an input image {PNG, PNM, JPEG}\n";
   usage += "\t - MOSAIC_IMAGE is the output image {PNG, PNM, JPEG}\n";
-  google::SetUsageMessage(usage);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage(usage);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // This is not the place for this. I am experimenting with what sort of API
   // will be convenient for the tracking base classes.

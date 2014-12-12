@@ -62,8 +62,8 @@ int main (int argc, char *argv[]) {
   usage += "Usage: " + std::string(argv[0]) + " -i INFILE.txt -o OUTFILE.ply.";
   
   //usage += argv[0] + "<detector>";
-  google::SetUsageMessage(usage);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage(usage);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Imports matches
   tracker::FeaturesGraph fg;

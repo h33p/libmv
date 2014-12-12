@@ -262,8 +262,8 @@ int main (int argc, char *argv[]) {
   usage += "Usage: " + std::string(argv[0]) + " *.png -o {MATCHESFILE}.txt.\n";
   usage += "Using libmv v" + std::string(LIBMV_VERSION) +"\n";
   //usage += argv[0] + "<detector>";
-  google::SetUsageMessage(usage);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage(usage);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   std::list<std::string> image_list;
   vector<std::pair<size_t, size_t> > image_sizes;

@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
   // TODO(julien) find why InitGoogleLogging prevent logging???
   //Init("", &argc, &argv);
   //google::InitGoogleLogging((argv)[0]);
-  google::SetUsageMessage("eee");
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage("eee");
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
   
   QApplication app(argc, argv);
   MainWindow window;

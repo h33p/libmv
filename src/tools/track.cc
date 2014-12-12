@@ -44,8 +44,8 @@ using std::sort;
 using std::string;
 
 int main(int argc, char **argv) {
-  google::SetUsageMessage("Track a sequence.");
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage("Track a sequence.");
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // This is not the place for this. I am experimenting with what sort of API
   // will be convenient for the tracking base classes.

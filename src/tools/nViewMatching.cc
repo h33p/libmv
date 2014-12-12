@@ -120,8 +120,8 @@ void DisplayMatches(const Matches &matches)
 
 int main(int argc, char **argv) {
 
-  google::SetUsageMessage("NViewMatching Demo.");
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage("NViewMatching Demo.");
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   libmv::vector<string> image_vector;
 

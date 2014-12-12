@@ -114,8 +114,8 @@ int main(int argc, char **argv) {
   usage += "[-k1 DOUBLE [-k2 DOUBLE] ... [-p1 DOUBLE [-p2 DOUBLE]]] ";
   usage += "-fx DOUBLE -fy DOUBLE [-u0 DOUBLE -v0 DOUBLE] [-sk DOUBLE]]\n";
   usage += "\t * IMAGEX is an image {PNG, PNM, JPEG}\n";
-  google::SetUsageMessage(usage);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::SetUsageMessage(usage);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // This is not the place for this. I am experimenting with what sort of API
   // will be convenient for the tracking base classes.
