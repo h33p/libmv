@@ -1,8 +1,5 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* define if you have google gflags library */
-#define HAVE_LIB_GFLAGS 1
-
 /* Namespace for Google classes */
 #define GOOGLE_NAMESPACE google
 
