@@ -116,6 +116,8 @@
 #   pragma comment(lib, "pthread")
 #endif
 
+#define HAVE_STRUCT_TIMESPEC
+
 /*
  * -------------------------------------------------------------
  *
