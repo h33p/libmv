@@ -20,6 +20,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   #  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused -Wno-type-limits -Wno-empty-body")
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
+ADD_DEFINITIONS(-DGOOGLE_GLOG_DLL_DECL=)
+
 IF (WIN32)
   ADD_LIBRARY(glog
               logging.cc
