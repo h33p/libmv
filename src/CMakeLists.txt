@@ -69,7 +69,7 @@ ENDIF(MSVC)
 
 OPTION(WITH_SYSTEM_CERES "Use the system Ceres library instead of bundled one" OFF)
 OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
-OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." ON)
+OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." OFF)
 
 INCLUDE(ConfigureBuild)
 INCLUDE(Documentation)

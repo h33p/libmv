@@ -1,7 +1,7 @@
 Project: Eigen
 URL: http://eigen.tuxfamily.org/
-License: LGPL3 or GPL2
-Upstream version: 3.2.1, released February 26, 2014
+License: GPL3+
+Upstream version: 3.2.7
 
 Local modifications:
 
