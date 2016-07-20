@@ -424,7 +424,7 @@ void EuclideanBundlePointsOnly(const DistortionModelType distortion_model,
   options.use_nonmonotonic_steps = true;
   options.preconditioner_type = ceres::SCHUR_JACOBI;
   options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-  options.use_explicit_schur_complement = true;
+  // options.use_explicit_schur_complement = true;
   options.use_inner_iterations = true;
   options.max_num_iterations = 100;
 
@@ -594,7 +594,7 @@ void EuclideanBundleCommonIntrinsics(
   options.use_nonmonotonic_steps = true;
   options.preconditioner_type = ceres::SCHUR_JACOBI;
   options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-  options.use_explicit_schur_complement = true;
+  // options.use_explicit_schur_complement = true;
   options.use_inner_iterations = true;
   options.max_num_iterations = 100;
 
