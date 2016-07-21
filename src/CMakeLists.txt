@@ -91,6 +91,11 @@ INCLUDE_DIRECTORIES(
   .
 )
 
+ADD_DEFINITIONS(-DGOOGLE_GLOG_DLL_DECL=)
+ADD_DEFINITIONS(-DGFLAGS_DLL_DEFINE_FLAG=)
+ADD_DEFINITIONS(-DGFLAGS_DLL_DECLARE_FLAG=)
+ADD_DEFINITIONS(-DGFLAGS_DLL_DECL=)
+
 # Add third_party directory before rest of include directories so
 # there're no possible conflict in headers.
 #
