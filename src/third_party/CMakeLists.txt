@@ -36,7 +36,7 @@ IF(APPLE OR WIN32)
   ADD_SUBDIRECTORY(png)
   ADD_SUBDIRECTORY(zlib)
   ADD_SUBDIRECTORY(OpenExif)
-ENDIF(APPLE)
+ENDIF(APPLE OR WIN32)
 
 #Installation macro for all third parties headers
 LIBMV_INSTALL_ALL_HEADERS()
