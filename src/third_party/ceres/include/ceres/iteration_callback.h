@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -36,12 +36,13 @@
 #define CERES_PUBLIC_ITERATION_CALLBACK_H_
 
 #include "ceres/types.h"
+#include "ceres/internal/disable_warnings.h"
 
 namespace ceres {
 
 // This struct describes the state of the optimizer after each
 // iteration of the minimization.
-struct IterationSummary {
+struct CERES_EXPORT IterationSummary {
   IterationSummary()
       : iteration(0),
         step_is_valid(false),
@@ -68,7 +69,7 @@ struct IterationSummary {
   // Step was numerically valid, i.e., all values are finite and the
   // step reduces the value of the linearized model.
   //
-  // Note: step_is_valid is false when iteration = 0.
+  // Note: step_is_valid is always true when iteration = 0.
   bool step_is_valid;
 
   // Step did not reduce the value of the objective function
@@ -76,7 +77,7 @@ struct IterationSummary {
   // acceptance criterion used by the non-monotonic trust region
   // algorithm.
   //
-  // Note: step_is_nonmonotonic is false when iteration = 0;
+  // Note: step_is_nonmonotonic is always false when iteration = 0;
   bool step_is_nonmonotonic;
 
   // Whether or not the minimizer accepted this step or not. If the
@@ -88,7 +89,7 @@ struct IterationSummary {
   // relative decrease is not sufficient, the algorithm may accept the
   // step and the step is declared successful.
   //
-  // Note: step_is_successful is false when iteration = 0.
+  // Note: step_is_successful is always true when iteration = 0.
   bool step_is_successful;
 
   // Value of the objective function.
@@ -211,12 +212,14 @@ struct IterationSummary {
 //     const bool log_to_stdout_;
 //   };
 //
-class IterationCallback {
+class CERES_EXPORT IterationCallback {
  public:
   virtual ~IterationCallback() {}
   virtual CallbackReturnType operator()(const IterationSummary& summary) = 0;
 };
 
 }  // namespace ceres
+
+#include "ceres/internal/reenable_warnings.h"
 
 #endif  // CERES_PUBLIC_ITERATION_CALLBACK_H_

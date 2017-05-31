@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -30,12 +30,18 @@
 
 #include "ceres/array_utils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <string>
+#include <vector>
 #include "ceres/fpclassify.h"
+#include "ceres/stringprintf.h"
 
 namespace ceres {
 namespace internal {
+
+using std::string;
 
 // It is a near impossibility that user code generates this exact
 // value in normal operation, thus we will use it to fill arrays
@@ -55,11 +61,53 @@ bool IsArrayValid(const int size, const double* x) {
   return true;
 }
 
+int FindInvalidValue(const int size, const double* x) {
+  if (x == NULL) {
+    return size;
+  }
+
+  for (int i = 0; i < size; ++i) {
+    if (!IsFinite(x[i]) || (x[i] == kImpossibleValue))  {
+      return i;
+    }
+  }
+
+  return size;
+}
+
 void InvalidateArray(const int size, double* x) {
   if (x != NULL) {
     for (int i = 0; i < size; ++i) {
       x[i] = kImpossibleValue;
     }
+  }
+}
+
+void AppendArrayToString(const int size, const double* x, string* result) {
+  for (int i = 0; i < size; ++i) {
+    if (x == NULL) {
+      StringAppendF(result, "Not Computed  ");
+    } else {
+      if (x[i] == kImpossibleValue) {
+        StringAppendF(result, "Uninitialized ");
+      } else {
+        StringAppendF(result, "%12g ", x[i]);
+      }
+    }
+  }
+}
+
+void MapValuesToContiguousRange(const int size, int* array) {
+  std::vector<int> unique_values(array, array + size);
+  std::sort(unique_values.begin(), unique_values.end());
+  unique_values.erase(std::unique(unique_values.begin(),
+                                  unique_values.end()),
+                      unique_values.end());
+
+  for (int i = 0; i < size; ++i) {
+    array[i] = std::lower_bound(unique_values.begin(),
+                                unique_values.end(),
+                                array[i]) - unique_values.begin();
   }
 }
 

@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,10 @@
 
 namespace ceres {
 namespace internal {
+
+using std::string;
+using std::vector;
+
 namespace {
 
 // Balancing function as described by B. N. Parlett and C. Reinsch,
@@ -120,7 +124,6 @@ Vector RemoveLeadingZeros(const Vector& polynomial_in) {
   }
   return polynomial_in.tail(polynomial_in.size() - i);
 }
-}  // namespace
 
 void FindLinearPolynomialRoots(const Vector& polynomial,
                                Vector* real,
@@ -178,6 +181,7 @@ void FindQuadraticPolynomialRoots(const Vector& polynomial,
     (*imaginary)(1) = -sqrt_D / (2.0 * a);
   }
 }
+}  // namespace
 
 bool FindPolynomialRoots(const Vector& polynomial_in,
                          Vector* real,

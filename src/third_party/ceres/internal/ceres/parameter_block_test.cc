@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -36,37 +36,76 @@
 namespace ceres {
 namespace internal {
 
-TEST(ParameterBlock, SetLocalParameterization) {
-  double x[3] = { 1.0, 2.0, 3.0 };
+TEST(ParameterBlock, SetLocalParameterizationDiesOnSizeMismatch) {
+  double x[3] = {1.0, 2.0, 3.0};
   ParameterBlock parameter_block(x, 3, -1);
-
-  // The indices to set constant within the parameter block (used later).
-  vector<int> indices;
+  std::vector<int> indices;
   indices.push_back(1);
-
-  // Can't set the parameterization if the sizes don't match.
   SubsetParameterization subset_wrong_size(4, indices);
   EXPECT_DEATH_IF_SUPPORTED(
       parameter_block.SetParameterization(&subset_wrong_size), "global");
+}
 
-  // Can't set parameterization to NULL from NULL.
-  EXPECT_DEATH_IF_SUPPORTED
-      (parameter_block.SetParameterization(NULL), "NULL");
-
-  // Now set the parameterization.
+TEST(ParameterBlock, SetLocalParameterizationWithSameExistingParameterization) {
+  double x[3] = {1.0, 2.0, 3.0};
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(1);
   SubsetParameterization subset(3, indices);
   parameter_block.SetParameterization(&subset);
-
-  // Re-setting the parameterization to the same value is supported.
   parameter_block.SetParameterization(&subset);
+}
 
-  // Can't set parameterization to NULL from another parameterization.
+TEST(ParameterBlock, SetLocalParameterizationDiesWhenResettingToNull) {
+  double x[3] = {1.0, 2.0, 3.0};
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(1);
+  SubsetParameterization subset(3, indices);
+  parameter_block.SetParameterization(&subset);
   EXPECT_DEATH_IF_SUPPORTED(parameter_block.SetParameterization(NULL), "NULL");
+}
 
-  // Can't set the parameterization more than once.
+TEST(ParameterBlock,
+     SetLocalParameterizationDiesWhenResettingToDifferentParameterization) {
+  double x[3] = {1.0, 2.0, 3.0};
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(1);
+  SubsetParameterization subset(3, indices);
+  parameter_block.SetParameterization(&subset);
   SubsetParameterization subset_different(3, indices);
-  EXPECT_DEATH_IF_SUPPORTED
-      (parameter_block.SetParameterization(&subset_different), "re-set");
+  EXPECT_DEATH_IF_SUPPORTED(
+      parameter_block.SetParameterization(&subset_different), "re-set");
+}
+
+TEST(ParameterBlock, SetLocalParameterizationDiesOnNullParameterization) {
+  double x[3] = {1.0, 2.0, 3.0};
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(1);
+  EXPECT_DEATH_IF_SUPPORTED(parameter_block.SetParameterization(NULL), "NULL");
+}
+
+TEST(ParameterBlock, SetParameterizationDiesOnZeroLocalSize) {
+  double x[3] = {1.0, 2.0, 3.0};
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(0);
+  indices.push_back(1);
+  indices.push_back(2);
+  SubsetParameterization subset(3, indices);
+  EXPECT_DEATH_IF_SUPPORTED(parameter_block.SetParameterization(&subset),
+                            "positive dimensional tangent");
+}
+
+TEST(ParameterBlock, SetLocalParameterizationAndNormalOperation) {
+  double x[3] = { 1.0, 2.0, 3.0 };
+  ParameterBlock parameter_block(x, 3, -1);
+  std::vector<int> indices;
+  indices.push_back(1);
+  SubsetParameterization subset(3, indices);
+  parameter_block.SetParameterization(&subset);
 
   // Ensure the local parameterization jacobian result is correctly computed.
   ConstMatrixRef local_parameterization_jacobian(
@@ -167,6 +206,46 @@ TEST(ParameterBlock, DetectBadLocalParameterization) {
   ParameterBlock parameter_block(&x, 1, -1, &bad_parameterization);
   double y = 2;
   EXPECT_FALSE(parameter_block.SetState(&y));
+}
+
+TEST(ParameterBlock, DefaultBounds) {
+  double x[2];
+  ParameterBlock parameter_block(x, 2, -1, NULL);
+  EXPECT_EQ(parameter_block.UpperBoundForParameter(0),
+            std::numeric_limits<double>::max());
+  EXPECT_EQ(parameter_block.UpperBoundForParameter(1),
+            std::numeric_limits<double>::max());
+  EXPECT_EQ(parameter_block.LowerBoundForParameter(0),
+            -std::numeric_limits<double>::max());
+  EXPECT_EQ(parameter_block.LowerBoundForParameter(1),
+            -std::numeric_limits<double>::max());
+}
+
+TEST(ParameterBlock, SetBounds) {
+  double x[2];
+  ParameterBlock parameter_block(x, 2, -1, NULL);
+  parameter_block.SetLowerBound(0, 1);
+  parameter_block.SetUpperBound(1, 1);
+
+  EXPECT_EQ(parameter_block.LowerBoundForParameter(0), 1.0);
+  EXPECT_EQ(parameter_block.LowerBoundForParameter(1),
+            -std::numeric_limits<double>::max());
+
+  EXPECT_EQ(parameter_block.UpperBoundForParameter(0),
+            std::numeric_limits<double>::max());
+  EXPECT_EQ(parameter_block.UpperBoundForParameter(1), 1.0);
+}
+
+TEST(ParameterBlock, PlusWithBoundsConstraints) {
+  double x[] = {1.0, 0.0};
+  double delta[] = {2.0, -10.0};
+  ParameterBlock parameter_block(x, 2, -1, NULL);
+  parameter_block.SetUpperBound(0, 2.0);
+  parameter_block.SetLowerBound(1, -1.0);
+  double x_plus_delta[2];
+  parameter_block.Plus(x, delta, x_plus_delta);
+  EXPECT_EQ(x_plus_delta[0], 2.0);
+  EXPECT_EQ(x_plus_delta[1], -1.0);
 }
 
 }  // namespace internal

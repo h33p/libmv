@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -43,12 +43,74 @@
 namespace ceres {
 namespace internal {
 
-// A weighted undirected graph templated over the vertex ids. Vertex
-// should be hashable and comparable.
+// A unweighted undirected graph templated over the vertex ids. Vertex
+// should be hashable.
 template <typename Vertex>
 class Graph {
  public:
   Graph() {}
+
+  // Add a vertex.
+  void AddVertex(const Vertex& vertex) {
+    if (vertices_.insert(vertex).second) {
+      edges_[vertex] = HashSet<Vertex>();
+    }
+  }
+
+  bool RemoveVertex(const Vertex& vertex) {
+    if (vertices_.find(vertex) == vertices_.end()) {
+      return false;
+    }
+
+    vertices_.erase(vertex);
+    const HashSet<Vertex>& sinks = edges_[vertex];
+    for (typename HashSet<Vertex>::const_iterator it = sinks.begin();
+         it != sinks.end(); ++it) {
+      edges_[*it].erase(vertex);
+    }
+
+    edges_.erase(vertex);
+    return true;
+  }
+
+  // Add an edge between the vertex1 and vertex2. Calling AddEdge on a
+  // pair of vertices which do not exist in the graph yet will result
+  // in undefined behavior.
+  //
+  // It is legal to call this method repeatedly for the same set of
+  // vertices.
+  void AddEdge(const Vertex& vertex1, const Vertex& vertex2) {
+    DCHECK(vertices_.find(vertex1) != vertices_.end());
+    DCHECK(vertices_.find(vertex2) != vertices_.end());
+
+    if (edges_[vertex1].insert(vertex2).second) {
+      edges_[vertex2].insert(vertex1);
+    }
+  }
+
+  // Calling Neighbors on a vertex not in the graph will result in
+  // undefined behaviour.
+  const HashSet<Vertex>& Neighbors(const Vertex& vertex) const {
+    return FindOrDie(edges_, vertex);
+  }
+
+  const HashSet<Vertex>& vertices() const {
+    return vertices_;
+  }
+
+ private:
+  HashSet<Vertex> vertices_;
+  HashMap<Vertex, HashSet<Vertex> > edges_;
+
+  CERES_DISALLOW_COPY_AND_ASSIGN(Graph);
+};
+
+// A weighted undirected graph templated over the vertex ids. Vertex
+// should be hashable and comparable.
+template <typename Vertex>
+class WeightedGraph {
+ public:
+  WeightedGraph() {}
 
   // Add a weighted vertex. If the vertex already exists in the graph,
   // its weight is set to the new weight.
@@ -77,9 +139,9 @@ class Graph {
     for (typename HashSet<Vertex>::const_iterator it = sinks.begin();
          it != sinks.end(); ++it) {
       if (vertex < *it) {
-        edge_weights_.erase(make_pair(vertex, *it));
+        edge_weights_.erase(std::make_pair(vertex, *it));
       } else {
-        edge_weights_.erase(make_pair(*it, vertex));
+        edge_weights_.erase(std::make_pair(*it, vertex));
       }
       edges_[*it].erase(vertex);
     }
@@ -103,9 +165,9 @@ class Graph {
     }
 
     if (vertex1 < vertex2) {
-      edge_weights_[make_pair(vertex1, vertex2)] = weight;
+      edge_weights_[std::make_pair(vertex1, vertex2)] = weight;
     } else {
-      edge_weights_[make_pair(vertex2, vertex1)] = weight;
+      edge_weights_[std::make_pair(vertex2, vertex1)] = weight;
     }
   }
 
@@ -126,9 +188,11 @@ class Graph {
   // the edge weight is zero.
   double EdgeWeight(const Vertex& vertex1, const Vertex& vertex2) const {
     if (vertex1 < vertex2) {
-      return FindWithDefault(edge_weights_, make_pair(vertex1, vertex2), 0.0);
+      return FindWithDefault(edge_weights_,
+                             std::make_pair(vertex1, vertex2), 0.0);
     } else {
-      return FindWithDefault(edge_weights_, make_pair(vertex2, vertex1), 0.0);
+      return FindWithDefault(edge_weights_,
+                             std::make_pair(vertex2, vertex1), 0.0);
     }
   }
 
@@ -144,15 +208,15 @@ class Graph {
 
   static double InvalidWeight() {
     return std::numeric_limits<double>::quiet_NaN();
-  };
+  }
 
  private:
   HashSet<Vertex> vertices_;
   HashMap<Vertex, double> vertex_weights_;
   HashMap<Vertex, HashSet<Vertex> > edges_;
-  HashMap<pair<Vertex, Vertex>, double> edge_weights_;
+  HashMap<std::pair<Vertex, Vertex>, double> edge_weights_;
 
-  CERES_DISALLOW_COPY_AND_ASSIGN(Graph);
+  CERES_DISALLOW_COPY_AND_ASSIGN(WeightedGraph);
 };
 
 }  // namespace internal

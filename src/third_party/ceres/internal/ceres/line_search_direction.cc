@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,8 +27,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
-
-#ifndef CERES_NO_LINE_SEARCH_MINIMIZER
 
 #include "ceres/line_search_direction.h"
 #include "ceres/line_search_minimizer.h"
@@ -67,7 +65,7 @@ class NonlinearConjugateGradient : public LineSearchDirection {
       case FLETCHER_REEVES:
         beta = current.gradient_squared_norm / previous.gradient_squared_norm;
         break;
-      case POLAK_RIBIRERE:
+      case POLAK_RIBIERE:
         gradient_change = current.gradient - previous.gradient;
         beta = (current.gradient.dot(gradient_change) /
                 previous.gradient_squared_norm);
@@ -88,7 +86,7 @@ class NonlinearConjugateGradient : public LineSearchDirection {
       LOG(WARNING) << "Restarting non-linear conjugate gradients: "
                    << directional_derivative;
       *search_direction = -current.gradient;
-    };
+    }
 
     return true;
   }
@@ -372,5 +370,3 @@ LineSearchDirection::Create(const LineSearchDirection::Options& options) {
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_NO_LINE_SEARCH_MINIMIZER

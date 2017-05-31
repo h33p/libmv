@@ -1,6 +1,6 @@
 # Ceres Solver - A fast non-linear least squares minimizer
-# Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-# http://code.google.com/p/ceres-solver/
+# Copyright 2015 Google Inc. All rights reserved.
+# http://ceres-solver.org/
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,56 +28,86 @@
 #
 # Author: keir@google.com (Keir Mierle)
 
-ADD_EXECUTABLE(helloworld helloworld.cc)
-TARGET_LINK_LIBRARIES(helloworld ceres)
+# Only Ceres itself should be compiled with CERES_BUILDING_SHARED_LIBRARY
+# defined, any users of Ceres will have CERES_USING_SHARED_LIBRARY defined
+# for them in Ceres' config.h if appropriate.
+if (BUILD_SHARED_LIBS)
+  remove_definitions(-DCERES_BUILDING_SHARED_LIBRARY)
+endif()
 
-ADD_EXECUTABLE(helloworld_numeric_diff helloworld_numeric_diff.cc)
-TARGET_LINK_LIBRARIES(helloworld_numeric_diff ceres)
+add_executable(helloworld helloworld.cc)
+target_link_libraries(helloworld ceres)
 
-ADD_EXECUTABLE(helloworld_analytic_diff helloworld_analytic_diff.cc)
-TARGET_LINK_LIBRARIES(helloworld_analytic_diff ceres)
+add_executable(helloworld_numeric_diff helloworld_numeric_diff.cc)
+target_link_libraries(helloworld_numeric_diff ceres)
 
-ADD_EXECUTABLE(curve_fitting curve_fitting.cc)
-TARGET_LINK_LIBRARIES(curve_fitting ceres)
+add_executable(helloworld_analytic_diff helloworld_analytic_diff.cc)
+target_link_libraries(helloworld_analytic_diff ceres)
 
-ADD_EXECUTABLE(curve_fitting_c curve_fitting.c)
-TARGET_LINK_LIBRARIES(curve_fitting_c ceres)
+add_executable(curve_fitting curve_fitting.cc)
+target_link_libraries(curve_fitting ceres)
+
+add_executable(rosenbrock rosenbrock.cc)
+target_link_libraries(rosenbrock ceres)
+
+add_executable(curve_fitting_c curve_fitting.c)
+target_link_libraries(curve_fitting_c ceres)
+# Force CMake to link curve_fitting_c using the C linker, this is important
+# when Ceres was compiled using C++11 to ensure that -std=c++11 is not passed
+# through.
+set_target_properties(curve_fitting_c PROPERTIES LINKER_LANGUAGE C)
 # As this is a C file #including <math.h> we have to explicitly add the math
 # library (libm). Although some compilers (dependent upon options) will accept
 # the indirect link to libm via Ceres, at least GCC 4.8 on pure Debian won't.
-IF (NOT MSVC)
-  TARGET_LINK_LIBRARIES(curve_fitting_c m)
-ENDIF (NOT MSVC)
+if (NOT MSVC)
+  target_link_libraries(curve_fitting_c m)
+endif (NOT MSVC)
 
-ADD_EXECUTABLE(robust_curve_fitting robust_curve_fitting.cc)
-TARGET_LINK_LIBRARIES(robust_curve_fitting ceres)
+add_executable(ellipse_approximation ellipse_approximation.cc)
+target_link_libraries(ellipse_approximation ceres)
 
-ADD_EXECUTABLE(simple_bundle_adjuster
-               simple_bundle_adjuster.cc)
-TARGET_LINK_LIBRARIES(simple_bundle_adjuster ceres)
+add_executable(robust_curve_fitting robust_curve_fitting.cc)
+target_link_libraries(robust_curve_fitting ceres)
 
-IF (GFLAGS)
-  ADD_EXECUTABLE(powell powell.cc)
-  TARGET_LINK_LIBRARIES(powell ceres ${GFLAGS_LIBRARIES})
+add_executable(simple_bundle_adjuster simple_bundle_adjuster.cc)
+target_link_libraries(simple_bundle_adjuster ceres)
 
-  ADD_EXECUTABLE(nist nist.cc)
-  TARGET_LINK_LIBRARIES(nist ceres ${GFLAGS_LIBRARIES})
+if (GFLAGS)
+  add_executable(powell powell.cc)
+  target_link_libraries(powell ceres ${GFLAGS_LIBRARIES})
 
-  ADD_EXECUTABLE(circle_fit circle_fit.cc)
-  TARGET_LINK_LIBRARIES(circle_fit ceres ${GFLAGS_LIBRARIES})
+  add_executable(nist nist.cc)
+  target_link_libraries(nist ceres ${GFLAGS_LIBRARIES})
 
-  ADD_EXECUTABLE(bundle_adjuster
+  add_executable(more_garbow_hillstrom more_garbow_hillstrom.cc)
+  target_link_libraries(more_garbow_hillstrom ceres ${GFLAGS_LIBRARIES})
+
+  add_executable(circle_fit circle_fit.cc)
+  target_link_libraries(circle_fit ceres ${GFLAGS_LIBRARIES})
+
+  add_executable(bundle_adjuster
                  bundle_adjuster.cc
                  bal_problem.cc)
-  TARGET_LINK_LIBRARIES(bundle_adjuster ceres ${GFLAGS_LIBRARIES})
+  target_link_libraries(bundle_adjuster ceres ${GFLAGS_LIBRARIES})
 
-  ADD_EXECUTABLE(libmv_bundle_adjuster
+  add_executable(libmv_bundle_adjuster
                  libmv_bundle_adjuster.cc)
-  TARGET_LINK_LIBRARIES(libmv_bundle_adjuster ceres ${GFLAGS_LIBRARIES})
+  target_link_libraries(libmv_bundle_adjuster ceres ${GFLAGS_LIBRARIES})
 
-  ADD_EXECUTABLE(denoising
+  add_executable(libmv_homography
+                 libmv_homography.cc)
+  target_link_libraries(libmv_homography ceres ${GFLAGS_LIBRARIES})
+
+  add_executable(denoising
                  denoising.cc
                  fields_of_experts.cc)
-  TARGET_LINK_LIBRARIES(denoising ceres ${GFLAGS_LIBRARIES})
-ENDIF (GFLAGS)
+  target_link_libraries(denoising ceres ${GFLAGS_LIBRARIES})
 
+  add_executable(robot_pose_mle
+                 robot_pose_mle.cc)
+  target_link_libraries(robot_pose_mle ceres ${GFLAGS_LIBRARIES})
+
+endif (GFLAGS)
+
+add_subdirectory(sampled_function)
+add_subdirectory(slam)

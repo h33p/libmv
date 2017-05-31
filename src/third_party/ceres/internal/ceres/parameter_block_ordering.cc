@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -37,16 +37,23 @@
 #include "ceres/parameter_block.h"
 #include "ceres/program.h"
 #include "ceres/residual_block.h"
+#include "ceres/wall_time.h"
 #include "glog/logging.h"
 
 namespace ceres {
 namespace internal {
 
+using std::map;
+using std::set;
+using std::vector;
+
 int ComputeStableSchurOrdering(const Program& program,
                          vector<ParameterBlock*>* ordering) {
   CHECK_NOTNULL(ordering)->clear();
-
+  EventLogger event_logger("ComputeStableSchurOrdering");
   scoped_ptr<Graph< ParameterBlock*> > graph(CreateHessianGraph(program));
+  event_logger.AddEvent("CreateHessianGraph");
+
   const vector<ParameterBlock*>& parameter_blocks = program.parameter_blocks();
   const HashSet<ParameterBlock*>& vertices = graph->vertices();
   for (int i = 0; i < parameter_blocks.size(); ++i) {
@@ -54,8 +61,10 @@ int ComputeStableSchurOrdering(const Program& program,
       ordering->push_back(parameter_blocks[i]);
     }
   }
+  event_logger.AddEvent("Preordering");
 
   int independent_set_size = StableIndependentSetOrdering(*graph, ordering);
+  event_logger.AddEvent("StableIndependentSet");
 
   // Add the excluded blocks to back of the ordering vector.
   for (int i = 0; i < parameter_blocks.size(); ++i) {
@@ -64,6 +73,7 @@ int ComputeStableSchurOrdering(const Program& program,
       ordering->push_back(parameter_block);
     }
   }
+  event_logger.AddEvent("ConstantParameterBlocks");
 
   return independent_set_size;
 }
@@ -109,8 +119,7 @@ void ComputeRecursiveIndependentSetOrdering(const Program& program,
   }
 }
 
-Graph<ParameterBlock*>*
-CreateHessianGraph(const Program& program) {
+Graph<ParameterBlock*>* CreateHessianGraph(const Program& program) {
   Graph<ParameterBlock*>* graph = CHECK_NOTNULL(new Graph<ParameterBlock*>);
   const vector<ParameterBlock*>& parameter_blocks = program.parameter_blocks();
   for (int i = 0; i < parameter_blocks.size(); ++i) {
@@ -142,6 +151,22 @@ CreateHessianGraph(const Program& program) {
   }
 
   return graph;
+}
+
+void OrderingToGroupSizes(const ParameterBlockOrdering* ordering,
+                          vector<int>* group_sizes) {
+  CHECK_NOTNULL(group_sizes)->clear();
+  if (ordering == NULL) {
+    return;
+  }
+
+  const map<int, set<double*> >& group_to_elements =
+      ordering->group_to_elements();
+  for (map<int, set<double*> >::const_iterator it = group_to_elements.begin();
+       it != group_to_elements.end();
+       ++it) {
+    group_sizes->push_back(it->second.size());
+  }
 }
 
 }  // namespace internal

@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -29,6 +29,9 @@
 // Author: David Gallup (dgallup@google.com)
 //         Sameer Agarwal (sameeragarwal@google.com)
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifndef CERES_NO_SUITESPARSE
 
 #include "ceres/canonical_views_clustering.h"
@@ -41,6 +44,8 @@
 
 namespace ceres {
 namespace internal {
+
+using std::vector;
 
 typedef HashMap<int, int> IntMap;
 typedef HashSet<int> IntSet;
@@ -58,7 +63,7 @@ class CanonicalViewsClustering {
   // vertices may not be assigned to any cluster. In this case they
   // are assigned to a cluster with id = kInvalidClusterId.
   void ComputeClustering(const CanonicalViewsClusteringOptions& options,
-                         const Graph<int>& graph,
+                         const WeightedGraph<int>& graph,
                          vector<int>* centers,
                          IntMap* membership);
 
@@ -71,7 +76,7 @@ class CanonicalViewsClustering {
                                 IntMap* membership) const;
 
   CanonicalViewsClusteringOptions options_;
-  const Graph<int>* graph_;
+  const WeightedGraph<int>* graph_;
   // Maps a view to its representative canonical view (its cluster
   // center).
   IntMap view_to_canonical_view_;
@@ -82,7 +87,7 @@ class CanonicalViewsClustering {
 
 void ComputeCanonicalViewsClustering(
     const CanonicalViewsClusteringOptions& options,
-    const Graph<int>& graph,
+    const WeightedGraph<int>& graph,
     vector<int>* centers,
     IntMap* membership) {
   time_t start_time = time(NULL);
@@ -95,7 +100,7 @@ void ComputeCanonicalViewsClustering(
 // Implementation of CanonicalViewsClustering
 void CanonicalViewsClustering::ComputeClustering(
     const CanonicalViewsClusteringOptions& options,
-    const Graph<int>& graph,
+    const WeightedGraph<int>& graph,
     vector<int>* centers,
     IntMap* membership) {
   options_ = options;
@@ -147,7 +152,7 @@ void CanonicalViewsClustering::FindValidViews(
   for (IntSet::const_iterator view = views.begin();
        view != views.end();
        ++view) {
-    if (graph_->VertexWeight(*view) != Graph<int>::InvalidWeight()) {
+    if (graph_->VertexWeight(*view) != WeightedGraph<int>::InvalidWeight()) {
       valid_views->insert(*view);
     }
   }

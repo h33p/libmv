@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -98,6 +98,8 @@ class LinearSolver {
           dense_linear_algebra_library_type(EIGEN),
           sparse_linear_algebra_library_type(SUITE_SPARSE),
           use_postordering(false),
+          dynamic_sparsity(false),
+          use_explicit_schur_complement(false),
           min_num_iterations(1),
           max_num_iterations(1),
           num_threads(1),
@@ -113,8 +115,10 @@ class LinearSolver {
     DenseLinearAlgebraLibraryType dense_linear_algebra_library_type;
     SparseLinearAlgebraLibraryType sparse_linear_algebra_library_type;
 
-    // See solver.h for information about this flag.
+    // See solver.h for information about these flags.
     bool use_postordering;
+    bool dynamic_sparsity;
+    bool use_explicit_schur_complement;
 
     // Number of internal iterations that the solver uses. This
     // parameter only makes sense for iterative solvers like CG.
@@ -140,7 +144,7 @@ class LinearSolver {
     // elimination group must form an independent set in the normal
     // equations. The first elimination group corresponds to the
     // num_eliminate_blocks in the Schur type solvers.
-    vector<int> elimination_groups;
+    std::vector<int> elimination_groups;
 
     // Iterative solvers, e.g. Preconditioned Conjugate Gradients
     // maintain a cheap estimate of the residual which may become
@@ -269,8 +273,16 @@ class LinearSolver {
     double residual_norm;
     int num_iterations;
     LinearSolverTerminationType termination_type;
-    string message;
+    std::string message;
   };
+
+  // If the optimization problem is such that there are no remaining
+  // e-blocks, a Schur type linear solver cannot be used. If the
+  // linear solver is of Schur type, this function implements a policy
+  // to select an alternate nearest linear solver to the one selected
+  // by the user. The input linear_solver_type is returned otherwise.
+  static LinearSolverType LinearSolverForZeroEBlocks(
+      LinearSolverType linear_solver_type);
 
   virtual ~LinearSolver();
 
@@ -284,12 +296,12 @@ class LinearSolver {
   // that the base class implementation does not have to worry about
   // life time issues. Further, these calls are not expected to be
   // frequent or performance sensitive.
-  virtual map<string, int> CallStatistics() const {
-    return map<string, int>();
+  virtual std::map<std::string, int> CallStatistics() const {
+    return std::map<std::string, int>();
   }
 
-  virtual map<string, double> TimeStatistics() const {
-    return map<string, double>();
+  virtual std::map<std::string, double> TimeStatistics() const {
+    return std::map<std::string, double>();
   }
 
   // Factory
@@ -319,11 +331,11 @@ class TypedLinearSolver : public LinearSolver {
     return SolveImpl(down_cast<MatrixType*>(A), b, per_solve_options, x);
   }
 
-  virtual map<string, int> CallStatistics() const {
+  virtual std::map<std::string, int> CallStatistics() const {
     return execution_summary_.calls();
   }
 
-  virtual map<string, double> TimeStatistics() const {
+  virtual std::map<std::string, double> TimeStatistics() const {
     return execution_summary_.times();
   }
 

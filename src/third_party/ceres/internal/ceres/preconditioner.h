@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,7 @@
 #include "ceres/compressed_row_sparse_matrix.h"
 #include "ceres/linear_operator.h"
 #include "ceres/sparse_matrix.h"
+#include "ceres/types.h"
 
 namespace ceres {
 namespace internal {
@@ -79,7 +80,7 @@ class Preconditioner : public LinearOperator {
     // elimination group must form an independent set in the normal
     // equations. The first elimination group corresponds to the
     // num_eliminate_blocks in the Schur type solvers.
-    vector<int> elimination_groups;
+    std::vector<int> elimination_groups;
 
     // If the block sizes in a BlockSparseMatrix are fixed, then in
     // some cases the Schur complement based solvers can detect and
@@ -94,6 +95,14 @@ class Preconditioner : public LinearOperator {
     int e_block_size;
     int f_block_size;
   };
+
+  // If the optimization problem is such that there are no remaining
+  // e-blocks, ITERATIVE_SCHUR with a Schur type preconditioner cannot
+  // be used. This function returns JACOBI if a preconditioner for
+  // ITERATIVE_SCHUR is used. The input preconditioner_type is
+  // returned otherwise.
+  static PreconditionerType PreconditionerForZeroEBlocks(
+      PreconditionerType preconditioner_type);
 
   virtual ~Preconditioner();
 

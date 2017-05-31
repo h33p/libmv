@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -57,8 +57,6 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
   }
 
   void TestSolver(const LinearSolver::Options& options) {
-    scoped_ptr<LinearSolver> solver(LinearSolver::Create(options));
-
     LinearSolver::PerSolveOptions per_solve_options;
     LinearSolver::Summary unregularized_solve_summary;
     LinearSolver::Summary regularized_solve_summary;
@@ -84,13 +82,17 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
     } else {
       LOG(FATAL) << "Unknown linear solver : " << options.type;
     }
+
     // Unregularized
+    scoped_ptr<LinearSolver> solver(LinearSolver::Create(options));
     unregularized_solve_summary =
         solver->Solve(transformed_A.get(),
                       b_.get(),
                       per_solve_options,
                       x_unregularized.data());
 
+    // Sparsity structure is changing, reset the solver.
+    solver.reset(LinearSolver::Create(options));
     // Regularized solution
     per_solve_options.D = D_.get();
     regularized_solve_summary =
@@ -103,13 +105,20 @@ class UnsymmetricLinearSolverTest : public ::testing::Test {
               LINEAR_SOLVER_SUCCESS);
 
     for (int i = 0; i < A_->num_cols(); ++i) {
-      EXPECT_NEAR(sol_unregularized_[i], x_unregularized[i], 1e-8);
+      EXPECT_NEAR(sol_unregularized_[i], x_unregularized[i], 1e-8)
+          << "\nExpected: "
+          << ConstVectorRef(sol_unregularized_.get(),
+                            A_->num_cols()).transpose()
+          << "\nActual: " << x_unregularized.transpose();
     }
 
     EXPECT_EQ(regularized_solve_summary.termination_type,
               LINEAR_SOLVER_SUCCESS);
     for (int i = 0; i < A_->num_cols(); ++i) {
-      EXPECT_NEAR(sol_regularized_[i], x_regularized[i], 1e-8);
+      EXPECT_NEAR(sol_regularized_[i], x_regularized[i], 1e-8)
+          << "\nExpected: "
+          << ConstVectorRef(sol_regularized_.get(), A_->num_cols()).transpose()
+          << "\nActual: " << x_regularized.transpose();
     }
   }
 
@@ -168,6 +177,15 @@ TEST_F(UnsymmetricLinearSolverTest,
   options.use_postordering = true;
   TestSolver(options);
 }
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingSuiteSparseDynamicSparsity) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.dynamic_sparsity = true;
+  TestSolver(options);
+}
 #endif
 
 #ifndef CERES_NO_CXSPARSE
@@ -188,7 +206,46 @@ TEST_F(UnsymmetricLinearSolverTest,
   options.use_postordering = true;
   TestSolver(options);
 }
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingCXSparseDynamicSparsity) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = CX_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.dynamic_sparsity = true;
+  TestSolver(options);
+}
 #endif
+
+#ifdef CERES_USE_EIGEN_SPARSE
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingEigenPreOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = EIGEN_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = false;
+  TestSolver(options);
+}
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingEigenPostOrdering) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = EIGEN_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.use_postordering = true;
+  TestSolver(options);
+}
+
+TEST_F(UnsymmetricLinearSolverTest,
+       SparseNormalCholeskyUsingEigenDynamicSparsity) {
+  LinearSolver::Options options;
+  options.sparse_linear_algebra_library_type = EIGEN_SPARSE;
+  options.type = SPARSE_NORMAL_CHOLESKY;
+  options.dynamic_sparsity = true;
+  TestSolver(options);
+}
+
+#endif  // CERES_USE_EIGEN_SPARSE
 
 }  // namespace internal
 }  // namespace ceres

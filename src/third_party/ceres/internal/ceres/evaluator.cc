@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,8 @@
 #include "ceres/compressed_row_sparse_matrix.h"
 #include "ceres/crs_matrix.h"
 #include "ceres/dense_jacobian_writer.h"
+#include "ceres/dynamic_compressed_row_finalizer.h"
+#include "ceres/dynamic_compressed_row_jacobian_writer.h"
 #include "ceres/evaluator.h"
 #include "ceres/internal/port.h"
 #include "ceres/program_evaluator.h"
@@ -48,7 +50,7 @@ Evaluator::~Evaluator() {}
 
 Evaluator* Evaluator::Create(const Evaluator::Options& options,
                              Program* program,
-                             string* error) {
+                             std::string* error) {
   switch (options.linear_solver_type) {
     case DENSE_QR:
     case DENSE_NORMAL_CHOLESKY:
@@ -63,9 +65,17 @@ Evaluator* Evaluator::Create(const Evaluator::Options& options,
                                   BlockJacobianWriter>(options,
                                                        program);
     case SPARSE_NORMAL_CHOLESKY:
-      return new ProgramEvaluator<ScratchEvaluatePreparer,
-                                  CompressedRowJacobianWriter>(options,
-                                                               program);
+      if (options.dynamic_sparsity) {
+        return new ProgramEvaluator<ScratchEvaluatePreparer,
+                                    DynamicCompressedRowJacobianWriter,
+                                    DynamicCompressedRowJacobianFinalizer>(
+                                        options, program);
+      } else {
+        return new ProgramEvaluator<ScratchEvaluatePreparer,
+                                    CompressedRowJacobianWriter>(options,
+                                                                 program);
+      }
+
     default:
       *error = "Invalid Linear Solver Type. Unable to create evaluator.";
       return NULL;

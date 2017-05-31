@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,21 +28,28 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 
-#ifndef CERES_NO_LINE_SEARCH_MINIMIZER
+#include "ceres/line_search.h"
+
 #include <iomanip>
 #include <iostream>  // NOLINT
 
-#include "ceres/line_search.h"
-
-#include "ceres/fpclassify.h"
+#include "glog/logging.h"
 #include "ceres/evaluator.h"
 #include "ceres/internal/eigen.h"
+#include "ceres/fpclassify.h"
+#include "ceres/map_util.h"
 #include "ceres/polynomial.h"
 #include "ceres/stringprintf.h"
-#include "glog/logging.h"
+#include "ceres/wall_time.h"
 
 namespace ceres {
 namespace internal {
+
+using std::map;
+using std::ostream;
+using std::string;
+using std::vector;
+
 namespace {
 // Precision used for floating point values in error message output.
 const int kErrorMessageNumericPrecision = 8;
@@ -53,7 +60,7 @@ FunctionSample ValueSample(const double x, const double value) {
   sample.value = value;
   sample.value_is_valid = true;
   return sample;
-};
+}
 
 FunctionSample ValueAndGradientSample(const double x,
                                       const double value,
@@ -65,13 +72,15 @@ FunctionSample ValueAndGradientSample(const double x,
   sample.value_is_valid = true;
   sample.gradient_is_valid = true;
   return sample;
-};
+}
 
 }  // namespace
 
+
+ostream& operator<<(ostream &os, const FunctionSample& sample);
+
 // Convenience stream operator for pushing FunctionSamples into log messages.
-std::ostream& operator<<(std::ostream &os,
-                         const FunctionSample& sample) {
+ostream& operator<<(ostream &os, const FunctionSample& sample) {
   os << sample.ToDebugString();
   return os;
 }
@@ -105,8 +114,9 @@ LineSearchFunction::LineSearchFunction(Evaluator* evaluator)
       direction_(evaluator->NumEffectiveParameters()),
       evaluation_point_(evaluator->NumParameters()),
       scaled_direction_(evaluator->NumEffectiveParameters()),
-      gradient_(evaluator->NumEffectiveParameters()) {
-}
+      gradient_(evaluator->NumEffectiveParameters()),
+      initial_evaluator_residual_time_in_seconds(0.0),
+      initial_evaluator_jacobian_time_in_seconds(0.0) {}
 
 void LineSearchFunction::Init(const Vector& position,
                               const Vector& direction) {
@@ -124,14 +134,12 @@ bool LineSearchFunction::Evaluate(double x, double* f, double* g) {
 
   if (g == NULL) {
     return (evaluator_->Evaluate(evaluation_point_.data(),
-                                  f, NULL, NULL, NULL) &&
+                                 f, NULL, NULL, NULL) &&
             IsFinite(*f));
   }
 
   if (!evaluator_->Evaluate(evaluation_point_.data(),
-                            f,
-                            NULL,
-                            gradient_.data(), NULL)) {
+                            f, NULL, gradient_.data(), NULL)) {
     return false;
   }
 
@@ -141,6 +149,54 @@ bool LineSearchFunction::Evaluate(double x, double* f, double* g) {
 
 double LineSearchFunction::DirectionInfinityNorm() const {
   return direction_.lpNorm<Eigen::Infinity>();
+}
+
+void LineSearchFunction::ResetTimeStatistics() {
+  const map<string, double> evaluator_time_statistics =
+      evaluator_->TimeStatistics();
+  initial_evaluator_residual_time_in_seconds =
+      FindWithDefault(evaluator_time_statistics, "Evaluator::Residual", 0.0);
+  initial_evaluator_jacobian_time_in_seconds =
+      FindWithDefault(evaluator_time_statistics, "Evaluator::Jacobian", 0.0);
+}
+
+void LineSearchFunction::TimeStatistics(
+    double* cost_evaluation_time_in_seconds,
+    double* gradient_evaluation_time_in_seconds) const {
+  const map<string, double> evaluator_time_statistics =
+      evaluator_->TimeStatistics();
+  *cost_evaluation_time_in_seconds =
+      FindWithDefault(evaluator_time_statistics, "Evaluator::Residual", 0.0) -
+      initial_evaluator_residual_time_in_seconds;
+  // Strictly speaking this will slightly underestimate the time spent
+  // evaluating the gradient of the line search univariate cost function as it
+  // does not count the time spent performing the dot product with the direction
+  // vector.  However, this will typically be small by comparison, and also
+  // allows direct subtraction of the timing information from the totals for
+  // the evaluator returned in the solver summary.
+  *gradient_evaluation_time_in_seconds =
+      FindWithDefault(evaluator_time_statistics, "Evaluator::Jacobian", 0.0) -
+      initial_evaluator_jacobian_time_in_seconds;
+}
+
+void LineSearch::Search(double step_size_estimate,
+                        double initial_cost,
+                        double initial_gradient,
+                        Summary* summary) const {
+  const double start_time = WallTimeInSeconds();
+  *CHECK_NOTNULL(summary) = LineSearch::Summary();
+
+  summary->cost_evaluation_time_in_seconds = 0.0;
+  summary->gradient_evaluation_time_in_seconds = 0.0;
+  summary->polynomial_minimization_time_in_seconds = 0.0;
+
+  options().function->ResetTimeStatistics();
+  this->DoSearch(step_size_estimate, initial_cost, initial_gradient, summary);
+  options().function->
+      TimeStatistics(&summary->cost_evaluation_time_in_seconds,
+                     &summary->gradient_evaluation_time_in_seconds);
+
+  summary->total_time_in_seconds = WallTimeInSeconds() - start_time;
 }
 
 // Returns step_size \in [min_step_size, max_step_size] which minimizes the
@@ -158,7 +214,7 @@ double LineSearch::InterpolatingPolynomialMinimizingStepSize(
        max_step_size <= current.x)) {
     // Either: sample is invalid; or we are using BISECTION and contracting
     // the step size.
-    return min(max(current.x * 0.5, min_step_size), max_step_size);
+    return std::min(std::max(current.x * 0.5, min_step_size), max_step_size);
   } else if (interpolation_type == BISECTION) {
     CHECK_GT(max_step_size, current.x);
     // We are expanding the search (during a Wolfe bracketing phase) using
@@ -218,16 +274,15 @@ double LineSearch::InterpolatingPolynomialMinimizingStepSize(
 ArmijoLineSearch::ArmijoLineSearch(const LineSearch::Options& options)
     : LineSearch(options) {}
 
-void ArmijoLineSearch::Search(const double step_size_estimate,
-                              const double initial_cost,
-                              const double initial_gradient,
-                              Summary* summary) {
-  *CHECK_NOTNULL(summary) = LineSearch::Summary();
+void ArmijoLineSearch::DoSearch(const double step_size_estimate,
+                                const double initial_cost,
+                                const double initial_gradient,
+                                Summary* summary) const {
   CHECK_GE(step_size_estimate, 0.0);
   CHECK_GT(options().sufficient_decrease, 0.0);
   CHECK_LT(options().sufficient_decrease, 1.0);
   CHECK_GT(options().max_num_iterations, 0);
-  Function* function = options().function;
+  LineSearchFunction* function = options().function;
 
   // Note initial_cost & initial_gradient are evaluated at step_size = 0,
   // not step_size_estimate, which is our starting guess.
@@ -246,8 +301,7 @@ void ArmijoLineSearch::Search(const double step_size_estimate,
   // gradient at the current query point.
   const bool interpolation_uses_gradient_at_current_sample =
       options().interpolation_type == CUBIC;
-  const double descent_direction_max_norm =
-      static_cast<const LineSearchFunction*>(function)->DirectionInfinityNorm();
+  const double descent_direction_max_norm = function->DirectionInfinityNorm();
 
   ++summary->num_function_evaluations;
   if (interpolation_uses_gradient_at_current_sample) {
@@ -274,10 +328,11 @@ void ArmijoLineSearch::Search(const double step_size_estimate,
                        "satisfying the sufficient decrease condition within "
                        "specified max_num_iterations: %d.",
                        options().max_num_iterations);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return;
     }
 
+    const double polynomial_minimization_start_time = WallTimeInSeconds();
     const double step_size =
         this->InterpolatingPolynomialMinimizingStepSize(
             options().interpolation_type,
@@ -286,13 +341,15 @@ void ArmijoLineSearch::Search(const double step_size_estimate,
             current,
             (options().max_step_contraction * current.x),
             (options().min_step_contraction * current.x));
+    summary->polynomial_minimization_time_in_seconds +=
+        (WallTimeInSeconds() - polynomial_minimization_start_time);
 
     if (step_size * descent_direction_max_norm < options().min_step_size) {
       summary->error =
           StringPrintf("Line search failed: step_size too small: %.5e "
                        "with descent_direction_max_norm: %.5e.", step_size,
                        descent_direction_max_norm);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return;
     }
 
@@ -319,11 +376,10 @@ void ArmijoLineSearch::Search(const double step_size_estimate,
 WolfeLineSearch::WolfeLineSearch(const LineSearch::Options& options)
     : LineSearch(options) {}
 
-void WolfeLineSearch::Search(const double step_size_estimate,
-                             const double initial_cost,
-                             const double initial_gradient,
-                             Summary* summary) {
-  *CHECK_NOTNULL(summary) = LineSearch::Summary();
+void WolfeLineSearch::DoSearch(const double step_size_estimate,
+                               const double initial_cost,
+                               const double initial_gradient,
+                               Summary* summary) const {
   // All parameters should have been validated by the Solver, but as
   // invalid values would produce crazy nonsense, hard check them here.
   CHECK_GE(step_size_estimate, 0.0);
@@ -455,15 +511,15 @@ bool WolfeLineSearch::BracketingPhase(
     FunctionSample* bracket_low,
     FunctionSample* bracket_high,
     bool* do_zoom_search,
-    Summary* summary) {
-  Function* function = options().function;
+    Summary* summary) const {
+  LineSearchFunction* function = options().function;
 
   FunctionSample previous = initial_position;
   FunctionSample current = ValueAndGradientSample(step_size_estimate, 0.0, 0.0);
   current.value_is_valid = false;
 
   const double descent_direction_max_norm =
-      static_cast<const LineSearchFunction*>(function)->DirectionInfinityNorm();
+      function->DirectionInfinityNorm();
 
   *do_zoom_search = false;
   *bracket_low = initial_position;
@@ -545,15 +601,16 @@ bool WolfeLineSearch::BracketingPhase(
       // conditions, or a valid bracket containing such a point. Stop searching
       // and set bracket_low to the size size amongst all those tested which
       // minimizes f() and satisfies the Armijo condition.
-      LOG(WARNING) << "Line search failed: Wolfe bracketing phase shrank "
-                   << "bracket width: " << fabs(current.x - previous.x)
-                   <<  ", to < tolerance: " << options().min_step_size
-                   << ", with descent_direction_max_norm: "
-                   << descent_direction_max_norm << ", and failed to find "
-                   << "a point satisfying the strong Wolfe conditions or a "
-                   << "bracketing containing such a point. Accepting "
-                   << "point found satisfying Armijo condition only, to "
-                   << "allow continuation.";
+      LOG_IF(WARNING, !options().is_silent)
+          << "Line search failed: Wolfe bracketing phase shrank "
+          << "bracket width: " << fabs(current.x - previous.x)
+          <<  ", to < tolerance: " << options().min_step_size
+          << ", with descent_direction_max_norm: "
+          << descent_direction_max_norm << ", and failed to find "
+          << "a point satisfying the strong Wolfe conditions or a "
+          << "bracketing containing such a point. Accepting "
+          << "point found satisfying Armijo condition only, to "
+          << "allow continuation.";
       *bracket_low = current;
       break;
 
@@ -566,7 +623,7 @@ bool WolfeLineSearch::BracketingPhase(
                        "find a point satisfying strong Wolfe conditions, or a "
                        "bracket containing such a point within specified "
                        "max_num_iterations: %d", options().max_num_iterations);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       // Ensure that bracket_low is always set to the step size amongst all
       // those tested which minimizes f() and satisfies the Armijo condition
       // when we terminate due to the 'artificial' max_num_iterations condition.
@@ -592,6 +649,7 @@ bool WolfeLineSearch::BracketingPhase(
     const FunctionSample unused_previous;
     DCHECK(!unused_previous.value_is_valid);
     // Contracts step size if f(current) is not valid.
+    const double polynomial_minimization_start_time = WallTimeInSeconds();
     const double step_size =
         this->InterpolatingPolynomialMinimizingStepSize(
             options().interpolation_type,
@@ -600,12 +658,14 @@ bool WolfeLineSearch::BracketingPhase(
             current,
             previous.x,
             max_step_size);
+    summary->polynomial_minimization_time_in_seconds +=
+        (WallTimeInSeconds() - polynomial_minimization_start_time);
     if (step_size * descent_direction_max_norm < options().min_step_size) {
       summary->error =
           StringPrintf("Line search failed: step_size too small: %.5e "
                        "with descent_direction_max_norm: %.5e", step_size,
                        descent_direction_max_norm);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return false;
     }
 
@@ -640,8 +700,8 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
                                 FunctionSample bracket_low,
                                 FunctionSample bracket_high,
                                 FunctionSample* solution,
-                                Summary* summary) {
-  Function* function = options().function;
+                                Summary* summary) const {
+  LineSearchFunction* function = options().function;
 
   CHECK(bracket_low.value_is_valid && bracket_low.gradient_is_valid)
       << std::scientific << std::setprecision(kErrorMessageNumericPrecision)
@@ -689,14 +749,13 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
                      initial_position.ToDebugString().c_str(),
                      bracket_low.ToDebugString().c_str(),
                      bracket_high.ToDebugString().c_str());
-    LOG(WARNING) << summary->error;
+    LOG_IF(WARNING, !options().is_silent) << summary->error;
     solution->value_is_valid = false;
     return false;
   }
 
   const int num_bracketing_iterations = summary->num_iterations;
-  const double descent_direction_max_norm =
-      static_cast<const LineSearchFunction*>(function)->DirectionInfinityNorm();
+  const double descent_direction_max_norm = function->DirectionInfinityNorm();
 
   while (true) {
     // Set solution to bracket_low, as it is our best step size (smallest f())
@@ -710,7 +769,7 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
                        "within specified max_num_iterations: %d, "
                        "(num iterations taken for bracketing: %d).",
                        options().max_num_iterations, num_bracketing_iterations);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return false;
     }
     if (fabs(bracket_high.x - bracket_low.x) * descent_direction_max_norm
@@ -722,7 +781,7 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
                        "too small with descent_direction_max_norm: %.5e.",
                        fabs(bracket_high.x - bracket_low.x),
                        descent_direction_max_norm);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return false;
     }
 
@@ -739,6 +798,7 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
     // value that will therefore be ignored.
     const FunctionSample unused_previous;
     DCHECK(!unused_previous.value_is_valid);
+    const double polynomial_minimization_start_time = WallTimeInSeconds();
     solution->x =
         this->InterpolatingPolynomialMinimizingStepSize(
             options().interpolation_type,
@@ -747,6 +807,8 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
             upper_bound_step,
             lower_bound_step.x,
             upper_bound_step.x);
+    summary->polynomial_minimization_time_in_seconds +=
+        (WallTimeInSeconds() - polynomial_minimization_start_time);
     // No check on magnitude of step size being too small here as it is
     // lower-bounded by the initial bracket start point, which was valid.
     //
@@ -773,7 +835,7 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
                        "between low_step: %.5e and high_step: %.5e "
                        "at which function is valid.",
                        solution->x, bracket_low.x, bracket_high.x);
-      LOG(WARNING) << summary->error;
+      LOG_IF(WARNING, !options().is_silent) << summary->error;
       return false;
     }
 
@@ -817,5 +879,3 @@ bool WolfeLineSearch::ZoomPhase(const FunctionSample& initial_position,
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_NO_LINE_SEARCH_MINIMIZER

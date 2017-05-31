@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -79,6 +79,9 @@
 #ifndef CERES_INTERNAL_PROGRAM_EVALUATOR_H_
 #define CERES_INTERNAL_PROGRAM_EVALUATOR_H_
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifdef CERES_USE_OPENMP
 #include <omp.h>
 #endif
@@ -97,7 +100,13 @@
 namespace ceres {
 namespace internal {
 
-template<typename EvaluatePreparer, typename JacobianWriter>
+struct NullJacobianFinalizer {
+  void operator()(SparseMatrix* jacobian, int num_parameters) {}
+};
+
+template<typename EvaluatePreparer,
+         typename JacobianWriter,
+         typename JacobianFinalizer = NullJacobianFinalizer>
 class ProgramEvaluator : public Evaluator {
  public:
   ProgramEvaluator(const Evaluator::Options &options, Program* program)
@@ -107,9 +116,13 @@ class ProgramEvaluator : public Evaluator {
         evaluate_preparers_(
             jacobian_writer_.CreateEvaluatePreparers(options.num_threads)) {
 #ifndef CERES_USE_OPENMP
-    CHECK_EQ(1, options_.num_threads)
-        << "OpenMP support is not compiled into this binary; "
-        << "only options.num_threads=1 is supported.";
+    if (options_.num_threads > 1) {
+      LOG(WARNING)
+          << "OpenMP support is not compiled into this binary; "
+          << "only options.num_threads = 1 is supported. Switching "
+          << "to single threaded mode.";
+      options_.num_threads = 1;
+    }
 #endif
 
     BuildResidualLayout(*program, &residual_layout_);
@@ -244,9 +257,10 @@ class ProgramEvaluator : public Evaluator {
     }
 
     if (!abort) {
+      const int num_parameters = program_->NumEffectiveParameters();
+
       // Sum the cost and gradient (if requested) from each thread.
       (*cost) = 0.0;
-      int num_parameters = program_->NumEffectiveParameters();
       if (gradient != NULL) {
         VectorRef(gradient, num_parameters).setZero();
       }
@@ -256,6 +270,15 @@ class ProgramEvaluator : public Evaluator {
           VectorRef(gradient, num_parameters) +=
               VectorRef(evaluate_scratch_[i].gradient.get(), num_parameters);
         }
+      }
+
+      // Finalize the Jacobian if it is available.
+      // `num_parameters` is passed to the finalizer so that additional
+      // storage can be reserved for additional diagonal elements if
+      // necessary.
+      if (jacobian != NULL) {
+        JacobianFinalizer f;
+        f(jacobian, num_parameters);
       }
     }
     return !abort;
@@ -278,11 +301,11 @@ class ProgramEvaluator : public Evaluator {
     return program_->NumResiduals();
   }
 
-  virtual map<string, int> CallStatistics() const {
+  virtual std::map<std::string, int> CallStatistics() const {
     return execution_summary_.calls();
   }
 
-  virtual map<string, double> TimeStatistics() const {
+  virtual std::map<std::string, double> TimeStatistics() const {
     return execution_summary_.times();
   }
 
@@ -313,8 +336,9 @@ class ProgramEvaluator : public Evaluator {
   };
 
   static void BuildResidualLayout(const Program& program,
-                                  vector<int>* residual_layout) {
-    const vector<ResidualBlock*>& residual_blocks = program.residual_blocks();
+                                  std::vector<int>* residual_layout) {
+    const std::vector<ResidualBlock*>& residual_blocks =
+        program.residual_blocks();
     residual_layout->resize(program.NumResidualBlocks());
     int residual_pos = 0;
     for (int i = 0; i < residual_blocks.size(); ++i) {
@@ -350,7 +374,7 @@ class ProgramEvaluator : public Evaluator {
   JacobianWriter jacobian_writer_;
   scoped_array<EvaluatePreparer> evaluate_preparers_;
   scoped_array<EvaluateScratch> evaluate_scratch_;
-  vector<int> residual_layout_;
+  std::vector<int> residual_layout_;
   ::ceres::internal::ExecutionSummary execution_summary_;
 };
 

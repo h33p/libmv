@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -45,9 +45,7 @@
 namespace ceres {
 namespace internal {
 
-class BlockStructureProto;
-
-typedef int16 BlockSize;
+typedef int32 BlockSize;
 
 struct Block {
   Block() : size(-1), position(-1) {}
@@ -73,31 +71,21 @@ bool CellLessThan(const Cell& lhs, const Cell& rhs);
 
 struct CompressedList {
   Block block;
-  vector<Cell> cells;
+  std::vector<Cell> cells;
 };
 
 typedef CompressedList CompressedRow;
 typedef CompressedList CompressedColumn;
 
 struct CompressedRowBlockStructure {
-  vector<Block> cols;
-  vector<CompressedRow> rows;
+  std::vector<Block> cols;
+  std::vector<CompressedRow> rows;
 };
 
 struct CompressedColumnBlockStructure {
-  vector<Block> rows;
-  vector<CompressedColumn> cols;
+  std::vector<Block> rows;
+  std::vector<CompressedColumn> cols;
 };
-
-// Deserialize the given block structure proto to the given block structure.
-// Destroys previous contents of block_structure.
-void ProtoToBlockStructure(const BlockStructureProto &proto,
-                           CompressedRowBlockStructure *block_structure);
-
-// Serialize the given block structure to the given proto. Destroys previous
-// contents of proto.
-void BlockStructureToProto(const CompressedRowBlockStructure &block_structure,
-                           BlockStructureProto *proto);
 
 }  // namespace internal
 }  // namespace ceres

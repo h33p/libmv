@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -185,7 +185,7 @@ TEST(AutoDiff, ProjectiveCameraModel) {
                                                             fd_x, fd_J)));
 
   for (int i = 0; i < 2; ++i) {
-    ASSERT_EQ(fd_x[i], b_x[i]);
+    ASSERT_NEAR(fd_x[i], b_x[i], tol);
   }
 
   // Use automatic differentiation to compute the Jacobian.

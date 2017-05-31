@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,16 @@ namespace ceres {
 namespace internal {
 
 Preconditioner::~Preconditioner() {
+}
+
+PreconditionerType Preconditioner::PreconditionerForZeroEBlocks(
+    PreconditionerType preconditioner_type) {
+  if (preconditioner_type == SCHUR_JACOBI ||
+      preconditioner_type == CLUSTER_JACOBI ||
+      preconditioner_type == CLUSTER_TRIDIAGONAL) {
+    return JACOBI;
+  }
+  return preconditioner_type;
 }
 
 SparseMatrixPreconditionerWrapper::SparseMatrixPreconditionerWrapper(

@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -32,10 +32,13 @@
 
 #include <limits>
 #include <cmath>
+#include <vector>
 #include "gtest/gtest.h"
 
 namespace ceres {
 namespace internal {
+
+using std::vector;
 
 TEST(ArrayUtils, IsArrayValid) {
   double x[3];
@@ -52,6 +55,69 @@ TEST(ArrayUtils, IsArrayValid) {
   EXPECT_TRUE(IsArrayValid(1, NULL));
   InvalidateArray(3, x);
   EXPECT_FALSE(IsArrayValid(3, x));
+}
+
+TEST(ArrayUtils, FindInvalidIndex) {
+  double x[3];
+  x[0] = 0.0;
+  x[1] = 1.0;
+  x[2] = 2.0;
+  EXPECT_EQ(FindInvalidValue(3, x), 3);
+  x[1] = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(FindInvalidValue(3, x), 1);
+  x[1] = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_EQ(FindInvalidValue(3, x), 1);
+  x[1] = std::numeric_limits<double>::signaling_NaN();
+  EXPECT_EQ(FindInvalidValue(3, x), 1);
+  EXPECT_EQ(FindInvalidValue(1, NULL), 1);
+  InvalidateArray(3, x);
+  EXPECT_EQ(FindInvalidValue(3, x), 0);
+}
+
+TEST(MapValuesToContiguousRange, ContiguousEntries) {
+  vector<int> array;
+  array.push_back(0);
+  array.push_back(1);
+  vector<int> expected = array;
+  MapValuesToContiguousRange(array.size(), &array[0]);
+  EXPECT_EQ(array, expected);
+  array.clear();
+
+  array.push_back(1);
+  array.push_back(0);
+  expected = array;
+  MapValuesToContiguousRange(array.size(), &array[0]);
+  EXPECT_EQ(array, expected);
+}
+
+TEST(MapValuesToContiguousRange, NonContiguousEntries) {
+  vector<int> array;
+  array.push_back(0);
+  array.push_back(2);
+  vector<int> expected;
+  expected.push_back(0);
+  expected.push_back(1);
+  MapValuesToContiguousRange(array.size(), &array[0]);
+  EXPECT_EQ(array, expected);
+}
+
+TEST(MapValuesToContiguousRange, NonContiguousRepeatingEntries) {
+  vector<int> array;
+  array.push_back(3);
+  array.push_back(1);
+  array.push_back(0);
+  array.push_back(0);
+  array.push_back(0);
+  array.push_back(5);
+  vector<int> expected;
+  expected.push_back(2);
+  expected.push_back(1);
+  expected.push_back(0);
+  expected.push_back(0);
+  expected.push_back(0);
+  expected.push_back(3);
+  MapValuesToContiguousRange(array.size(), &array[0]);
+  EXPECT_EQ(array, expected);
 }
 
 }  // namespace internal

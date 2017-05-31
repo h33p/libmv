@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@
 #include "ceres/internal/port.h"
 #include "ceres/internal/scoped_ptr.h"
 #include "ceres/types.h"
+#include "ceres/small_blas.h"
 
 namespace ceres {
 namespace internal {
@@ -56,8 +57,9 @@ class BlockRandomAccessSparseMatrix : public BlockRandomAccessMatrix {
   // blocks is an array of block sizes. block_pairs is a set of
   // <row_block_id, col_block_id> pairs to identify the non-zero cells
   // of this matrix.
-  BlockRandomAccessSparseMatrix(const vector<int>& blocks,
-                                const set<pair<int, int> >& block_pairs);
+  BlockRandomAccessSparseMatrix(
+      const std::vector<int>& blocks,
+      const std::set<std::pair<int, int> >& block_pairs);
 
   // The destructor is not thread safe. It assumes that no one is
   // modifying any cells when the matrix is being destroyed.
@@ -75,6 +77,12 @@ class BlockRandomAccessSparseMatrix : public BlockRandomAccessMatrix {
   // locked.
   virtual void SetZero();
 
+  // Assume that the matrix is symmetric and only one half of the
+  // matrix is stored.
+  //
+  // y += S * x
+  void SymmetricRightMultiply(const double* x, double* y) const;
+
   // Since the matrix is square, num_rows() == num_cols().
   virtual int num_rows() const { return tsm_->num_rows(); }
   virtual int num_cols() const { return tsm_->num_cols(); }
@@ -84,19 +92,30 @@ class BlockRandomAccessSparseMatrix : public BlockRandomAccessMatrix {
   TripletSparseMatrix* mutable_matrix() { return tsm_.get(); }
 
  private:
-  int64 IntPairToLong(int a, int b) {
-    return a * kMaxRowBlocks + b;
+  int64 IntPairToLong(int row, int col) const {
+    return row * kMaxRowBlocks + col;
+  }
+
+  void LongToIntPair(int64 index, int* row, int* col) const {
+    *row = index / kMaxRowBlocks;
+    *col = index % kMaxRowBlocks;
   }
 
   const int64 kMaxRowBlocks;
+
   // row/column block sizes.
-  const vector<int> blocks_;
+  const std::vector<int> blocks_;
+  std::vector<int> block_positions_;
 
   // A mapping from <row_block_id, col_block_id> to the position in
   // the values array of tsm_ where the block is stored.
   typedef HashMap<long int, CellInfo* > LayoutType;
   LayoutType layout_;
 
+  // In order traversal of contents of the matrix. This allows us to
+  // implement a matrix-vector which is 20% faster than using the
+  // iterator in the Layout object instead.
+  std::vector<std::pair<std::pair<int, int>, double*> > cell_values_;
   // The underlying matrix object which actually stores the cells.
   scoped_ptr<TripletSparseMatrix> tsm_;
 

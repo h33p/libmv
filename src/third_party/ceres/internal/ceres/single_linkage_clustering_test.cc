@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,6 +28,9 @@
 //
 // Author: Sameer Agarwal (sameeragarwal@google.com)
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifndef CERES_NO_SUITESPARSE
 
 #include "ceres/single_linkage_clustering.h"
@@ -40,7 +43,7 @@ namespace ceres {
 namespace internal {
 
 TEST(SingleLinkageClustering, GraphHasTwoComponents) {
-  Graph<int> graph;
+  WeightedGraph<int> graph;
   const int kNumVertices = 6;
   for (int i = 0; i < kNumVertices; ++i) {
     graph.AddVertex(i);
@@ -67,7 +70,7 @@ TEST(SingleLinkageClustering, GraphHasTwoComponents) {
 }
 
 TEST(SingleLinkageClustering, ComponentWithWeakLink) {
-  Graph<int> graph;
+  WeightedGraph<int> graph;
   const int kNumVertices = 6;
   for (int i = 0; i < kNumVertices; ++i) {
     graph.AddVertex(i);
@@ -96,7 +99,7 @@ TEST(SingleLinkageClustering, ComponentWithWeakLink) {
 }
 
 TEST(SingleLinkageClustering, ComponentWithWeakLinkAndStrongLink) {
-  Graph<int> graph;
+  WeightedGraph<int> graph;
   const int kNumVertices = 6;
   for (int i = 0; i < kNumVertices; ++i) {
     graph.AddVertex(i);
@@ -106,7 +109,7 @@ TEST(SingleLinkageClustering, ComponentWithWeakLinkAndStrongLink) {
   //  0-1-2-3 4-5
   graph.AddEdge(0, 1, 1.0);
   graph.AddEdge(1, 2, 1.0);
-  graph.AddEdge(2, 3, 0.5); // Weak link
+  graph.AddEdge(2, 3, 0.5);  // Weak link
   graph.AddEdge(0, 3, 1.0);
 
   // This component should break up into two.

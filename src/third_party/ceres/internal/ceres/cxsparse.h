@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -31,11 +31,13 @@
 #ifndef CERES_INTERNAL_CXSPARSE_H_
 #define CERES_INTERNAL_CXSPARSE_H_
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifndef CERES_NO_CXSPARSE
 
 #include <vector>
 #include "cs.h"
-#include "ceres/internal/port.h"
 
 namespace ceres {
 namespace internal {
@@ -105,8 +107,8 @@ class CXSparse {
   // The returned matrix should be deallocated with Free when not used
   // anymore.
   cs_dis* BlockAnalyzeCholesky(cs_di* A,
-                               const vector<int>& row_blocks,
-                               const vector<int>& col_blocks);
+                               const std::vector<int>& row_blocks,
+                               const std::vector<int>& col_blocks);
 
   // Compute an fill-reducing approximate minimum degree ordering of
   // the matrix A. ordering should be non-NULL and should point to
@@ -127,9 +129,12 @@ class CXSparse {
 
 #else  // CERES_NO_CXSPARSE
 
-class CXSparse {};
 typedef void cs_dis;
 
+class CXSparse {
+ public:
+  void Free(void* arg) {}
+};
 #endif  // CERES_NO_CXSPARSE
 
 #endif  // CERES_INTERNAL_CXSPARSE_H_

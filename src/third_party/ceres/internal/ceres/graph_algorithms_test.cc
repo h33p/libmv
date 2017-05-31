@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -39,6 +39,8 @@
 
 namespace ceres {
 namespace internal {
+
+using std::vector;
 
 TEST(IndependentSetOrdering, Chain) {
   Graph<int> graph;
@@ -88,7 +90,7 @@ TEST(IndependentSetOrdering, Star) {
   //    4-0-2
   //      |
   //      3
-  // 1, 2, 3, 4 should be in the indepdendent set.
+  // 1, 2, 3, 4 should be in the independent set.
   vector<int> ordering;
   int independent_set_size = IndependentSetOrdering(graph, &ordering);
   EXPECT_EQ(independent_set_size, 4);
@@ -102,13 +104,13 @@ TEST(IndependentSetOrdering, Star) {
 }
 
 TEST(Degree2MaximumSpanningForest, PreserveWeights) {
-  Graph<int> graph;
+  WeightedGraph<int> graph;
   graph.AddVertex(0, 1.0);
   graph.AddVertex(1, 2.0);
   graph.AddEdge(0, 1, 0.5);
   graph.AddEdge(1, 0, 0.5);
 
-  scoped_ptr<Graph<int> > forest(Degree2MaximumSpanningForest(graph));
+  scoped_ptr<WeightedGraph<int> > forest(Degree2MaximumSpanningForest(graph));
 
   const HashSet<int>& vertices = forest->vertices();
   EXPECT_EQ(vertices.size(), 2);
@@ -119,7 +121,7 @@ TEST(Degree2MaximumSpanningForest, PreserveWeights) {
 }
 
 TEST(Degree2MaximumSpanningForest, StarGraph) {
-  Graph<int> graph;
+  WeightedGraph<int> graph;
   graph.AddVertex(0);
   graph.AddVertex(1);
   graph.AddVertex(2);
@@ -131,7 +133,7 @@ TEST(Degree2MaximumSpanningForest, StarGraph) {
   graph.AddEdge(0, 3, 3.0);
   graph.AddEdge(0, 4, 4.0);
 
-  scoped_ptr<Graph<int> > forest(Degree2MaximumSpanningForest(graph));
+  scoped_ptr<WeightedGraph<int> > forest(Degree2MaximumSpanningForest(graph));
   const HashSet<int>& vertices = forest->vertices();
   EXPECT_EQ(vertices.size(), 5);
 
@@ -176,8 +178,8 @@ TEST(VertexTotalOrdering, TotalOrdering) {
   //   |
   // 2-3
   // 0,1 and 2 have degree 1 and 3 has degree 2.
-  graph.AddEdge(0, 1, 1.0);
-  graph.AddEdge(2, 3, 1.0);
+  graph.AddEdge(0, 1);
+  graph.AddEdge(2, 3);
   VertexTotalOrdering<int> less_than(graph);
 
   for (int i = 0; i < 4; ++i) {
@@ -238,7 +240,7 @@ TEST(StableIndependentSet, BreakTies) {
     EXPECT_EQ(independent_set_size, 1);
     EXPECT_EQ(ordering[0], 1);
   }
-
 }
+
 }  // namespace internal
 }  // namespace ceres

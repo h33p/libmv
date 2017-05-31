@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@
 #include "ceres/internal/macros.h"
 #include "ceres/internal/port.h"
 #include "ceres/internal/scoped_ptr.h"
+#include "ceres/collections_port.h"
 #include "ceres/problem.h"
 #include "ceres/types.h"
 
@@ -62,7 +63,8 @@ class ResidualBlock;
 
 class ProblemImpl {
  public:
-  typedef map<double*, ParameterBlock*> ParameterMap;
+  typedef std::map<double*, ParameterBlock*> ParameterMap;
+  typedef HashSet<ResidualBlock*> ResidualBlockSet;
 
   ProblemImpl();
   explicit ProblemImpl(const Problem::Options& options);
@@ -70,9 +72,10 @@ class ProblemImpl {
   ~ProblemImpl();
 
   // See the public problem.h file for description of these methods.
-  ResidualBlockId AddResidualBlock(CostFunction* cost_function,
-                                   LossFunction* loss_function,
-                                   const vector<double*>& parameter_blocks);
+  ResidualBlockId AddResidualBlock(
+      CostFunction* cost_function,
+      LossFunction* loss_function,
+      const std::vector<double*>& parameter_blocks);
   ResidualBlockId AddResidualBlock(CostFunction* cost_function,
                                    LossFunction* loss_function,
                                    double* x0);
@@ -125,13 +128,19 @@ class ProblemImpl {
 
   void SetParameterBlockConstant(double* values);
   void SetParameterBlockVariable(double* values);
+  bool IsParameterBlockConstant(double* values) const;
+
   void SetParameterization(double* values,
                            LocalParameterization* local_parameterization);
+  const LocalParameterization* GetParameterization(double* values) const;
+
+  void SetParameterLowerBound(double* values, int index, double lower_bound);
+  void SetParameterUpperBound(double* values, int index, double upper_bound);
 
   bool Evaluate(const Problem::EvaluateOptions& options,
                 double* cost,
-                vector<double>* residuals,
-                vector<double>* gradient,
+                std::vector<double>* residuals,
+                std::vector<double>* gradient,
                 CRSMatrix* jacobian);
 
   int NumParameterBlocks() const;
@@ -141,36 +150,50 @@ class ProblemImpl {
 
   int ParameterBlockSize(const double* parameter_block) const;
   int ParameterBlockLocalSize(const double* parameter_block) const;
-  void GetParameterBlocks(vector<double*>* parameter_blocks) const;
-  void GetResidualBlocks(vector<ResidualBlockId>* residual_blocks) const;
+
+  bool HasParameterBlock(const double* parameter_block) const;
+
+  void GetParameterBlocks(std::vector<double*>* parameter_blocks) const;
+  void GetResidualBlocks(std::vector<ResidualBlockId>* residual_blocks) const;
 
   void GetParameterBlocksForResidualBlock(
       const ResidualBlockId residual_block,
-      vector<double*>* parameter_blocks) const;
+      std::vector<double*>* parameter_blocks) const;
+
+  const CostFunction* GetCostFunctionForResidualBlock(
+      const ResidualBlockId residual_block) const;
+  const LossFunction* GetLossFunctionForResidualBlock(
+      const ResidualBlockId residual_block) const;
 
   void GetResidualBlocksForParameterBlock(
       const double* values,
-      vector<ResidualBlockId>* residual_blocks) const;
+      std::vector<ResidualBlockId>* residual_blocks) const;
 
   const Program& program() const { return *program_; }
   Program* mutable_program() { return program_.get(); }
 
   const ParameterMap& parameter_map() const { return parameter_block_map_; }
+  const ResidualBlockSet& residual_block_set() const {
+    CHECK(options_.enable_fast_removal)
+        << "Fast removal not enabled, residual_block_set is not maintained.";
+    return residual_block_set_;
+  }
 
  private:
   ParameterBlock* InternalAddParameterBlock(double* values, int size);
+  void InternalRemoveResidualBlock(ResidualBlock* residual_block);
 
   bool InternalEvaluate(Program* program,
                         double* cost,
-                        vector<double>* residuals,
-                        vector<double>* gradient,
+                        std::vector<double>* residuals,
+                        std::vector<double>* gradient,
                         CRSMatrix* jacobian);
 
   // Delete the arguments in question. These differ from the Remove* functions
   // in that they do not clean up references to the block to delete; they
   // merely delete them.
   template<typename Block>
-  void DeleteBlockInVector(vector<Block*>* mutable_blocks,
+  void DeleteBlockInVector(std::vector<Block*>* mutable_blocks,
                            Block* block_to_remove);
   void DeleteBlock(ResidualBlock* residual_block);
   void DeleteBlock(ParameterBlock* parameter_block);
@@ -178,7 +201,10 @@ class ProblemImpl {
   const Problem::Options options_;
 
   // The mapping from user pointers to parameter blocks.
-  map<double*, ParameterBlock*> parameter_block_map_;
+  std::map<double*, ParameterBlock*> parameter_block_map_;
+
+  // Iff enable_fast_removal is enabled, contains the current residual blocks.
+  ResidualBlockSet residual_block_set_;
 
   // The actual parameter and residual blocks.
   internal::scoped_ptr<internal::Program> program_;
@@ -189,9 +215,9 @@ class ProblemImpl {
   // residual or parameter blocks, buffer them until destruction.
   //
   // TODO(keir): See if it makes sense to use sets instead.
-  vector<CostFunction*> cost_functions_to_delete_;
-  vector<LossFunction*> loss_functions_to_delete_;
-  vector<LocalParameterization*> local_parameterizations_to_delete_;
+  std::vector<CostFunction*> cost_functions_to_delete_;
+  std::vector<LossFunction*> loss_functions_to_delete_;
+  std::vector<LocalParameterization*> local_parameterizations_to_delete_;
 
   CERES_DISALLOW_COPY_AND_ASSIGN(ProblemImpl);
 };

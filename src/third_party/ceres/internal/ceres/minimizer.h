@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -41,9 +41,10 @@ namespace ceres {
 namespace internal {
 
 class Evaluator;
-class LinearSolver;
 class SparseMatrix;
 class TrustRegionStrategy;
+class CoordinateDescentMinimizer;
+class LinearSolver;
 
 // Interface for non-linear least squares solvers.
 class Minimizer {
@@ -107,13 +108,10 @@ class Minimizer {
           options.line_search_sufficient_curvature_decrease;
       max_line_search_step_expansion =
           options.max_line_search_step_expansion;
-      is_silent = false;
-      evaluator = NULL;
-      trust_region_strategy = NULL;
-      jacobian = NULL;
-      callbacks = options.callbacks;
-      inner_iteration_minimizer = NULL;
       inner_iteration_tolerance = options.inner_iteration_tolerance;
+      is_silent = (options.logging_type == SILENT);
+      is_constrained = false;
+      callbacks = options.callbacks;
     }
 
     int max_num_iterations;
@@ -134,9 +132,9 @@ class Minimizer {
     bool jacobi_scaling;
     bool use_nonmonotonic_steps;
     int max_consecutive_nonmonotonic_steps;
-    vector<int> trust_region_minimizer_iterations_to_dump;
+    std::vector<int> trust_region_minimizer_iterations_to_dump;
     DumpFormatType trust_region_problem_dump_format_type;
-    string trust_region_problem_dump_directory;
+    std::string trust_region_problem_dump_directory;
     int max_num_consecutive_invalid_steps;
     double min_trust_region_radius;
     LineSearchDirectionType line_search_direction_type;
@@ -153,36 +151,39 @@ class Minimizer {
     int max_num_line_search_direction_restarts;
     double line_search_sufficient_curvature_decrease;
     double max_line_search_step_expansion;
+    double inner_iteration_tolerance;
 
     // If true, then all logging is disabled.
     bool is_silent;
+
+    // Use a bounds constrained optimization algorithm.
+    bool is_constrained;
 
     // List of callbacks that are executed by the Minimizer at the end
     // of each iteration.
     //
     // The Options struct does not own these pointers.
-    vector<IterationCallback*> callbacks;
+    std::vector<IterationCallback*> callbacks;
 
     // Object responsible for evaluating the cost, residuals and
-    // Jacobian matrix. The Options struct does not own this pointer.
-    Evaluator* evaluator;
+    // Jacobian matrix.
+    shared_ptr<Evaluator> evaluator;
 
     // Object responsible for actually computing the trust region
-    // step, and sizing the trust region radius. The Options struct
-    // does not own this pointer.
-    TrustRegionStrategy* trust_region_strategy;
+    // step, and sizing the trust region radius.
+    shared_ptr<TrustRegionStrategy> trust_region_strategy;
 
     // Object holding the Jacobian matrix. It is assumed that the
     // sparsity structure of the matrix has already been initialized
     // and will remain constant for the life time of the
-    // optimization. The Options struct does not own this pointer.
-    SparseMatrix* jacobian;
+    // optimization.
+    shared_ptr<SparseMatrix> jacobian;
 
-    Minimizer* inner_iteration_minimizer;
-    double inner_iteration_tolerance;
+    shared_ptr<CoordinateDescentMinimizer> inner_iteration_minimizer;
   };
 
-  static bool RunCallbacks(const vector<IterationCallback*> callbacks,
+  static Minimizer* Create(MinimizerType minimizer_type);
+  static bool RunCallbacks(const Options& options,
                            const IterationSummary& iteration_summary,
                            Solver::Summary* summary);
 

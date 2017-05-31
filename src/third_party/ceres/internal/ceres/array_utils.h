@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@
 #ifndef CERES_INTERNAL_ARRAY_UTILS_H_
 #define CERES_INTERNAL_ARRAY_UTILS_H_
 
+#include <string>
 #include "ceres/internal/port.h"
 
 namespace ceres {
@@ -57,7 +58,30 @@ void InvalidateArray(int size, double* x);
 // equal to the "impossible" value used by InvalidateArray.
 bool IsArrayValid(int size, const double* x);
 
+// If the array contains an invalid value, return the index for it,
+// otherwise return size.
+int FindInvalidValue(const int size, const double* x);
+
+// Utility routine to print an array of doubles to a string. If the
+// array pointer is NULL, it is treated as an array of zeros.
+void AppendArrayToString(const int size, const double* x, std::string* result);
+
 extern const double kImpossibleValue;
+
+// This routine takes an array of integer values, sorts and uniques
+// them and then maps each value in the array to its position in the
+// sorted+uniqued array. By doing this, if there are are k unique
+// values in the array, each value is replaced by an integer in the
+// range [0, k-1], while preserving their relative order.
+//
+// For example
+//
+// [1 0 3 5 0 1 5]
+//
+// gets mapped to
+//
+// [1 0 2 3 0 1 3]
+void MapValuesToContiguousRange(int size, int* array);
 
 }  // namespace internal
 }  // namespace ceres

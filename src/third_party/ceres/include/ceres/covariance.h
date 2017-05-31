@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,7 @@
 #include "ceres/internal/port.h"
 #include "ceres/internal/scoped_ptr.h"
 #include "ceres/types.h"
+#include "ceres/internal/disable_warnings.h"
 
 namespace ceres {
 
@@ -182,7 +183,7 @@ class CovarianceImpl;
 //  Covariance::Options options;
 //  Covariance covariance(options);
 //
-//  vector<pair<const double*, const double*> > covariance_blocks;
+//  std::vector<std::pair<const double*, const double*> > covariance_blocks;
 //  covariance_blocks.push_back(make_pair(x, x));
 //  covariance_blocks.push_back(make_pair(y, y));
 //  covariance_blocks.push_back(make_pair(x, y));
@@ -196,14 +197,14 @@ class CovarianceImpl;
 //  covariance.GetCovarianceBlock(y, y, covariance_yy)
 //  covariance.GetCovarianceBlock(x, y, covariance_xy)
 //
-class Covariance {
+class CERES_EXPORT Covariance {
  public:
-  struct Options {
+  struct CERES_EXPORT Options {
     Options()
 #ifndef CERES_NO_SUITESPARSE
-        : algorithm_type(SPARSE_QR),
+        : algorithm_type(SUITE_SPARSE_QR),
 #else
-        : algorithm_type(DENSE_SVD),
+        : algorithm_type(EIGEN_SPARSE_QR),
 #endif
           min_reciprocal_condition_number(1e-14),
           null_space_rank(0),
@@ -228,47 +229,22 @@ class Covariance {
     //    for small to moderate sized problems. It can handle
     //    full-rank as well as rank deficient Jacobians.
     //
-    // 2. SPARSE_CHOLESKY uses the CHOLMOD sparse Cholesky
-    //    factorization library to compute the decomposition :
-    //
-    //      R'R = J'J
-    //
-    //    and then
-    //
-    //      [J'J]^-1  = [R'R]^-1
-    //
-    //    It a fast algorithm for sparse matrices that should be used
-    //    when the Jacobian matrix J is well conditioned. For
-    //    ill-conditioned matrices, this algorithm can fail
-    //    unpredictabily. This is because Cholesky factorization is
-    //    not a rank-revealing factorization, i.e., it cannot reliably
-    //    detect when the matrix being factorized is not of full
-    //    rank. SuiteSparse/CHOLMOD supplies a heuristic for checking
-    //    if the matrix is rank deficient (cholmod_rcond), but it is
-    //    only a heuristic and can have both false positive and false
-    //    negatives.
-    //
-    //    Recent versions of SuiteSparse (>= 4.2.0) provide a much
-    //    more efficient method for solving for rows of the covariance
-    //    matrix. Therefore, if you are doing SPARSE_CHOLESKY, we
-    //    strongly recommend using a recent version of SuiteSparse.
-    //
-    // 3. SPARSE_QR uses the SuiteSparseQR sparse QR factorization
-    //    library to compute the decomposition
+    // 2. EIGEN_SPARSE_QR uses the sparse QR factorization algorithm
+    //    in Eigen to compute the decomposition
     //
     //      Q * R = J
     //
     //    [J'J]^-1 = [R*R']^-1
     //
-    //    It is a moderately fast algorithm for sparse matrices, which
-    //    at the price of more time and memory than the
-    //    SPARSE_CHOLESKY algorithm is numerically better behaved and
-    //    is rank revealing, i.e., it can reliably detect when the
-    //    Jacobian matrix is rank deficient.
+    //    It is a moderately fast algorithm for sparse matrices.
     //
-    // Neither SPARSE_CHOLESKY or SPARSE_QR are capable of computing
-    // the covariance if the Jacobian is rank deficient.
-
+    // 3. SUITE_SPARSE_QR uses the SuiteSparseQR sparse QR
+    //    factorization algorithm. It uses dense linear algebra and is
+    //    multi threaded, so for large sparse sparse matrices it is
+    //    significantly faster than EIGEN_SPARSE_QR.
+    //
+    // Neither EIGEN_SPARSE_QR not SUITE_SPARSE_QR are capable of
+    // computing the covariance if the Jacobian is rank deficient.
     CovarianceAlgorithmType algorithm_type;
 
     // If the Jacobian matrix is near singular, then inverting J'J
@@ -294,29 +270,13 @@ class Covariance {
     //    where min_sigma and max_sigma are the minimum and maxiumum
     //    singular values of J respectively.
     //
-    // 2. SPARSE_CHOLESKY
-    //
-    //      cholmod_rcond < min_reciprocal_conditioner_number
-    //
-    //    Here cholmod_rcond is a crude estimate of the reciprocal
-    //    condition number of J'J by using the maximum and minimum
-    //    diagonal entries of the Cholesky factor R. There are no
-    //    theoretical guarantees associated with this test. It can
-    //    give false positives and negatives. Use at your own
-    //    risk. The default value of min_reciprocal_condition_number
-    //    has been set to a conservative value, and sometimes the
-    //    Covariance::Compute may return false even if it is possible
-    //    to estimate the covariance reliably. In such cases, the user
-    //    should exercise their judgement before lowering the value of
-    //    min_reciprocal_condition_number.
-    //
-    // 3. SPARSE_QR
+    // 2. SUITE_SPARSE_QR and EIGEN_SPARSE_QR
     //
     //      rank(J) < num_col(J)
     //
     //   Here rank(J) is the estimate of the rank of J returned by the
-    //   SuiteSparseQR algorithm. It is a fairly reliable indication
-    //   of rank deficiency.
+    //   sparse QR factorization algorithm. It is a fairly reliable
+    //   indication of rank deficiency.
     //
     double min_reciprocal_condition_number;
 
@@ -351,8 +311,8 @@ class Covariance {
     //
     //   lambda_i / lambda_max < min_reciprocal_condition_number.
     //
-    // This option has no effect on the SPARSE_CHOLESKY or SPARSE_QR
-    // algorithms.
+    // This option has no effect on the SUITE_SPARSE_QR and
+    // EIGEN_SPARSE_QR algorithms.
     int null_space_rank;
 
     int num_threads;
@@ -393,10 +353,33 @@ class Covariance {
   // Covariance::Options for more on the conditions under which this
   // function returns false.
   bool Compute(
-      const vector<pair<const double*, const double*> >& covariance_blocks,
+      const std::vector<std::pair<const double*,
+                                  const double*> >& covariance_blocks,
       Problem* problem);
 
-  // Return the block of the covariance matrix corresponding to
+  // Compute a part of the covariance matrix.
+  //
+  // The vector parameter_blocks contains the parameter blocks that
+  // are used for computing the covariance matrix. From this vector
+  // all covariance pairs are generated. This allows the covariance
+  // estimation algorithm to only compute and store these blocks.
+  //
+  // parameter_blocks cannot contain duplicates. Bad things will
+  // happen if they do.
+  //
+  // Note that the list of covariance_blocks is only used to determine
+  // what parts of the covariance matrix are computed. The full
+  // Jacobian is used to do the computation, i.e. they do not have an
+  // impact on what part of the Jacobian is used for computation.
+  //
+  // The return value indicates the success or failure of the
+  // covariance computation. Please see the documentation for
+  // Covariance::Options for more on the conditions under which this
+  // function returns false.
+  bool Compute(const std::vector<const double*>& parameter_blocks,
+               Problem* problem);
+
+  // Return the block of the cross-covariance matrix corresponding to
   // parameter_block1 and parameter_block2.
   //
   // Compute must be called before the first call to
@@ -413,10 +396,66 @@ class Covariance {
                           const double* parameter_block2,
                           double* covariance_block) const;
 
+  // Return the block of the cross-covariance matrix corresponding to
+  // parameter_block1 and parameter_block2.
+  // Returns cross-covariance in the tangent space if a local
+  // parameterization is associated with either parameter block;
+  // else returns cross-covariance in the ambient space.
+  //
+  // Compute must be called before the first call to
+  // GetCovarianceBlock and the pair <parameter_block1,
+  // parameter_block2> OR the pair <parameter_block2,
+  // parameter_block1> must have been present in the vector
+  // covariance_blocks when Compute was called. Otherwise
+  // GetCovarianceBlock will return false.
+  //
+  // covariance_block must point to a memory location that can store a
+  // parameter_block1_local_size x parameter_block2_local_size matrix. The
+  // returned covariance will be a row-major matrix.
+  bool GetCovarianceBlockInTangentSpace(const double* parameter_block1,
+                                        const double* parameter_block2,
+                                        double* covariance_block) const;
+
+  // Return the covariance matrix corresponding to all parameter_blocks.
+  //
+  // Compute must be called before calling GetCovarianceMatrix and all
+  // parameter_blocks must have been present in the vector
+  // parameter_blocks when Compute was called. Otherwise
+  // GetCovarianceMatrix returns false.
+  //
+  // covariance_matrix must point to a memory location that can store
+  // the size of the covariance matrix. The covariance matrix will be
+  // a square matrix whose row and column count is equal to the sum of
+  // the sizes of the individual parameter blocks. The covariance
+  // matrix will be a row-major matrix.
+  bool GetCovarianceMatrix(const std::vector<const double *> &parameter_blocks,
+                           double *covariance_matrix);
+
+  // Return the covariance matrix corresponding to parameter_blocks
+  // in the tangent space if a local parameterization is associated
+  // with one of the parameter blocks else returns the covariance
+  // matrix in the ambient space.
+  //
+  // Compute must be called before calling GetCovarianceMatrix and all
+  // parameter_blocks must have been present in the vector
+  // parameters_blocks when Compute was called. Otherwise
+  // GetCovarianceMatrix returns false.
+  //
+  // covariance_matrix must point to a memory location that can store
+  // the size of the covariance matrix. The covariance matrix will be
+  // a square matrix whose row and column count is equal to the sum of
+  // the sizes of the tangent spaces of the individual parameter
+  // blocks. The covariance matrix will be a row-major matrix.
+  bool GetCovarianceMatrixInTangentSpace(
+      const std::vector<const double*>& parameter_blocks,
+      double* covariance_matrix);
+
  private:
   internal::scoped_ptr<internal::CovarianceImpl> impl_;
 };
 
 }  // namespace ceres
+
+#include "ceres/internal/reenable_warnings.h"
 
 #endif  // CERES_PUBLIC_COVARIANCE_H_

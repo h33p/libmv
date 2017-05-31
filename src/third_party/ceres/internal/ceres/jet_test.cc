@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -244,6 +244,150 @@ TEST(Jet, Jet) {
     ExpectJetsClose(v, u);
   }
 
+  { // Check that pow(0, y) == 0 for y > 1, with both arguments Jets.
+    // This tests special case handling inside pow().
+    J a = MakeJet(0, 1, 2);
+    J b = MakeJet(2, 3, 4);
+    VL << "a = " << a;
+    VL << "b = " << b;
+
+    J c = pow(a, b);
+    VL << "a^b = " << c;
+    ExpectJetsClose(c, MakeJet(0, 0, 0));
+  }
+
+  { // Check that pow(0, y) == 0 for y == 1, with both arguments Jets.
+    // This tests special case handling inside pow().
+    J a = MakeJet(0, 1, 2);
+    J b = MakeJet(1, 3, 4);
+    VL << "a = " << a;
+    VL << "b = " << b;
+
+    J c = pow(a, b);
+    VL << "a^b = " << c;
+    ExpectJetsClose(c, MakeJet(0, 1, 2));
+  }
+
+  { // Check that pow(0, <1) is not finite, with both arguments Jets.
+    for (int i = 1; i < 10; i++) {
+      J a = MakeJet(0, 1, 2);
+      J b = MakeJet(i*0.1, 3, 4);       // b = 0.1 ... 0.9
+      VL << "a = " << a;
+      VL << "b = " << b;
+
+      J c = pow(a, b);
+      VL << "a^b = " << c;
+      EXPECT_EQ(c.a, 0.0);
+      EXPECT_FALSE(IsFinite(c.v[0]));
+      EXPECT_FALSE(IsFinite(c.v[1]));
+    }
+    for (int i = -10; i < 0; i++) {
+      J a = MakeJet(0, 1, 2);
+      J b = MakeJet(i*0.1, 3, 4);       // b = -1,-0.9 ... -0.1
+      VL << "a = " << a;
+      VL << "b = " << b;
+
+      J c = pow(a, b);
+      VL << "a^b = " << c;
+      EXPECT_FALSE(IsFinite(c.a));
+      EXPECT_FALSE(IsFinite(c.v[0]));
+      EXPECT_FALSE(IsFinite(c.v[1]));
+    }
+
+    {
+      // The special case of 0^0 = 1 defined by the C standard.
+      J a = MakeJet(0, 1, 2);
+      J b = MakeJet(0, 3, 4);
+      VL << "a = " << a;
+      VL << "b = " << b;
+
+      J c = pow(a, b);
+      VL << "a^b = " << c;
+      EXPECT_EQ(c.a, 1.0);
+      EXPECT_FALSE(IsFinite(c.v[0]));
+      EXPECT_FALSE(IsFinite(c.v[1]));
+    }
+  }
+
+  { // Check that pow(<0, b) is correct for integer b.
+    // This tests special case handling inside pow().
+    J a = MakeJet(-1.5, 3, 4);
+
+    // b integer:
+    for (int i = -10; i <= 10; i++) {
+      J b = MakeJet(i, 0, 5);
+      VL << "a = " << a;
+      VL << "b = " << b;
+
+      J c = pow(a, b);
+      VL << "a^b = " << c;
+      ExpectClose(c.a, pow(-1.5, i), kTolerance);
+      EXPECT_TRUE(IsFinite(c.v[0]));
+      EXPECT_FALSE(IsFinite(c.v[1]));
+      ExpectClose(c.v[0], i * pow(-1.5, i - 1) * 3.0, kTolerance);
+    }
+  }
+
+  { // Check that pow(<0, b) is correct for noninteger b.
+    // This tests special case handling inside pow().
+    J a = MakeJet(-1.5, 3, 4);
+    J b = MakeJet(-2.5, 0, 5);
+    VL << "a = " << a;
+    VL << "b = " << b;
+
+    J c = pow(a, b);
+    VL << "a^b = " << c;
+    EXPECT_FALSE(IsFinite(c.a));
+    EXPECT_FALSE(IsFinite(c.v[0]));
+    EXPECT_FALSE(IsFinite(c.v[1]));
+  }
+
+  {
+    // Check that pow(0,y) == 0 for y == 2, with the second argument a
+    // Jet.  This tests special case handling inside pow().
+    double a = 0;
+    J b = MakeJet(2, 3, 4);
+    VL << "a = " << a;
+    VL << "b = " << b;
+
+    J c = pow(a, b);
+    VL << "a^b = " << c;
+    ExpectJetsClose(c, MakeJet(0, 0, 0));
+  }
+
+  {
+    // Check that pow(<0,y) is correct for integer y. This tests special case
+    // handling inside pow().
+    double a = -1.5;
+    for (int i = -10; i <= 10; i++) {
+      J b = MakeJet(i, 3, 0);
+      VL << "a = " << a;
+      VL << "b = " << b;
+
+      J c = pow(a, b);
+      VL << "a^b = " << c;
+      ExpectClose(c.a, pow(-1.5, i), kTolerance);
+      EXPECT_FALSE(IsFinite(c.v[0]));
+      EXPECT_TRUE(IsFinite(c.v[1]));
+      ExpectClose(c.v[1], 0, kTolerance);
+    }
+  }
+
+  {
+    // Check that pow(<0,y) is correct for noninteger y. This tests special
+    // case handling inside pow().
+    double a = -1.5;
+    J b = MakeJet(-3.14, 3, 0);
+    VL << "a = " << a;
+    VL << "b = " << b;
+
+    J c = pow(a, b);
+    VL << "a^b = " << c;
+    EXPECT_FALSE(IsFinite(c.a));
+    EXPECT_FALSE(IsFinite(c.v[0]));
+    EXPECT_FALSE(IsFinite(c.v[1]));
+  }
+
   { // Check that 1 + x == x + 1.
     J a = x + 1.0;
     J b = 1.0 + x;
@@ -296,6 +440,76 @@ TEST(Jet, Jet) {
     J b = MakeJet(0.4,  0.5, 1e+2);
     ExpectJetsClose(sin(asin(b)), b);
     ExpectJetsClose(asin(sin(b)), b);
+  }
+
+  {
+    J zero = J(0.0);
+
+    // Check that J0(0) == 1.
+    ExpectJetsClose(BesselJ0(zero), J(1.0));
+
+    // Check that J1(0) == 0.
+    ExpectJetsClose(BesselJ1(zero), zero);
+
+    // Check that J2(0) == 0.
+    ExpectJetsClose(BesselJn(2, zero), zero);
+
+    // Check that J3(0) == 0.
+    ExpectJetsClose(BesselJn(3, zero), zero);
+
+    J z = MakeJet(0.1, -2.7, 1e-3);
+
+    // Check that J0(z) == Jn(0,z).
+    ExpectJetsClose(BesselJ0(z), BesselJn(0, z));
+
+    // Check that J1(z) == Jn(1,z).
+    ExpectJetsClose(BesselJ1(z), BesselJn(1, z));
+
+    // Check that J0(z)+J2(z) == (2/z)*J1(z).
+    // See formula http://dlmf.nist.gov/10.6.E1
+    ExpectJetsClose(BesselJ0(z) + BesselJn(2, z), (2.0 / z) * BesselJ1(z));
+  }
+
+  { // Check that floor of a positive number works.
+    J a = MakeJet(0.1, -2.7, 1e-3);
+    J b = floor(a);
+    J expected = MakeJet(floor(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
+  }
+
+  { // Check that floor of a negative number works.
+    J a = MakeJet(-1.1, -2.7, 1e-3);
+    J b = floor(a);
+    J expected = MakeJet(floor(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
+  }
+
+  { // Check that floor of a positive number works.
+    J a = MakeJet(10.123, -2.7, 1e-3);
+    J b = floor(a);
+    J expected = MakeJet(floor(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
+  }
+
+  { // Check that ceil of a positive number works.
+    J a = MakeJet(0.1, -2.7, 1e-3);
+    J b = ceil(a);
+    J expected = MakeJet(ceil(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
+  }
+
+  { // Check that ceil of a negative number works.
+    J a = MakeJet(-1.1, -2.7, 1e-3);
+    J b = ceil(a);
+    J expected = MakeJet(ceil(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
+  }
+
+  { // Check that ceil of a positive number works.
+    J a = MakeJet(10.123, -2.7, 1e-3);
+    J b = ceil(a);
+    J expected = MakeJet(ceil(a.a), 0.0, 0.0);
+    EXPECT_EQ(expected, b);
   }
 }
 

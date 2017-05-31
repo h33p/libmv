@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -44,6 +44,8 @@
 namespace ceres {
 namespace internal {
 
+using std::string;
+
 void InvalidateEvaluation(const ResidualBlock& block,
                           double* cost,
                           double* residuals,
@@ -60,24 +62,6 @@ void InvalidateEvaluation(const ResidualBlock& block,
     }
   }
 }
-
-// Utility routine to print an array of doubles to a string. If the
-// array pointer is NULL, it is treated as an array of zeros.
-namespace {
-void AppendArrayToString(const int size, const double* x, string* result) {
-  for (int i = 0; i < size; ++i) {
-    if (x == NULL) {
-      StringAppendF(result, "Not Computed  ");
-    } else {
-      if (x[i] == kImpossibleValue) {
-        StringAppendF(result, "Uninitialized ");
-      } else {
-        StringAppendF(result, "%12g ", x[i]);
-      }
-    }
-  }
-}
-}  // namespace
 
 string EvaluationToString(const ResidualBlock& block,
                           double const* const* parameters,

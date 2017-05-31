@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -38,8 +38,6 @@
 // For details on the theory and implementation see "Numerical
 // Optimization" by Nocedal & Wright.
 
-#ifndef CERES_NO_LINE_SEARCH_MINIMIZER
-
 #include "ceres/line_search_minimizer.h"
 
 #include <algorithm>
@@ -64,28 +62,36 @@
 namespace ceres {
 namespace internal {
 namespace {
-// Small constant for various floating point issues.
-// TODO(sameeragarwal): Change to a better name if this has only one
-// use.
-const double kEpsilon = 1e-12;
 
 // TODO(sameeragarwal): I think there is a small bug here, in that if
 // the evaluation fails, then the state can contain garbage. Look at
 // this more carefully.
 bool Evaluate(Evaluator* evaluator,
               const Vector& x,
-              LineSearchMinimizer::State* state) {
-  const bool status = evaluator->Evaluate(x.data(),
-                                          &(state->cost),
-                                          NULL,
-                                          state->gradient.data(),
-                                          NULL);
-  if (status) {
-    state->gradient_squared_norm = state->gradient.squaredNorm();
-    state->gradient_max_norm = state->gradient.lpNorm<Eigen::Infinity>();
+              LineSearchMinimizer::State* state,
+              std::string* message) {
+  if (!evaluator->Evaluate(x.data(),
+                           &(state->cost),
+                           NULL,
+                           state->gradient.data(),
+                           NULL)) {
+    *message = "Gradient evaluation failed.";
+    return false;
   }
 
-  return status;
+  Vector negative_gradient = -state->gradient;
+  Vector projected_gradient_step(x.size());
+  if (!evaluator->Plus(x.data(),
+                       negative_gradient.data(),
+                       projected_gradient_step.data())) {
+    *message = "projected_gradient_step = Plus(x, -gradient) failed.";
+    return false;
+  }
+
+  state->gradient_squared_norm = (x - projected_gradient_step).squaredNorm();
+  state->gradient_max_norm =
+      (x - projected_gradient_step).lpNorm<Eigen::Infinity>();
+  return true;
 }
 
 }  // namespace
@@ -97,7 +103,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
   double start_time = WallTimeInSeconds();
   double iteration_start_time =  start_time;
 
-  Evaluator* evaluator = CHECK_NOTNULL(options.evaluator);
+  Evaluator* evaluator = CHECK_NOTNULL(options.evaluator.get());
   const int num_parameters = evaluator->NumParameters();
   const int num_effective_parameters = evaluator->NumEffectiveParameters();
 
@@ -125,10 +131,11 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
   iteration_summary.step_solver_time_in_seconds = 0;
 
   // Do initial cost and Jacobian evaluation.
-  if (!Evaluate(evaluator, x, &current_state)) {
-    summary->message = "Terminating: Cost and gradient evaluation failed.";
+  if (!Evaluate(evaluator, x, &current_state, &summary->message)) {
     summary->termination_type = FAILURE;
-    LOG_IF(WARNING, is_not_silent) << summary->message;
+    summary->message = "Initial cost and jacobian evaluation failed. "
+        "More details: " + summary->message;
+    LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
     return;
   }
 
@@ -138,22 +145,13 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
   iteration_summary.gradient_max_norm = current_state.gradient_max_norm;
   iteration_summary.gradient_norm = sqrt(current_state.gradient_squared_norm);
 
-  // The initial gradient max_norm is bounded from below so that we do
-  // not divide by zero.
-  const double initial_gradient_max_norm =
-      max(iteration_summary.gradient_max_norm, kEpsilon);
-  const double absolute_gradient_tolerance =
-      options.gradient_tolerance * initial_gradient_max_norm;
-
-  if (iteration_summary.gradient_max_norm <= absolute_gradient_tolerance) {
-    summary->message =
-        StringPrintf("Terminating: Gradient tolerance reached. "
-                     "Relative gradient max norm: %e <= %e",
-                     iteration_summary.gradient_max_norm /
-                     initial_gradient_max_norm,
-                     options.gradient_tolerance);
+  if (iteration_summary.gradient_max_norm <= options.gradient_tolerance) {
+    summary->message = StringPrintf("Gradient tolerance reached. "
+                                    "Gradient max norm: %e <= %e",
+                                    iteration_summary.gradient_max_norm,
+                                    options.gradient_tolerance);
     summary->termination_type = CONVERGENCE;
-    VLOG_IF(1, is_not_silent) << summary->message;
+    VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
     return;
   }
 
@@ -193,6 +191,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
       options.line_search_sufficient_curvature_decrease;
   line_search_options.max_step_expansion =
       options.max_line_search_step_expansion;
+  line_search_options.is_silent = options.is_silent;
   line_search_options.function = &line_search_function;
 
   scoped_ptr<LineSearch>
@@ -201,7 +200,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
                                      &summary->message));
   if (line_search.get() == NULL) {
     summary->termination_type = FAILURE;
-    LOG_IF(ERROR, is_not_silent) << summary->message;
+    LOG_IF(ERROR, is_not_silent) << "Terminating: " << summary->message;
     return;
   }
 
@@ -209,24 +208,24 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
   int num_line_search_direction_restarts = 0;
 
   while (true) {
-    if (!RunCallbacks(options.callbacks, iteration_summary, summary)) {
-      return;
+    if (!RunCallbacks(options, iteration_summary, summary)) {
+      break;
     }
 
     iteration_start_time = WallTimeInSeconds();
     if (iteration_summary.iteration >= options.max_num_iterations) {
-      summary->message = "Terminating: Maximum number of iterations reached.";
+      summary->message = "Maximum number of iterations reached.";
       summary->termination_type = NO_CONVERGENCE;
-      VLOG_IF(1, is_not_silent) << summary->message;
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
       break;
     }
 
     const double total_solver_time = iteration_start_time - start_time +
         summary->preprocessor_time_in_seconds;
     if (total_solver_time >= options.max_solver_time_in_seconds) {
-      summary->message = "Terminating: Maximum solver time reached.";
+      summary->message = "Maximum solver time reached.";
       summary->termination_type = NO_CONVERGENCE;
-      VLOG_IF(1, is_not_silent) << summary->message;
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
       break;
     }
 
@@ -252,11 +251,11 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
       // have already reached our specified maximum number of restarts,
       // terminate optimization.
       summary->message =
-          StringPrintf("Terminating: Line search direction failure: specified "
+          StringPrintf("Line search direction failure: specified "
                        "max_num_line_search_direction_restarts: %d reached.",
                        options.max_num_line_search_direction_restarts);
       summary->termination_type = FAILURE;
-      LOG_IF(WARNING, is_not_silent) << summary->message;
+      LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
       break;
     } else if (!line_search_status) {
       // Restart line search direction with gradient descent on first iteration
@@ -292,9 +291,9 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
     // iteration.
     const double initial_step_size =
         (iteration_summary.iteration == 1 || !line_search_status)
-        ? min(1.0, 1.0 / current_state.gradient_max_norm)
-        : min(1.0, 2.0 * (current_state.cost - previous_state.cost) /
-              current_state.directional_derivative);
+        ? std::min(1.0, 1.0 / current_state.gradient_max_norm)
+        : std::min(1.0, 2.0 * (current_state.cost - previous_state.cost) /
+                   current_state.directional_derivative);
     // By definition, we should only ever go forwards along the specified search
     // direction in a line search, most likely cause for this being violated
     // would be a numerical failure in the line search direction calculation.
@@ -306,7 +305,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
                        initial_step_size, current_state.directional_derivative,
                        (current_state.cost - previous_state.cost));
       summary->termination_type = FAILURE;
-      LOG_IF(WARNING, is_not_silent) << summary->message;
+      LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
       break;
     }
 
@@ -322,7 +321,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
                        "initial_gradient: %.5e.",
                        initial_step_size, current_state.cost,
                        current_state.directional_derivative);
-      LOG_IF(WARNING, is_not_silent) << summary->message;
+      LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
       summary->termination_type = FAILURE;
       break;
     }
@@ -334,58 +333,41 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
     iteration_summary.step_solver_time_in_seconds =
         WallTimeInSeconds() - iteration_start_time;
 
-    // TODO(sameeragarwal): Collect stats.
-    //
-    // TODO(sameeragarwal): This call to Plus() directly updates the parameter
-    //       vector via the VectorRef x. This is incorrect as we check the
-    //       gradient and cost changes to determine if the step is accepted
-    //       later, as such we could mutate x with a step that is not
-    //       subsequently accepted, thus it is possible that
-    //       summary->iterations.end()->x != x at termination.
+    const double x_norm = x.norm();
+
     if (!evaluator->Plus(x.data(), delta.data(), x_plus_delta.data())) {
-      LOG_IF(WARNING, is_not_silent)
-          << "x_plus_delta = Plus(x, delta) failed. ";
-    } else if (!Evaluate(evaluator, x_plus_delta, &current_state)) {
-      LOG_IF(WARNING, is_not_silent) << "Step failed to evaluate. ";
-    } else {
-      x = x_plus_delta;
-    }
-
-    iteration_summary.gradient_max_norm = current_state.gradient_max_norm;
-    iteration_summary.gradient_norm = sqrt(current_state.gradient_squared_norm);
-
-    if (iteration_summary.gradient_max_norm <= absolute_gradient_tolerance) {
+      summary->termination_type = FAILURE;
       summary->message =
-          StringPrintf("Terminating: Gradient tolerance reached. "
-                       "Relative gradient max norm: %e <= %e. ",
-                       (iteration_summary.gradient_max_norm /
-                        initial_gradient_max_norm),
-                       options.gradient_tolerance);
-      summary->termination_type = CONVERGENCE;
-      VLOG_IF(1, is_not_silent) << summary->message;
+          "x_plus_delta = Plus(x, delta) failed. This should not happen "
+          "as the step was valid when it was selected by the line search.";
+      LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
       break;
     }
 
-    iteration_summary.cost_change = previous_state.cost - current_state.cost;
-    const double absolute_function_tolerance =
-        options.function_tolerance * previous_state.cost;
-    if (fabs(iteration_summary.cost_change) < absolute_function_tolerance) {
+    if (!Evaluate(evaluator,
+                  x_plus_delta,
+                  &current_state,
+                  &summary->message)) {
+      summary->termination_type = FAILURE;
       summary->message =
-          StringPrintf("Terminating. Function tolerance reached. "
-                       "|cost_change|/cost: %e <= %e",
-                       fabs(iteration_summary.cost_change) /
-                       previous_state.cost,
-                       options.function_tolerance);
-      summary->termination_type = CONVERGENCE;
-      VLOG_IF(1, is_not_silent) << summary->message;
-      return;
+          "Step failed to evaluate. This should not happen as the step was "
+          "valid when it was selected by the line search. More details: " +
+          summary->message;
+      LOG_IF(WARNING, is_not_silent) << "Terminating: " << summary->message;
+      break;
     }
 
+    // Compute the norm of the step in the ambient space.
+    iteration_summary.step_norm = (x_plus_delta - x).norm();
+    x = x_plus_delta;
+
+    iteration_summary.gradient_max_norm = current_state.gradient_max_norm;
+    iteration_summary.gradient_norm = sqrt(current_state.gradient_squared_norm);
+    iteration_summary.cost_change = previous_state.cost - current_state.cost;
     iteration_summary.cost = current_state.cost + summary->fixed_cost;
-    iteration_summary.step_norm = delta.norm();
+
     iteration_summary.step_is_valid = true;
     iteration_summary.step_is_successful = true;
-    iteration_summary.step_norm = delta.norm();
     iteration_summary.step_size =  current_state.step_size;
     iteration_summary.line_search_function_evaluations =
         line_search_summary.num_function_evaluations;
@@ -399,12 +381,64 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
         WallTimeInSeconds() - start_time
         + summary->preprocessor_time_in_seconds;
 
-    summary->iterations.push_back(iteration_summary);
+    // Iterations inside the line search algorithm are considered
+    // 'steps' in the broader context, to distinguish these inner
+    // iterations from from the outer iterations of the line search
+    // minimizer. The number of line search steps is the total number
+    // of inner line search iterations (or steps) across the entire
+    // minimization.
+    summary->num_line_search_steps +=  line_search_summary.num_iterations;
+    summary->line_search_cost_evaluation_time_in_seconds +=
+        line_search_summary.cost_evaluation_time_in_seconds;
+    summary->line_search_gradient_evaluation_time_in_seconds +=
+        line_search_summary.gradient_evaluation_time_in_seconds;
+    summary->line_search_polynomial_minimization_time_in_seconds +=
+        line_search_summary.polynomial_minimization_time_in_seconds;
+    summary->line_search_total_time_in_seconds +=
+        line_search_summary.total_time_in_seconds;
     ++summary->num_successful_steps;
+
+    const double step_size_tolerance = options.parameter_tolerance *
+                                       (x_norm + options.parameter_tolerance);
+    if (iteration_summary.step_norm <= step_size_tolerance) {
+      summary->message =
+          StringPrintf("Parameter tolerance reached. "
+                       "Relative step_norm: %e <= %e.",
+                       (iteration_summary.step_norm /
+                        (x_norm + options.parameter_tolerance)),
+                       options.parameter_tolerance);
+      summary->termination_type = CONVERGENCE;
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
+      return;
+    }
+
+    if (iteration_summary.gradient_max_norm <= options.gradient_tolerance) {
+      summary->message = StringPrintf("Gradient tolerance reached. "
+                                      "Gradient max norm: %e <= %e",
+                                      iteration_summary.gradient_max_norm,
+                                      options.gradient_tolerance);
+      summary->termination_type = CONVERGENCE;
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
+      break;
+    }
+
+    const double absolute_function_tolerance =
+        options.function_tolerance * previous_state.cost;
+    if (fabs(iteration_summary.cost_change) <= absolute_function_tolerance) {
+      summary->message =
+          StringPrintf("Function tolerance reached. "
+                       "|cost_change|/cost: %e <= %e",
+                       fabs(iteration_summary.cost_change) /
+                       previous_state.cost,
+                       options.function_tolerance);
+      summary->termination_type = CONVERGENCE;
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
+      break;
+    }
+
+    summary->iterations.push_back(iteration_summary);
   }
 }
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_NO_LINE_SEARCH_MINIMIZER

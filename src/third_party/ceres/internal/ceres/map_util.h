@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -67,7 +67,7 @@ FindOrDie(const Collection& collection,
 // If the key is present in the map then the value associated with that
 // key is returned, otherwise the value passed as a default is returned.
 template <class Collection>
-const typename Collection::value_type::second_type&
+const typename Collection::value_type::second_type
 FindWithDefault(const Collection& collection,
                 const typename Collection::value_type::first_type& key,
                 const typename Collection::value_type::second_type& value) {
@@ -87,8 +87,8 @@ bool InsertIfNotPresent(
     Collection * const collection,
     const typename Collection::value_type::first_type& key,
     const typename Collection::value_type::second_type& value) {
-  pair<typename Collection::iterator, bool> ret =
-    collection->insert(typename Collection::value_type(key, value));
+  std::pair<typename Collection::iterator, bool> ret =
+      collection->insert(typename Collection::value_type(key, value));
   return ret.second;
 }
 

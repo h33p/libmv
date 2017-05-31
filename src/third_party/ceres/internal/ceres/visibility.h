@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,9 @@
 #ifndef CERES_INTERNAL_VISIBILITY_H_
 #define CERES_INTERNAL_VISIBILITY_H_
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifndef CERES_NO_SUITESPARSE
 
 #include <set>
@@ -56,7 +59,7 @@ struct CompressedRowBlockStructure;
 // points and f_blocks correspond to cameras.
 void ComputeVisibility(const CompressedRowBlockStructure& block_structure,
                        int num_eliminate_blocks,
-                       vector<set<int> >* visibility);
+                       std::vector<std::set<int> >* visibility);
 
 // Given f_block visibility as computed by the ComputeVisibility
 // function above, construct and return a graph whose vertices are
@@ -69,9 +72,10 @@ void ComputeVisibility(const CompressedRowBlockStructure& block_structure,
 // matrix/Schur complement matrix obtained by eliminating the e_blocks
 // from the normal equations.
 //
-// Caller acquires ownership of the returned Graph pointer
+// Caller acquires ownership of the returned WeightedGraph pointer
 // (heap-allocated).
-Graph<int>* CreateSchurComplementGraph(const vector<set<int> >& visibility);
+WeightedGraph<int>* CreateSchurComplementGraph(
+    const std::vector<std::set<int> >& visibility);
 
 }  // namespace internal
 }  // namespace ceres

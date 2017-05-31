@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -101,6 +101,7 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
   // complement matrix with the block diagonal of the matrix F'F as
   // the preconditioner.
   LinearSolver::Options cg_options;
+  cg_options.min_num_iterations = options_.min_num_iterations;
   cg_options.max_num_iterations = options_.max_num_iterations;
   ConjugateGradientsSolver cg_solver(cg_options);
   LinearSolver::PerSolveOptions cg_per_solve_options;

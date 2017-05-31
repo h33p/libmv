@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -26,7 +26,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: keir@google.com (Keir Mierle)
+// Authors: keir@google.com (Keir Mierle),
+//          dgossow@google.com (David Gossow)
 
 #include "ceres/gradient_checking_cost_function.h"
 
@@ -36,7 +37,7 @@
 #include <string>
 #include <vector>
 
-#include "ceres/cost_function.h"
+#include "ceres/gradient_checker.h"
 #include "ceres/internal/eigen.h"
 #include "ceres/internal/scoped_ptr.h"
 #include "ceres/parameter_block.h"
@@ -51,57 +52,33 @@
 
 namespace ceres {
 namespace internal {
-namespace {
 
-// True if x and y have an absolute relative difference less than
-// relative_precision and false otherwise. Stores the relative and absolute
-// difference in relative/absolute_error if non-NULL.
-bool IsClose(double x, double y, double relative_precision,
-             double *relative_error,
-             double *absolute_error) {
-  double local_absolute_error;
-  double local_relative_error;
-  if (!absolute_error) {
-    absolute_error = &local_absolute_error;
-  }
-  if (!relative_error) {
-    relative_error = &local_relative_error;
-  }
-  *absolute_error = fabs(x - y);
-  *relative_error = *absolute_error / max(fabs(x), fabs(y));
-  if (x == 0 || y == 0) {
-    // If x or y is exactly zero, then relative difference doesn't have any
-    // meaning. Take the absolute difference instead.
-    *relative_error = *absolute_error;
-  }
-  return fabs(*relative_error) < fabs(relative_precision);
-}
+using std::abs;
+using std::max;
+using std::string;
+using std::vector;
+
+namespace {
 
 class GradientCheckingCostFunction : public CostFunction {
  public:
-  GradientCheckingCostFunction(const CostFunction* function,
-                               double relative_step_size,
-                               double relative_precision,
-                               const string& extra_info)
+  GradientCheckingCostFunction(
+      const CostFunction* function,
+      const std::vector<const LocalParameterization*>* local_parameterizations,
+      const NumericDiffOptions& options,
+      double relative_precision,
+      const string& extra_info,
+      GradientCheckingIterationCallback* callback)
       : function_(function),
+        gradient_checker_(function, local_parameterizations, options),
         relative_precision_(relative_precision),
-        extra_info_(extra_info) {
-    DynamicNumericDiffCostFunction<CostFunction, CENTRAL>*
-        finite_diff_cost_function =
-        new DynamicNumericDiffCostFunction<CostFunction, CENTRAL>(
-            function,
-            DO_NOT_TAKE_OWNERSHIP,
-            relative_step_size);
-
-    const vector<int16>& parameter_block_sizes =
+        extra_info_(extra_info),
+        callback_(callback) {
+    CHECK_NOTNULL(callback_);
+    const vector<int32>& parameter_block_sizes =
         function->parameter_block_sizes();
-    for (int i = 0; i < parameter_block_sizes.size(); ++i) {
-      finite_diff_cost_function->AddParameterBlock(parameter_block_sizes[i]);
-    }
     *mutable_parameter_block_sizes() = parameter_block_sizes;
     set_num_residuals(function->num_residuals());
-    finite_diff_cost_function->SetNumResiduals(num_residuals());
-    finite_diff_cost_function_.reset(finite_diff_cost_function);
   }
 
   virtual ~GradientCheckingCostFunction() { }
@@ -114,131 +91,92 @@ class GradientCheckingCostFunction : public CostFunction {
       return function_->Evaluate(parameters, residuals, NULL);
     }
 
-    int num_residuals = function_->num_residuals();
+    GradientChecker::ProbeResults results;
+    bool okay = gradient_checker_.Probe(parameters,
+                                        relative_precision_,
+                                        &results);
 
-    // Make space for the jacobians of the two methods.
-    const vector<int16>& block_sizes = function_->parameter_block_sizes();
-    vector<Matrix> term_jacobians(block_sizes.size());
-    vector<Matrix> finite_difference_jacobians(block_sizes.size());
-    vector<double*> term_jacobian_pointers(block_sizes.size());
-    vector<double*> finite_difference_jacobian_pointers(block_sizes.size());
-    for (int i = 0; i < block_sizes.size(); i++) {
-      term_jacobians[i].resize(num_residuals, block_sizes[i]);
-      term_jacobian_pointers[i] = term_jacobians[i].data();
-      finite_difference_jacobians[i].resize(num_residuals, block_sizes[i]);
-      finite_difference_jacobian_pointers[i] =
-          finite_difference_jacobians[i].data();
-    }
-
-    // Evaluate the derivative using the user supplied code.
-    if (!function_->Evaluate(parameters,
-                             residuals,
-                             &term_jacobian_pointers[0])) {
-      LOG(WARNING) << "Function evaluation failed.";
+    // If the cost function returned false, there's nothing we can say about
+    // the gradients.
+    if (results.return_value == false) {
       return false;
     }
 
-    // Evaluate the derivative using numeric derivatives.
-    finite_diff_cost_function_->Evaluate(
-        parameters,
-        residuals,
-        &finite_difference_jacobian_pointers[0]);
+    // Copy the residuals.
+    const int num_residuals = function_->num_residuals();
+    MatrixRef(residuals, num_residuals, 1) = results.residuals;
 
-    // See if any elements have relative error larger than the threshold.
-    int num_bad_jacobian_components = 0;
-    double worst_relative_error = 0;
-
-    // Accumulate the error message for all the jacobians, since it won't get
-    // output if there are no bad jacobian components.
-    string m;
+    // Copy the original jacobian blocks into the jacobians array.
+    const vector<int32>& block_sizes = function_->parameter_block_sizes();
     for (int k = 0; k < block_sizes.size(); k++) {
-      // Copy the original jacobian blocks into the jacobians array.
       if (jacobians[k] != NULL) {
         MatrixRef(jacobians[k],
-                  term_jacobians[k].rows(),
-                  term_jacobians[k].cols()) = term_jacobians[k];
-      }
-
-      StringAppendF(&m,
-                    "========== "
-                    "Jacobian for " "block %d: (%ld by %ld)) "
-                    "==========\n",
-                    k,
-                    static_cast<long>(term_jacobians[k].rows()),
-                    static_cast<long>(term_jacobians[k].cols()));
-      // The funny spacing creates appropriately aligned column headers.
-      m += " block  row  col        user dx/dy    num diff dx/dy         "
-           "abs error    relative error         parameter          residual\n";
-
-      for (int i = 0; i < term_jacobians[k].rows(); i++) {
-        for (int j = 0; j < term_jacobians[k].cols(); j++) {
-          double term_jacobian = term_jacobians[k](i, j);
-          double finite_jacobian = finite_difference_jacobians[k](i, j);
-          double relative_error, absolute_error;
-          bool bad_jacobian_entry =
-              !IsClose(term_jacobian,
-                       finite_jacobian,
-                       relative_precision_,
-                       &relative_error,
-                       &absolute_error);
-          worst_relative_error = std::max(worst_relative_error,
-                                          relative_error);
-
-          StringAppendF(&m, "%6d %4d %4d %17g %17g %17g %17g %17g %17g",
-                        k, i, j,
-                        term_jacobian, finite_jacobian,
-                        absolute_error, relative_error,
-                        parameters[k][j],
-                        residuals[i]);
-
-          if (bad_jacobian_entry) {
-            num_bad_jacobian_components++;
-            StringAppendF(
-                &m, " ------ (%d,%d,%d) Relative error worse than %g",
-                k, i, j, relative_precision_);
-          }
-          m += "\n";
-        }
+                  results.jacobians[k].rows(),
+                  results.jacobians[k].cols()) = results.jacobians[k];
       }
     }
 
-    // Since there were some bad errors, dump comprehensive debug info.
-    if (num_bad_jacobian_components) {
-      string header = StringPrintf("Detected %d bad jacobian component(s). "
-                                   "Worst relative error was %g.\n",
-                                   num_bad_jacobian_components,
-                                   worst_relative_error);
-      if (!extra_info_.empty()) {
-        header += "Extra info for this residual: " + extra_info_ + "\n";
-      }
-      LOG(WARNING) << "\n" << header << m;
+    if (!okay) {
+      std::string error_log = "Gradient Error detected!\nExtra info for "
+          "this residual: " + extra_info_ + "\n" + results.error_log;
+      callback_->SetGradientErrorDetected(error_log);
     }
     return true;
   }
 
  private:
   const CostFunction* function_;
-  internal::scoped_ptr<CostFunction> finite_diff_cost_function_;
+  GradientChecker gradient_checker_;
   double relative_precision_;
   string extra_info_;
+  GradientCheckingIterationCallback* callback_;
 };
 
 }  // namespace
 
-CostFunction *CreateGradientCheckingCostFunction(
-    const CostFunction *cost_function,
-    double relative_step_size,
-    double relative_precision,
-    const string& extra_info) {
-  return new GradientCheckingCostFunction(cost_function,
-                                          relative_step_size,
-                                          relative_precision,
-                                          extra_info);
+GradientCheckingIterationCallback::GradientCheckingIterationCallback()
+    : gradient_error_detected_(false) {
 }
 
-ProblemImpl* CreateGradientCheckingProblemImpl(ProblemImpl* problem_impl,
-                                               double relative_step_size,
-                                               double relative_precision) {
+CallbackReturnType GradientCheckingIterationCallback::operator()(
+    const IterationSummary& summary) {
+  if (gradient_error_detected_) {
+    LOG(ERROR)<< "Gradient error detected. Terminating solver.";
+    return SOLVER_ABORT;
+  }
+  return SOLVER_CONTINUE;
+}
+void GradientCheckingIterationCallback::SetGradientErrorDetected(
+    std::string& error_log) {
+  mutex_.Lock();
+  gradient_error_detected_ = true;
+  error_log_ += "\n" + error_log;
+  mutex_.Unlock();
+}
+
+CostFunction* CreateGradientCheckingCostFunction(
+    const CostFunction* cost_function,
+    const std::vector<const LocalParameterization*>* local_parameterizations,
+    double relative_step_size,
+    double relative_precision,
+    const std::string& extra_info,
+    GradientCheckingIterationCallback* callback) {
+  NumericDiffOptions numeric_diff_options;
+  numeric_diff_options.relative_step_size = relative_step_size;
+
+  return new GradientCheckingCostFunction(cost_function,
+                                          local_parameterizations,
+                                          numeric_diff_options,
+                                          relative_precision, extra_info,
+                                          callback);
+}
+
+ProblemImpl* CreateGradientCheckingProblemImpl(
+    ProblemImpl* problem_impl,
+    double relative_step_size,
+    double relative_precision,
+    GradientCheckingIterationCallback* callback) {
+  CHECK_NOTNULL(callback);
   // We create new CostFunctions by wrapping the original CostFunction
   // in a gradient checking CostFunction. So its okay for the
   // ProblemImpl to take ownership of it and destroy it. The
@@ -251,6 +189,9 @@ ProblemImpl* CreateGradientCheckingProblemImpl(ProblemImpl* problem_impl,
       DO_NOT_TAKE_OWNERSHIP;
   gradient_checking_problem_options.local_parameterization_ownership =
       DO_NOT_TAKE_OWNERSHIP;
+
+  NumericDiffOptions numeric_diff_options;
+  numeric_diff_options.relative_step_size = relative_step_size;
 
   ProblemImpl* gradient_checking_problem_impl = new ProblemImpl(
       gradient_checking_problem_options);
@@ -286,19 +227,26 @@ ProblemImpl* CreateGradientCheckingProblemImpl(ProblemImpl* problem_impl,
     string extra_info = StringPrintf(
         "Residual block id %d; depends on parameters [", i);
     vector<double*> parameter_blocks;
+    vector<const LocalParameterization*> local_parameterizations;
+    parameter_blocks.reserve(residual_block->NumParameterBlocks());
+    local_parameterizations.reserve(residual_block->NumParameterBlocks());
     for (int j = 0; j < residual_block->NumParameterBlocks(); ++j) {
       ParameterBlock* parameter_block = residual_block->parameter_blocks()[j];
       parameter_blocks.push_back(parameter_block->mutable_user_state());
       StringAppendF(&extra_info, "%p", parameter_block->mutable_user_state());
       extra_info += (j < residual_block->NumParameterBlocks() - 1) ? ", " : "]";
+      local_parameterizations.push_back(problem_impl->GetParameterization(
+          parameter_block->mutable_user_state()));
     }
 
     // Wrap the original CostFunction in a GradientCheckingCostFunction.
     CostFunction* gradient_checking_cost_function =
-        CreateGradientCheckingCostFunction(residual_block->cost_function(),
-                                           relative_step_size,
-                                           relative_precision,
-                                           extra_info);
+        new GradientCheckingCostFunction(residual_block->cost_function(),
+                                         &local_parameterizations,
+                                         numeric_diff_options,
+                                         relative_precision,
+                                         extra_info,
+                                         callback);
 
     // The const_cast is necessary because
     // ProblemImpl::AddResidualBlock can potentially take ownership of
@@ -309,6 +257,17 @@ ProblemImpl* CreateGradientCheckingProblemImpl(ProblemImpl* problem_impl,
         const_cast<LossFunction*>(residual_block->loss_function()),
         parameter_blocks);
   }
+
+  // Normally, when a problem is given to the solver, we guarantee
+  // that the state pointers for each parameter block point to the
+  // user provided data. Since we are creating this new problem from a
+  // problem given to us at an arbitrary stage of the solve, we cannot
+  // depend on this being the case, so we explicitly call
+  // SetParameterBlockStatePtrsToUserStatePtrs to ensure that this is
+  // the case.
+  gradient_checking_problem_impl
+      ->mutable_program()
+      ->SetParameterBlockStatePtrsToUserStatePtrs();
 
   return gradient_checking_problem_impl;
 }

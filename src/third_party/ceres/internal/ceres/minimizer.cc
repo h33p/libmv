@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,22 +28,39 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 
+#include "ceres/line_search_minimizer.h"
 #include "ceres/minimizer.h"
+#include "ceres/trust_region_minimizer.h"
 #include "ceres/types.h"
 #include "glog/logging.h"
 
 namespace ceres {
 namespace internal {
 
+Minimizer* Minimizer::Create(MinimizerType minimizer_type) {
+  if (minimizer_type == TRUST_REGION) {
+    return new TrustRegionMinimizer;
+  }
+
+  if (minimizer_type == LINE_SEARCH) {
+    return new LineSearchMinimizer;
+  }
+
+  LOG(FATAL) << "Unknown minimizer_type: " << minimizer_type;
+  return NULL;
+}
+
+
 Minimizer::~Minimizer() {}
 
-bool Minimizer::RunCallbacks(const vector<IterationCallback*> callbacks,
+bool Minimizer::RunCallbacks(const Minimizer::Options& options,
                              const IterationSummary& iteration_summary,
                              Solver::Summary* summary) {
+  const bool is_not_silent = !options.is_silent;
   CallbackReturnType status = SOLVER_CONTINUE;
   int i = 0;
-  while (status == SOLVER_CONTINUE && i < callbacks.size()) {
-    status = (*callbacks[i])(iteration_summary);
+  while (status == SOLVER_CONTINUE && i < options.callbacks.size()) {
+    status = (*options.callbacks[i])(iteration_summary);
     ++i;
   }
   switch (status) {
@@ -51,11 +68,14 @@ bool Minimizer::RunCallbacks(const vector<IterationCallback*> callbacks,
       return true;
     case SOLVER_TERMINATE_SUCCESSFULLY:
       summary->termination_type = USER_SUCCESS;
-      VLOG(1) << "Terminating: User callback returned USER_SUCCESS.";
+      summary->message =
+          "User callback returned SOLVER_TERMINATE_SUCCESSFULLY.";
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
       return false;
     case SOLVER_ABORT:
       summary->termination_type = USER_FAILURE;
-      VLOG(1) << "Terminating: User callback returned  USER_ABORT.";
+      summary->message = "User callback returned SOLVER_ABORT.";
+      VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
       return false;
     default:
       LOG(FATAL) << "Unknown type of user callback status";

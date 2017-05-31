@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,6 +28,9 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 
+// This include must come before any #ifndef check on Ceres compile options.
+#include "ceres/internal/port.h"
+
 #ifndef CERES_NO_SUITESPARSE
 
 #include "ceres/visibility_based_preconditioner.h"
@@ -54,6 +57,12 @@
 
 namespace ceres {
 namespace internal {
+
+using std::make_pair;
+using std::pair;
+using std::set;
+using std::swap;
+using std::vector;
 
 // TODO(sameeragarwal): Currently these are magic weights for the
 // preconditioner construction. Move these higher up into the Options
@@ -164,9 +173,9 @@ void VisibilityBasedPreconditioner::ComputeClusterTridiagonalSparsity(
   // maximum spanning forest of this graph.
   vector<set<int> > cluster_visibility;
   ComputeClusterVisibility(visibility, &cluster_visibility);
-  scoped_ptr<Graph<int> > cluster_graph(
+  scoped_ptr<WeightedGraph<int> > cluster_graph(
       CHECK_NOTNULL(CreateClusterGraph(cluster_visibility)));
-  scoped_ptr<Graph<int> > forest(
+  scoped_ptr<WeightedGraph<int> > forest(
       CHECK_NOTNULL(Degree2MaximumSpanningForest(*cluster_graph)));
   ForestToClusterPairs(*forest, &cluster_pairs_);
 }
@@ -186,7 +195,7 @@ void VisibilityBasedPreconditioner::InitStorage(
 // memberships for each camera block.
 void VisibilityBasedPreconditioner::ClusterCameras(
     const vector<set<int> >& visibility) {
-  scoped_ptr<Graph<int> > schur_complement_graph(
+  scoped_ptr<WeightedGraph<int> > schur_complement_graph(
       CHECK_NOTNULL(CreateSchurComplementGraph(visibility)));
 
   HashMap<int, int> membership;
@@ -396,7 +405,7 @@ bool VisibilityBasedPreconditioner::UpdateImpl(const BlockSparseMatrix& A,
 // matrix. Scaling these off-diagonal entries by 1/2 forces this
 // matrix to be positive definite.
 void VisibilityBasedPreconditioner::ScaleOffDiagonalCells() {
-  for (set< pair<int, int> >::const_iterator it = block_pairs_.begin();
+  for (set<pair<int, int> >::const_iterator it = block_pairs_.begin();
        it != block_pairs_.end();
        ++it) {
     const int block1 = it->first;
@@ -436,7 +445,7 @@ LinearSolverTerminationType VisibilityBasedPreconditioner::Factorize() {
   lhs->stype = 1;
 
   // TODO(sameeragarwal): Refactor to pipe this up and out.
-  string status;
+  std::string status;
 
   // Symbolic factorization is computed if we don't already have one handy.
   if (factor_ == NULL) {
@@ -461,7 +470,7 @@ void VisibilityBasedPreconditioner::RightMultiply(const double* x,
   const int num_rows = m_->num_rows();
   memcpy(CHECK_NOTNULL(tmp_rhs_)->x, x, m_->num_rows() * sizeof(*x));
   // TODO(sameeragarwal): Better error handling.
-  string status;
+  std::string status;
   cholmod_dense* solution =
       CHECK_NOTNULL(ss->Solve(factor_, tmp_rhs_, &status));
   memcpy(y, solution->x, sizeof(*y) * num_rows);
@@ -481,7 +490,7 @@ bool VisibilityBasedPreconditioner::IsBlockPairInPreconditioner(
   int cluster1 = cluster_membership_[block1];
   int cluster2 = cluster_membership_[block2];
   if (cluster1 > cluster2) {
-    std::swap(cluster1, cluster2);
+    swap(cluster1, cluster2);
   }
   return (cluster_pairs_.count(make_pair(cluster1, cluster2)) > 0);
 }
@@ -495,7 +504,7 @@ bool VisibilityBasedPreconditioner::IsBlockPairOffDiagonal(
 // Convert a graph into a list of edges that includes self edges for
 // each vertex.
 void VisibilityBasedPreconditioner::ForestToClusterPairs(
-    const Graph<int>& forest,
+    const WeightedGraph<int>& forest,
     HashSet<pair<int, int> >* cluster_pairs) const {
   CHECK_NOTNULL(cluster_pairs)->clear();
   const HashSet<int>& vertices = forest.vertices();
@@ -538,9 +547,9 @@ void VisibilityBasedPreconditioner::ComputeClusterVisibility(
 // Construct a graph whose vertices are the clusters, and the edge
 // weights are the number of 3D points visible to cameras in both the
 // vertices.
-Graph<int>* VisibilityBasedPreconditioner::CreateClusterGraph(
+WeightedGraph<int>* VisibilityBasedPreconditioner::CreateClusterGraph(
     const vector<set<int> >& cluster_visibility) const {
-  Graph<int>* cluster_graph = new Graph<int>;
+  WeightedGraph<int>* cluster_graph = new WeightedGraph<int>;
 
   for (int i = 0; i < num_clusters_; ++i) {
     cluster_graph->AddVertex(i);

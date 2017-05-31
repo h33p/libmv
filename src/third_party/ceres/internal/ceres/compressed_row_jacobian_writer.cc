@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -30,6 +30,9 @@
 
 #include "ceres/compressed_row_jacobian_writer.h"
 
+#include <utility>
+#include <vector>
+
 #include "ceres/casts.h"
 #include "ceres/compressed_row_sparse_matrix.h"
 #include "ceres/parameter_block.h"
@@ -39,6 +42,49 @@
 
 namespace ceres {
 namespace internal {
+
+using std::make_pair;
+using std::pair;
+using std::vector;
+using std::adjacent_find;
+
+void CompressedRowJacobianWriter::PopulateJacobianRowAndColumnBlockVectors(
+    const Program* program, CompressedRowSparseMatrix* jacobian) {
+  const vector<ParameterBlock*>& parameter_blocks =
+      program->parameter_blocks();
+  vector<int>& col_blocks = *(jacobian->mutable_col_blocks());
+  col_blocks.resize(parameter_blocks.size());
+  for (int i = 0; i < parameter_blocks.size(); ++i) {
+    col_blocks[i] = parameter_blocks[i]->LocalSize();
+  }
+
+  const vector<ResidualBlock*>& residual_blocks =
+      program->residual_blocks();
+  vector<int>& row_blocks = *(jacobian->mutable_row_blocks());
+  row_blocks.resize(residual_blocks.size());
+  for (int i = 0; i < residual_blocks.size(); ++i) {
+    row_blocks[i] = residual_blocks[i]->NumResiduals();
+  }
+}
+
+void CompressedRowJacobianWriter::GetOrderedParameterBlocks(
+      const Program* program,
+      int residual_id,
+      vector<pair<int, int> >* evaluated_jacobian_blocks) {
+  const ResidualBlock* residual_block =
+      program->residual_blocks()[residual_id];
+  const int num_parameter_blocks = residual_block->NumParameterBlocks();
+
+  for (int j = 0; j < num_parameter_blocks; ++j) {
+    const ParameterBlock* parameter_block =
+        residual_block->parameter_blocks()[j];
+    if (!parameter_block->IsConstant()) {
+      evaluated_jacobian_blocks->push_back(
+          make_pair(parameter_block->index(), j));
+    }
+  }
+  sort(evaluated_jacobian_blocks->begin(), evaluated_jacobian_blocks->end());
+}
 
 SparseMatrix* CompressedRowJacobianWriter::CreateJacobian() const {
   const vector<ResidualBlock*>& residual_blocks =
@@ -71,7 +117,7 @@ SparseMatrix* CompressedRowJacobianWriter::CreateJacobian() const {
           total_num_effective_parameters,
           num_jacobian_nonzeros + total_num_effective_parameters);
 
-  // At this stage, the CompressedSparseMatrix is an invalid state. But this
+  // At this stage, the CompressedRowSparseMatrix is an invalid state. But this
   // seems to be the only way to construct it without doing a memory copy.
   int* rows = jacobian->mutable_rows();
   int* cols = jacobian->mutable_cols();
@@ -95,12 +141,21 @@ SparseMatrix* CompressedRowJacobianWriter::CreateJacobian() const {
 
     // Sort the parameters by their position in the state vector.
     sort(parameter_indices.begin(), parameter_indices.end());
-    CHECK(unique(parameter_indices.begin(), parameter_indices.end()) ==
-          parameter_indices.end())
-          << "Ceres internal error:  "
-          << "Duplicate parameter blocks detected in a cost function. "
-          << "This should never happen. Please report this to "
-          << "the Ceres developers.";
+    if (adjacent_find(parameter_indices.begin(), parameter_indices.end()) !=
+        parameter_indices.end()) {
+      std::string parameter_block_description;
+      for (int j = 0; j < num_parameter_blocks; ++j) {
+        ParameterBlock* parameter_block = residual_block->parameter_blocks()[j];
+        parameter_block_description +=
+            parameter_block->ToString() + "\n";
+      }
+      LOG(FATAL) << "Ceres internal error: "
+                 << "Duplicate parameter blocks detected in a cost function. "
+                 << "This should never happen. Please report this to "
+                 << "the Ceres developers.\n"
+                 << "Residual Block: " << residual_block->ToString() << "\n"
+                 << "Parameter Blocks: " << parameter_block_description;
+    }
 
     // Update the row indices.
     const int num_residuals = residual_block->NumResiduals();
@@ -132,22 +187,7 @@ SparseMatrix* CompressedRowJacobianWriter::CreateJacobian() const {
   }
   CHECK_EQ(num_jacobian_nonzeros, rows[total_num_residuals]);
 
-  // Populate the row and column block vectors for use by block
-  // oriented ordering algorithms. This is useful when
-  // Solver::Options::use_block_amd = true.
-  const vector<ParameterBlock*>& parameter_blocks =
-      program_->parameter_blocks();
-  vector<int>& col_blocks = *(jacobian->mutable_col_blocks());
-  col_blocks.resize(parameter_blocks.size());
-  for (int i = 0; i <  parameter_blocks.size(); ++i) {
-    col_blocks[i] = parameter_blocks[i]->LocalSize();
-  }
-
-  vector<int>& row_blocks = *(jacobian->mutable_row_blocks());
-  row_blocks.resize(residual_blocks.size());
-  for (int i = 0; i <  residual_blocks.size(); ++i) {
-    row_blocks[i] = residual_blocks[i]->NumResiduals();
-  }
+  PopulateJacobianRowAndColumnBlockVectors(program_, jacobian);
 
   return jacobian;
 }
@@ -164,25 +204,10 @@ void CompressedRowJacobianWriter::Write(int residual_id,
 
   const ResidualBlock* residual_block =
       program_->residual_blocks()[residual_id];
-  const int num_parameter_blocks = residual_block->NumParameterBlocks();
   const int num_residuals = residual_block->NumResiduals();
 
-  // It is necessary to determine the order of the jacobian blocks before
-  // copying them into the CompressedRowSparseMatrix. Just because a cost
-  // function uses parameter blocks 1 after 2 in its arguments does not mean
-  // that the block 1 occurs before block 2 in the column layout of the
-  // jacobian. Thus, determine the order by sorting the jacobian blocks by their
-  // position in the state vector.
   vector<pair<int, int> > evaluated_jacobian_blocks;
-  for (int j = 0; j < num_parameter_blocks; ++j) {
-    const ParameterBlock* parameter_block =
-        residual_block->parameter_blocks()[j];
-    if (!parameter_block->IsConstant()) {
-      evaluated_jacobian_blocks.push_back(
-          make_pair(parameter_block->index(), j));
-    }
-  }
-  sort(evaluated_jacobian_blocks.begin(), evaluated_jacobian_blocks.end());
+  GetOrderedParameterBlocks(program_, residual_id, &evaluated_jacobian_blocks);
 
   // Where in the current row does the jacobian for a parameter block begin.
   int col_pos = 0;
@@ -206,9 +231,9 @@ void CompressedRowJacobianWriter::Write(int residual_id,
       double* column_block_begin =
           jacobian_values + jacobian_rows[residual_offset + r] + col_pos;
 
-      copy(block_row_begin,
-           block_row_begin + parameter_block_size,
-           column_block_begin);
+      std::copy(block_row_begin,
+                block_row_begin + parameter_block_size,
+                column_block_begin);
     }
     col_pos += parameter_block_size;
   }

@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,7 @@ namespace internal {
 class BlockRandomAccessDiagonalMatrix : public BlockRandomAccessMatrix {
  public:
   // blocks is an array of block sizes.
-  BlockRandomAccessDiagonalMatrix(const vector<int>& blocks);
+  explicit BlockRandomAccessDiagonalMatrix(const std::vector<int>& blocks);
 
   // The destructor is not thread safe. It assumes that no one is
   // modifying any cells when the matrix is being destroyed.
@@ -70,18 +70,23 @@ class BlockRandomAccessDiagonalMatrix : public BlockRandomAccessMatrix {
   // locked.
   virtual void SetZero();
 
+  // Invert the matrix assuming that each block is positive definite.
+  void Invert();
+
+  // y += S * x
+  void RightMultiply(const double* x, double* y) const;
+
   // Since the matrix is square, num_rows() == num_cols().
   virtual int num_rows() const { return tsm_->num_rows(); }
   virtual int num_cols() const { return tsm_->num_cols(); }
 
-  // Access to the underlying matrix object.
   const TripletSparseMatrix* matrix() const { return tsm_.get(); }
   TripletSparseMatrix* mutable_matrix() { return tsm_.get(); }
 
  private:
   // row/column block sizes.
-  const vector<int> blocks_;
-  vector<CellInfo*> layout_;
+  const std::vector<int> blocks_;
+  std::vector<CellInfo*> layout_;
 
   // The underlying matrix object which actually stores the cells.
   scoped_ptr<TripletSparseMatrix> tsm_;

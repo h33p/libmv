@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -33,12 +33,16 @@
 #ifndef CERES_INTERNAL_COMPRESSED_ROW_JACOBIAN_WRITER_H_
 #define CERES_INTERNAL_COMPRESSED_ROW_JACOBIAN_WRITER_H_
 
+#include <utility>
+#include <vector>
+
 #include "ceres/evaluator.h"
 #include "ceres/scratch_evaluate_preparer.h"
 
 namespace ceres {
 namespace internal {
 
+class CompressedRowSparseMatrix;
 class Program;
 class SparseMatrix;
 
@@ -49,11 +53,44 @@ class CompressedRowJacobianWriter {
     : program_(program) {
   }
 
+  // PopulateJacobianRowAndColumnBlockVectors sets col_blocks and
+  // row_blocks for a CompressedRowSparseMatrix, based on the
+  // parameter block sizes and residual sizes respectively from the
+  // program. This is useful when Solver::Options::use_block_amd =
+  // true;
+  //
+  // This function is static so that it is available to other jacobian
+  // writers which use CompressedRowSparseMatrix (or derived types).
+  // (Jacobian writers do not fall under any type hierarchy; they only
+  // have to provide an interface as specified in program_evaluator.h).
+  static void PopulateJacobianRowAndColumnBlockVectors(
+      const Program* program,
+      CompressedRowSparseMatrix* jacobian);
+
+  // It is necessary to determine the order of the jacobian blocks
+  // before copying them into a CompressedRowSparseMatrix (or derived
+  // type).  Just because a cost function uses parameter blocks 1
+  // after 2 in its arguments does not mean that the block 1 occurs
+  // before block 2 in the column layout of the jacobian. Thus,
+  // GetOrderedParameterBlocks determines the order by sorting the
+  // jacobian blocks by their position in the state vector.
+  //
+  // This function is static so that it is available to other jacobian
+  // writers which use CompressedRowSparseMatrix (or derived types).
+  // (Jacobian writers do not fall under any type hierarchy; they only
+  // have to provide an interface as specified in
+  // program_evaluator.h).
+  static void GetOrderedParameterBlocks(
+      const Program* program,
+      int residual_id,
+      std::vector<std::pair<int, int> >* evaluated_jacobian_blocks);
+
   // JacobianWriter interface.
 
-  // Since the compressed row matrix has different layout than that assumed by
-  // the cost functions, use scratch space to store the jacobians temporarily
-  // then copy them over to the larger jacobian in the Write() function.
+  // Since the compressed row matrix has different layout than that
+  // assumed by the cost functions, use scratch space to store the
+  // jacobians temporarily then copy them over to the larger jacobian
+  // in the Write() function.
   ScratchEvaluatePreparer* CreateEvaluatePreparers(int num_threads) {
     return ScratchEvaluatePreparer::Create(*program_, num_threads);
   }

@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -35,35 +35,12 @@
 #ifndef CERES_INTERNAL_SMALL_BLAS_H_
 #define CERES_INTERNAL_SMALL_BLAS_H_
 
+#include "ceres/internal/port.h"
 #include "ceres/internal/eigen.h"
 #include "glog/logging.h"
 
 namespace ceres {
 namespace internal {
-
-// Remove the ".noalias()" annotation from the matrix matrix
-// mutliplies to produce a correct build with the Android NDK,
-// including versions 6, 7, 8, and 8b, when built with STLPort and the
-// non-standalone toolchain (i.e. ndk-build). This appears to be a
-// compiler bug; if the workaround is not in place, the line
-//
-//   block.noalias() -= A * B;
-//
-// gets compiled to
-//
-//   block.noalias() += A * B;
-//
-// which breaks schur elimination. Introducing a temporary by removing the
-// .noalias() annotation causes the issue to disappear. Tracking this
-// issue down was tricky, since the test suite doesn't run when built with
-// the non-standalone toolchain.
-//
-// TODO(keir): Make a reproduction case for this and send it upstream.
-#ifdef CERES_WORK_AROUND_ANDROID_NDK_COMPILER_BUG
-#define CERES_MAYBE_NOALIAS
-#else
-#define CERES_MAYBE_NOALIAS .noalias()
-#endif
 
 // The following three macros are used to share code and reduce
 // template junk across the various GEMM variants.
@@ -96,7 +73,7 @@ namespace internal {
   DCHECK((kColB == Eigen::Dynamic) || (kColB == num_col_b));            \
   const int NUM_ROW_A = (kRowA != Eigen::Dynamic ? kRowA : num_row_a);  \
   const int NUM_COL_A = (kColA != Eigen::Dynamic ? kColA : num_col_a);  \
-  const int NUM_ROW_B = (kColB != Eigen::Dynamic ? kRowB : num_row_b);  \
+  const int NUM_ROW_B = (kRowB != Eigen::Dynamic ? kRowB : num_row_b);  \
   const int NUM_COL_B = (kColB != Eigen::Dynamic ? kColB : num_col_b);
 
 #define CERES_GEMM_EIGEN_HEADER                                         \
@@ -167,11 +144,11 @@ CERES_GEMM_BEGIN(MatrixMatrixMultiplyEigen) {
     block(Cref, start_row_c, start_col_c, num_row_a, num_col_b);
 
   if (kOperation > 0) {
-    block CERES_MAYBE_NOALIAS += Aref * Bref;
+    block.noalias() += Aref * Bref;
   } else if (kOperation < 0) {
-    block CERES_MAYBE_NOALIAS -= Aref * Bref;
+    block.noalias() -= Aref * Bref;
   } else {
-    block CERES_MAYBE_NOALIAS = Aref * Bref;
+    block.noalias() = Aref * Bref;
   }
 }
 
@@ -227,11 +204,11 @@ CERES_GEMM_BEGIN(MatrixTransposeMatrixMultiplyEigen) {
                                               start_row_c, start_col_c,
                                               num_col_a, num_col_b);
   if (kOperation > 0) {
-    block CERES_MAYBE_NOALIAS += Aref.transpose() * Bref;
+    block.noalias() += Aref.transpose() * Bref;
   } else if (kOperation < 0) {
-    block CERES_MAYBE_NOALIAS -= Aref.transpose() * Bref;
+    block.noalias() -= Aref.transpose() * Bref;
   } else {
-    block CERES_MAYBE_NOALIAS = Aref.transpose() * Bref;
+    block.noalias() = Aref.transpose() * Bref;
   }
 }
 
@@ -393,8 +370,6 @@ inline void MatrixTransposeVectorMultiply(const double* A,
 #endif  // CERES_NO_CUSTOM_BLAS
 }
 
-
-#undef CERES_MAYBE_NOALIAS
 #undef CERES_GEMM_BEGIN
 #undef CERES_GEMM_EIGEN_HEADER
 #undef CERES_GEMM_NAIVE_HEADER

@@ -1,117 +1,250 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 521684c..7c53e83 100644
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -63,9 +63,6 @@ IF (EXISTS ${LOCAL_GIT_DIRECTORY})
-   ENDIF (NOT EXISTS ${LOCAL_GIT_DIRECTORY}/hooks/commit-msg)
- ENDIF (EXISTS ${LOCAL_GIT_DIRECTORY})
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 819bf449..c62ddd49 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -117,6 +117,10 @@ INCLUDE_DIRECTORIES(
+   ${CERES_INCLUDE_DIRS}
+ )
  
--# Make CMake aware of the cmake folder for local FindXXX scripts.
--SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
--
- SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
- SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
- SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-@@ -109,9 +106,9 @@ OPTION(OPENMP "Enable threaded solving in Ceres (requires OpenMP)" ON)
- # binary size or compiler performance is an issue, consider disabling
- # this.
- OPTION(LINE_SEARCH_MINIMIZER "Enable the line search minimizer." ON)
--OPTION(BUILD_TESTING "Enable tests" ON)
-+OPTION(BUILD_TESTING "Enable tests" OFF)
- OPTION(BUILD_DOCUMENTATION "Build User's Guide (html)" OFF)
--OPTION(BUILD_EXAMPLES "Build examples" ON)
-+OPTION(BUILD_EXAMPLES "Build examples" OFF)
- OPTION(BUILD_SHARED_LIBS "Build Ceres as a shared library." OFF)
- IF (MSVC)
-   OPTION(MSVC_USE_STATIC_CRT
-@@ -666,13 +663,15 @@ IF (MINIGLOG)
-           DESTINATION include/ceres/internal/miniglog/glog)
- ENDIF (MINIGLOG)
- 
--# Add an uninstall target to remove all installed files.
--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
--               "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
--               IMMEDIATE @ONLY)
-+IF (EXISTS "${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in")
-+  # Add an uninstall target to remove all installed files.
-+  CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
-+                 "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
-+                 IMMEDIATE @ONLY)
- 
--ADD_CUSTOM_TARGET(uninstall
--                  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
-+  ADD_CUSTOM_TARGET(uninstall
-+                    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
-+ENDIF ()
- 
- # Set relative install paths, which are appended to CMAKE_INSTALL_PREFIX to
- # generate the absolute install paths.
-@@ -703,14 +702,14 @@ FILE(RELATIVE_PATH INSTALL_ROOT_REL_CONFIG_INSTALL_DIR
- # Create a CeresConfig.cmake file. <name>Config.cmake files are searched by
- # FIND_PACKAGE() automatically. We configure that file so that we can put any
- # information we want in it, e.g. version numbers, include directories, etc.
--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
-+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
-                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake" @ONLY)
- 
- # Additionally, when CMake has found a CeresConfig.cmake, it can check for a
- # CeresConfigVersion.cmake in the same directory when figuring out the version
- # of the package when a version has been specified in the FIND_PACKAGE() call,
- # e.g. FIND_PACKAGE(Ceres [1.4.2] REQUIRED). The version argument is optional.
--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
-+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
-                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake" @ONLY)
- 
- # Install these files into the same directory as the generated exports-file,
-@@ -718,6 +717,6 @@ CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
- # in the public API of Ceres and should thus be present in CERES_INCLUDE_DIRS.
- INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake"
-               "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake"
--              "${CMAKE_SOURCE_DIR}/cmake/FindEigen.cmake"
--              "${CMAKE_SOURCE_DIR}/cmake/FindGlog.cmake"
-+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindEigen.cmake"
-+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindGlog.cmake"
-         DESTINATION ${RELATIVE_CMAKECONFIG_INSTALL_DIR})
-diff --git a/internal/ceres/CMakeLists.txt b/internal/ceres/CMakeLists.txt
-index 87faf2b..95f1c3c 100644
---- a/internal/ceres/CMakeLists.txt
-+++ b/internal/ceres/CMakeLists.txt
-@@ -184,22 +184,31 @@ INSTALL(TARGETS ceres
-         ARCHIVE DESTINATION lib${LIB_SUFFIX})
- 
- IF (BUILD_TESTING AND GFLAGS)
--  ADD_LIBRARY(gtest gmock_gtest_all.cc gmock_main.cc)
-+  ADD_LIBRARY(gmock_gtest gmock_gtest_all.cc gmock_main.cc)
-   ADD_LIBRARY(test_util
-               evaluator_test_utils.cc
-               numeric_diff_test_utils.cc
-               test_util.cc)
- 
--  TARGET_LINK_LIBRARIES(gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
-+  TARGET_LINK_LIBRARIES(gmock_gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
-   TARGET_LINK_LIBRARIES(test_util ceres gtest ${GLOG_LIBRARIES})
- 
-   MACRO (CERES_TEST NAME)
--    ADD_EXECUTABLE(${NAME}_test ${NAME}_test.cc)
--    TARGET_LINK_LIBRARIES(${NAME}_test test_util ceres gtest)
--    ADD_TEST(NAME ${NAME}_test
--             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME}_test
-+    get_filename_component(CERES_TESTS_DATA
-+                           "${CMAKE_CURRENT_SOURCE_DIR}/../../data"
-+                           ABSOLUTE)
++IF(NOT WITH_SYSTEM_CERES)
++  include_directories(BEFORE ${CMAKE_BINARY_DIR}/config)
++ENDIF(NOT WITH_SYSTEM_CERES)
 +
-+    ADD_EXECUTABLE(ceres_${NAME}_test ${NAME}_test.cc)
-+    TARGET_LINK_LIBRARIES(ceres_${NAME}_test test_util ceres gmock_gtest)
-+    SET_TARGET_PROPERTIES(ceres_${NAME}_test PROPERTIES
-+       RUNTIME_OUTPUT_DIRECTORY         ${LIBMV_TESTS_OUTPUT_DIR}/ceres
-+       RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBMV_TESTS_OUTPUT_DIR}/ceres
-+       RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${LIBMV_TESTS_OUTPUT_DIR}/ceres
-+       OUTPUT_NAME ${NAME}_test)
-+    ADD_TEST(NAME ceres_${NAME}_test
-+             COMMAND ${LIBMV_TESTS_OUTPUT_DIR}/ceres/${NAME}_test
-              --test_srcdir
--             ${CMAKE_SOURCE_DIR}/data)
-+             ${CERES_TESTS_DATA}/data)
-   ENDMACRO (CERES_TEST)
+ IF (WIN32)
+   INCLUDE_DIRECTORIES(
+     third_party/msinttypes
+diff --git a/src/third_party/CMakeLists.txt b/src/third_party/CMakeLists.txt
+index 34ddb189..a316388c 100644
+--- a/src/third_party/CMakeLists.txt
++++ b/src/third_party/CMakeLists.txt
+@@ -13,13 +13,15 @@ ADD_SUBDIRECTORY(ldl)
+ ADD_SUBDIRECTORY(ssba)
  
-   CERES_TEST(array_utils)
+ IF(NOT WITH_SYSTEM_CERES)
+-  SET(GFLAGS_LIBRARY gflags)
+-  SET(GFLAGS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gflags)
++  SET(GFLAGS_LIBRARIES gflags)
++  SET(GFLAGS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/gflags)
++  SET(GFLAGS_FOUND True)
+ 
+-  SET(GLOG_LIBRARY glog)
+-  SET(GLOG_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/glog/src)
++  SET(GLOG_LIBRARIES glog)
++  SET(GLOG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/glog/src)
++  SET(GLOG_FOUND True)
+ 
+-  SET(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/eigen)
++  SET(EIGEN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/eigen)
+ 
+   ADD_SUBDIRECTORY(ceres)
+ ENDIF(NOT WITH_SYSTEM_CERES)
+diff --git a/src/third_party/ceres/CMakeLists.txt b/src/third_party/ceres/CMakeLists.txt
+index eda2aecf..40225151 100644
+--- a/src/third_party/ceres/CMakeLists.txt
++++ b/src/third_party/ceres/CMakeLists.txt
+@@ -42,7 +42,7 @@ project(Ceres C CXX)
+ # Make CMake aware of the cmake folder for local FindXXX scripts,
+ # append rather than set in case the user has passed their own
+ # additional paths via -D.
+-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
++list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+ include(UpdateCacheVariable)
+ 
+ # Set up the git hook to make Gerrit Change-Id: lines in commit messages.
+@@ -77,7 +77,7 @@ set(CMAKE_DEBUG_POSTFIX "-debug")
+ # Read the Ceres version from the source, such that we only ever have a single
+ # definition of the Ceres version.
+ include(ReadCeresVersionFromSource)
+-read_ceres_version_from_source(${CMAKE_SOURCE_DIR})
++read_ceres_version_from_source(${PROJECT_SOURCE_DIR})
+ 
+ enable_testing()
+ 
+@@ -123,9 +123,9 @@ if (NOT MSVC)
+ endif(NOT MSVC)
+ option(EXPORT_BUILD_DIR
+   "Export build directory using CMake (enables external use without install)." OFF)
+-option(BUILD_TESTING "Enable tests" ON)
++option(BUILD_TESTING "Enable tests" OFF)
+ option(BUILD_DOCUMENTATION "Build User's Guide (html)" OFF)
+-option(BUILD_EXAMPLES "Build examples" ON)
++option(BUILD_EXAMPLES "Build examples" OFF)
+ option(BUILD_SHARED_LIBS "Build Ceres as a shared library." OFF)
+ if (MSVC)
+   option(MSVC_USE_STATIC_CRT
+@@ -344,7 +344,7 @@ endif(NOT SUITESPARSE AND NOT CXSPARSE AND NOT EIGENSPARSE)
+ # GFlags.
+ if (GFLAGS)
+   # Don't search with REQUIRED as we can continue without gflags.
+-  find_package(Gflags)
++  #find_package(Gflags)
+   if (GFLAGS_FOUND)
+     message("-- Found Google Flags header in: ${GFLAGS_INCLUDE_DIRS}, "
+       "in namespace: ${GFLAGS_NAMESPACE}")
+@@ -380,7 +380,7 @@ if (MINIGLOG)
+ else (MINIGLOG)
+   # Don't search with REQUIRED so that configuration continues if not found and
+   # we can output an error messages explaining MINIGLOG option.
+-  find_package(Glog)
++  #find_package(Glog)
+   if (NOT GLOG_FOUND)
+     message(FATAL_ERROR "Can't find Google Log (glog). Please set either: "
+       "glog_DIR (newer CMake built versions of glog) or GLOG_INCLUDE_DIR & "
+@@ -793,7 +793,7 @@ ceres_compile_options_to_components("${CERES_COMPILE_OPTIONS}"
+ 
+ # Create a CeresConfigVersion.cmake file containing the version information,
+ # used by both export() & install().
+-configure_file("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
++configure_file("${PROJECT_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+                "${CMAKE_BINARY_DIR}/CeresConfigVersion.cmake" @ONLY)
+ 
+ # Install method #1: Put Ceres in CMAKE_INSTALL_PREFIX: /usr/local or equivalent.
+@@ -829,7 +829,7 @@ file(RELATIVE_PATH INSTALL_ROOT_REL_CONFIG_INSTALL_DIR
+ #       CMAKE_BINARY_DIR to be detected.  The suffix is removed when
+ #       it is installed.
+ set(SETUP_CERES_CONFIG_FOR_INSTALLATION TRUE)
+-configure_file("${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
++configure_file("${PROJECT_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
+                "${CMAKE_BINARY_DIR}/CeresConfig-install.cmake" @ONLY)
+ 
+ # Install the configuration files into the same directory as the autogenerated
+@@ -846,11 +846,12 @@ install(FILES "${CMAKE_BINARY_DIR}/CeresConfigVersion.cmake"
+         DESTINATION ${RELATIVE_CMAKECONFIG_INSTALL_DIR})
+ 
+ # Create an uninstall target to remove all installed files.
+-configure_file("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
+-               "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
+-               @ONLY)
+-add_custom_target(uninstall
+-                  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
++# Disabled for bundled version into Libmv.
++#configure_file("${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake.in"
++#               "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
++#               @ONLY)
++#add_custom_target(uninstall
++#                  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
+ 
+ # Install method #2: Put Ceres build into local CMake registry.
+ #
+diff --git a/src/third_party/ceres/local_edits.patch b/src/third_party/ceres/local_edits.patch
+index 8996a47d..f68de3a8 100644
+--- a/src/third_party/ceres/local_edits.patch
++++ b/src/third_party/ceres/local_edits.patch
+@@ -1,117 +0,0 @@
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 521684c..7c53e83 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -63,9 +63,6 @@ IF (EXISTS ${LOCAL_GIT_DIRECTORY})
+-   ENDIF (NOT EXISTS ${LOCAL_GIT_DIRECTORY}/hooks/commit-msg)
+- ENDIF (EXISTS ${LOCAL_GIT_DIRECTORY})
+- 
+--# Make CMake aware of the cmake folder for local FindXXX scripts.
+--SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+--
+- SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+- SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+- SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+-@@ -109,9 +106,9 @@ OPTION(OPENMP "Enable threaded solving in Ceres (requires OpenMP)" ON)
+- # binary size or compiler performance is an issue, consider disabling
+- # this.
+- OPTION(LINE_SEARCH_MINIMIZER "Enable the line search minimizer." ON)
+--OPTION(BUILD_TESTING "Enable tests" ON)
+-+OPTION(BUILD_TESTING "Enable tests" OFF)
+- OPTION(BUILD_DOCUMENTATION "Build User's Guide (html)" OFF)
+--OPTION(BUILD_EXAMPLES "Build examples" ON)
+-+OPTION(BUILD_EXAMPLES "Build examples" OFF)
+- OPTION(BUILD_SHARED_LIBS "Build Ceres as a shared library." OFF)
+- IF (MSVC)
+-   OPTION(MSVC_USE_STATIC_CRT
+-@@ -666,13 +663,15 @@ IF (MINIGLOG)
+-           DESTINATION include/ceres/internal/miniglog/glog)
+- ENDIF (MINIGLOG)
+- 
+--# Add an uninstall target to remove all installed files.
+--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
+--               "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
+--               IMMEDIATE @ONLY)
+-+IF (EXISTS "${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in")
+-+  # Add an uninstall target to remove all installed files.
+-+  CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
+-+                 "${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
+-+                 IMMEDIATE @ONLY)
+- 
+--ADD_CUSTOM_TARGET(uninstall
+--                  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
+-+  ADD_CUSTOM_TARGET(uninstall
+-+                    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
+-+ENDIF ()
+- 
+- # Set relative install paths, which are appended to CMAKE_INSTALL_PREFIX to
+- # generate the absolute install paths.
+-@@ -703,14 +702,14 @@ FILE(RELATIVE_PATH INSTALL_ROOT_REL_CONFIG_INSTALL_DIR
+- # Create a CeresConfig.cmake file. <name>Config.cmake files are searched by
+- # FIND_PACKAGE() automatically. We configure that file so that we can put any
+- # information we want in it, e.g. version numbers, include directories, etc.
+--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
+-+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfig.cmake.in"
+-                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake" @ONLY)
+- 
+- # Additionally, when CMake has found a CeresConfig.cmake, it can check for a
+- # CeresConfigVersion.cmake in the same directory when figuring out the version
+- # of the package when a version has been specified in the FIND_PACKAGE() call,
+- # e.g. FIND_PACKAGE(Ceres [1.4.2] REQUIRED). The version argument is optional.
+--CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+-+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+-                "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake" @ONLY)
+- 
+- # Install these files into the same directory as the generated exports-file,
+-@@ -718,6 +717,6 @@ CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CeresConfigVersion.cmake.in"
+- # in the public API of Ceres and should thus be present in CERES_INCLUDE_DIRS.
+- INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/CeresConfig.cmake"
+-               "${CMAKE_CURRENT_BINARY_DIR}/CeresConfigVersion.cmake"
+--              "${CMAKE_SOURCE_DIR}/cmake/FindEigen.cmake"
+--              "${CMAKE_SOURCE_DIR}/cmake/FindGlog.cmake"
+-+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindEigen.cmake"
+-+              "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindGlog.cmake"
+-         DESTINATION ${RELATIVE_CMAKECONFIG_INSTALL_DIR})
+-diff --git a/internal/ceres/CMakeLists.txt b/internal/ceres/CMakeLists.txt
+-index 87faf2b..95f1c3c 100644
+---- a/internal/ceres/CMakeLists.txt
+-+++ b/internal/ceres/CMakeLists.txt
+-@@ -184,22 +184,31 @@ INSTALL(TARGETS ceres
+-         ARCHIVE DESTINATION lib${LIB_SUFFIX})
+- 
+- IF (BUILD_TESTING AND GFLAGS)
+--  ADD_LIBRARY(gtest gmock_gtest_all.cc gmock_main.cc)
+-+  ADD_LIBRARY(gmock_gtest gmock_gtest_all.cc gmock_main.cc)
+-   ADD_LIBRARY(test_util
+-               evaluator_test_utils.cc
+-               numeric_diff_test_utils.cc
+-               test_util.cc)
+- 
+--  TARGET_LINK_LIBRARIES(gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+-+  TARGET_LINK_LIBRARIES(gmock_gtest ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+-   TARGET_LINK_LIBRARIES(test_util ceres gtest ${GLOG_LIBRARIES})
+- 
+-   MACRO (CERES_TEST NAME)
+--    ADD_EXECUTABLE(${NAME}_test ${NAME}_test.cc)
+--    TARGET_LINK_LIBRARIES(${NAME}_test test_util ceres gtest)
+--    ADD_TEST(NAME ${NAME}_test
+--             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME}_test
+-+    get_filename_component(CERES_TESTS_DATA
+-+                           "${CMAKE_CURRENT_SOURCE_DIR}/../../data"
+-+                           ABSOLUTE)
+-+
+-+    ADD_EXECUTABLE(ceres_${NAME}_test ${NAME}_test.cc)
+-+    TARGET_LINK_LIBRARIES(ceres_${NAME}_test test_util ceres gmock_gtest)
+-+    SET_TARGET_PROPERTIES(ceres_${NAME}_test PROPERTIES
+-+       RUNTIME_OUTPUT_DIRECTORY         ${LIBMV_TESTS_OUTPUT_DIR}/ceres
+-+       RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBMV_TESTS_OUTPUT_DIR}/ceres
+-+       RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${LIBMV_TESTS_OUTPUT_DIR}/ceres
+-+       OUTPUT_NAME ${NAME}_test)
+-+    ADD_TEST(NAME ceres_${NAME}_test
+-+             COMMAND ${LIBMV_TESTS_OUTPUT_DIR}/ceres/${NAME}_test
+-              --test_srcdir
+--             ${CMAKE_SOURCE_DIR}/data)
+-+             ${CERES_TESTS_DATA}/data)
+-   ENDMACRO (CERES_TEST)
+- 
+-   CERES_TEST(array_utils)

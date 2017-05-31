@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,7 +28,21 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 //         mierle@gmail.com (Keir Mierle)
-//
+
+#ifndef CERES_PUBLIC_DYNAMIC_AUTODIFF_COST_FUNCTION_H_
+#define CERES_PUBLIC_DYNAMIC_AUTODIFF_COST_FUNCTION_H_
+
+#include <cmath>
+#include <numeric>
+#include <vector>
+
+#include "ceres/dynamic_cost_function.h"
+#include "ceres/internal/scoped_ptr.h"
+#include "ceres/jet.h"
+#include "glog/logging.h"
+
+namespace ceres {
+
 // This autodiff implementation differs from the one found in
 // autodiff_cost_function.h by supporting autodiff on cost functions
 // with variable numbers of parameters with variable sizes. With the
@@ -60,36 +74,13 @@
 // default, controlled by the Stride template parameter) with each
 // pass. There is a tradeoff with the size of the passes; you may want
 // to experiment with the stride.
-
-#ifndef CERES_PUBLIC_DYNAMIC_AUTODIFF_COST_FUNCTION_H_
-#define CERES_PUBLIC_DYNAMIC_AUTODIFF_COST_FUNCTION_H_
-
-#include <cmath>
-#include <numeric>
-#include <vector>
-
-#include "ceres/cost_function.h"
-#include "ceres/internal/scoped_ptr.h"
-#include "ceres/jet.h"
-#include "glog/logging.h"
-
-namespace ceres {
-
 template <typename CostFunctor, int Stride = 4>
-class DynamicAutoDiffCostFunction : public CostFunction {
+class DynamicAutoDiffCostFunction : public DynamicCostFunction {
  public:
   explicit DynamicAutoDiffCostFunction(CostFunctor* functor)
     : functor_(functor) {}
 
   virtual ~DynamicAutoDiffCostFunction() {}
-
-  void AddParameterBlock(int size) {
-    mutable_parameter_block_sizes()->push_back(size);
-  }
-
-  void SetNumResiduals(int num_residuals) {
-    set_num_residuals(num_residuals);
-  }
 
   virtual bool Evaluate(double const* const* parameters,
                         double* residuals,
@@ -120,18 +111,18 @@ class DynamicAutoDiffCostFunction : public CostFunction {
                                                0);
 
     // Allocate scratch space for the strided evaluation.
-    vector<Jet<double, Stride> > input_jets(num_parameters);
-    vector<Jet<double, Stride> > output_jets(num_residuals());
+    std::vector<Jet<double, Stride> > input_jets(num_parameters);
+    std::vector<Jet<double, Stride> > output_jets(num_residuals());
 
     // Make the parameter pack that is sent to the functor (reused).
-    vector<Jet<double, Stride>* > jet_parameters(num_parameter_blocks,
+    std::vector<Jet<double, Stride>* > jet_parameters(num_parameter_blocks,
         static_cast<Jet<double, Stride>* >(NULL));
     int num_active_parameters = 0;
 
     // To handle constant parameters between non-constant parameter blocks, the
     // start position --- a raw parameter index --- of each contiguous block of
     // non-constant parameters is recorded in start_derivative_section.
-    vector<int> start_derivative_section;
+    std::vector<int> start_derivative_section;
     bool in_derivative_section = false;
     int parameter_cursor = 0;
 

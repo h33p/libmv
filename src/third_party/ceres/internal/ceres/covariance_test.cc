@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2013 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -32,6 +32,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <utility>
 #include "ceres/compressed_row_sparse_matrix.h"
 #include "ceres/cost_function.h"
 #include "ceres/covariance_impl.h"
@@ -43,89 +45,15 @@
 namespace ceres {
 namespace internal {
 
-TEST(CovarianceImpl, ComputeCovarianceSparsity) {
-  double parameters[10];
-
-  double* block1 = parameters;
-  double* block2 = block1 + 1;
-  double* block3 = block2 + 2;
-  double* block4 = block3 + 3;
-
-  ProblemImpl problem;
-
-  // Add in random order
-  problem.AddParameterBlock(block1, 1);
-  problem.AddParameterBlock(block4, 4);
-  problem.AddParameterBlock(block3, 3);
-  problem.AddParameterBlock(block2, 2);
-
-  // Sparsity pattern
-  //
-  //  x 0 0 0 0 0 x x x x
-  //  0 x x x x x 0 0 0 0
-  //  0 x x x x x 0 0 0 0
-  //  0 0 0 x x x 0 0 0 0
-  //  0 0 0 x x x 0 0 0 0
-  //  0 0 0 x x x 0 0 0 0
-  //  0 0 0 0 0 0 x x x x
-  //  0 0 0 0 0 0 x x x x
-  //  0 0 0 0 0 0 x x x x
-  //  0 0 0 0 0 0 x x x x
-
-  int expected_rows[] = {0, 5, 10, 15, 18, 21, 24, 28, 32, 36, 40};
-  int expected_cols[] = {0, 6, 7, 8, 9,
-                         1, 2, 3, 4, 5,
-                         1, 2, 3, 4, 5,
-                         3, 4, 5,
-                         3, 4, 5,
-                         3, 4, 5,
-                         6, 7, 8, 9,
-                         6, 7, 8, 9,
-                         6, 7, 8, 9,
-                         6, 7, 8, 9};
-
-
-  vector<pair<const double*, const double*> > covariance_blocks;
-  covariance_blocks.push_back(make_pair(block1, block1));
-  covariance_blocks.push_back(make_pair(block4, block4));
-  covariance_blocks.push_back(make_pair(block2, block2));
-  covariance_blocks.push_back(make_pair(block3, block3));
-  covariance_blocks.push_back(make_pair(block2, block3));
-  covariance_blocks.push_back(make_pair(block4, block1));  // reversed
-
-  Covariance::Options options;
-  CovarianceImpl covariance_impl(options);
-  EXPECT_TRUE(covariance_impl
-              .ComputeCovarianceSparsity(covariance_blocks, &problem));
-
-  const CompressedRowSparseMatrix* crsm = covariance_impl.covariance_matrix();
-
-  EXPECT_EQ(crsm->num_rows(), 10);
-  EXPECT_EQ(crsm->num_cols(), 10);
-  EXPECT_EQ(crsm->num_nonzeros(), 40);
-
-  const int* rows = crsm->rows();
-  for (int r = 0; r < crsm->num_rows() + 1; ++r) {
-    EXPECT_EQ(rows[r], expected_rows[r])
-        << r << " "
-        << rows[r] << " "
-        << expected_rows[r];
-  }
-
-  const int* cols = crsm->cols();
-  for (int c = 0; c < crsm->num_nonzeros(); ++c) {
-    EXPECT_EQ(cols[c], expected_cols[c])
-        << c << " "
-        << cols[c] << " "
-        << expected_cols[c];
-  }
-}
-
+using std::make_pair;
+using std::map;
+using std::pair;
+using std::vector;
 
 class UnaryCostFunction: public CostFunction {
  public:
   UnaryCostFunction(const int num_residuals,
-                    const int16 parameter_block_size,
+                    const int32 parameter_block_size,
                     const double* jacobian)
       : jacobian_(jacobian, jacobian + num_residuals * parameter_block_size) {
     set_num_residuals(num_residuals);
@@ -158,8 +86,8 @@ class UnaryCostFunction: public CostFunction {
 class BinaryCostFunction: public CostFunction {
  public:
   BinaryCostFunction(const int num_residuals,
-                     const int16 parameter_block1_size,
-                     const int16 parameter_block2_size,
+                     const int32 parameter_block1_size,
+                     const int32 parameter_block2_size,
                      const double* jacobian1,
                      const double* jacobian2)
       : jacobian1_(jacobian1,
@@ -221,8 +149,263 @@ class PolynomialParameterization : public LocalParameterization {
   virtual int LocalSize() const { return 1; }
 };
 
+TEST(CovarianceImpl, ComputeCovarianceSparsity) {
+  double parameters[10];
+
+  double* block1 = parameters;
+  double* block2 = block1 + 1;
+  double* block3 = block2 + 2;
+  double* block4 = block3 + 3;
+
+  ProblemImpl problem;
+
+  // Add in random order
+  Vector junk_jacobian = Vector::Zero(10);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 1, junk_jacobian.data()), NULL, block1);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 4, junk_jacobian.data()), NULL, block4);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 3, junk_jacobian.data()), NULL, block3);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 2, junk_jacobian.data()), NULL, block2);
+
+  // Sparsity pattern
+  //
+  // Note that the problem structure does not imply this sparsity
+  // pattern since all the residual blocks are unary. But the
+  // ComputeCovarianceSparsity function in its current incarnation
+  // does not pay attention to this fact and only looks at the
+  // parameter block pairs that the user provides.
+  //
+  //  X . . . . . X X X X
+  //  . X X X X X . . . .
+  //  . X X X X X . . . .
+  //  . . . X X X . . . .
+  //  . . . X X X . . . .
+  //  . . . X X X . . . .
+  //  . . . . . . X X X X
+  //  . . . . . . X X X X
+  //  . . . . . . X X X X
+  //  . . . . . . X X X X
+
+  int expected_rows[] = {0, 5, 10, 15, 18, 21, 24, 28, 32, 36, 40};
+  int expected_cols[] = {0, 6, 7, 8, 9,
+                         1, 2, 3, 4, 5,
+                         1, 2, 3, 4, 5,
+                         3, 4, 5,
+                         3, 4, 5,
+                         3, 4, 5,
+                         6, 7, 8, 9,
+                         6, 7, 8, 9,
+                         6, 7, 8, 9,
+                         6, 7, 8, 9};
+
+
+  vector<pair<const double*, const double*> > covariance_blocks;
+  covariance_blocks.push_back(make_pair(block1, block1));
+  covariance_blocks.push_back(make_pair(block4, block4));
+  covariance_blocks.push_back(make_pair(block2, block2));
+  covariance_blocks.push_back(make_pair(block3, block3));
+  covariance_blocks.push_back(make_pair(block2, block3));
+  covariance_blocks.push_back(make_pair(block4, block1));  // reversed
+
+  Covariance::Options options;
+  CovarianceImpl covariance_impl(options);
+  EXPECT_TRUE(covariance_impl
+              .ComputeCovarianceSparsity(covariance_blocks, &problem));
+
+  const CompressedRowSparseMatrix* crsm = covariance_impl.covariance_matrix();
+
+  EXPECT_EQ(crsm->num_rows(), 10);
+  EXPECT_EQ(crsm->num_cols(), 10);
+  EXPECT_EQ(crsm->num_nonzeros(), 40);
+
+  const int* rows = crsm->rows();
+  for (int r = 0; r < crsm->num_rows() + 1; ++r) {
+    EXPECT_EQ(rows[r], expected_rows[r])
+        << r << " "
+        << rows[r] << " "
+        << expected_rows[r];
+  }
+
+  const int* cols = crsm->cols();
+  for (int c = 0; c < crsm->num_nonzeros(); ++c) {
+    EXPECT_EQ(cols[c], expected_cols[c])
+        << c << " "
+        << cols[c] << " "
+        << expected_cols[c];
+  }
+}
+
+TEST(CovarianceImpl, ComputeCovarianceSparsityWithConstantParameterBlock) {
+  double parameters[10];
+
+  double* block1 = parameters;
+  double* block2 = block1 + 1;
+  double* block3 = block2 + 2;
+  double* block4 = block3 + 3;
+
+  ProblemImpl problem;
+
+  // Add in random order
+  Vector junk_jacobian = Vector::Zero(10);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 1, junk_jacobian.data()), NULL, block1);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 4, junk_jacobian.data()), NULL, block4);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 3, junk_jacobian.data()), NULL, block3);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 2, junk_jacobian.data()), NULL, block2);
+  problem.SetParameterBlockConstant(block3);
+
+  // Sparsity pattern
+  //
+  // Note that the problem structure does not imply this sparsity
+  // pattern since all the residual blocks are unary. But the
+  // ComputeCovarianceSparsity function in its current incarnation
+  // does not pay attention to this fact and only looks at the
+  // parameter block pairs that the user provides.
+  //
+  //  X . . X X X X
+  //  . X X . . . .
+  //  . X X . . . .
+  //  . . . X X X X
+  //  . . . X X X X
+  //  . . . X X X X
+  //  . . . X X X X
+
+  int expected_rows[] = {0, 5, 7, 9, 13, 17, 21, 25};
+  int expected_cols[] = {0, 3, 4, 5, 6,
+                         1, 2,
+                         1, 2,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6};
+
+  vector<pair<const double*, const double*> > covariance_blocks;
+  covariance_blocks.push_back(make_pair(block1, block1));
+  covariance_blocks.push_back(make_pair(block4, block4));
+  covariance_blocks.push_back(make_pair(block2, block2));
+  covariance_blocks.push_back(make_pair(block3, block3));
+  covariance_blocks.push_back(make_pair(block2, block3));
+  covariance_blocks.push_back(make_pair(block4, block1));  // reversed
+
+  Covariance::Options options;
+  CovarianceImpl covariance_impl(options);
+  EXPECT_TRUE(covariance_impl
+              .ComputeCovarianceSparsity(covariance_blocks, &problem));
+
+  const CompressedRowSparseMatrix* crsm = covariance_impl.covariance_matrix();
+
+  EXPECT_EQ(crsm->num_rows(), 7);
+  EXPECT_EQ(crsm->num_cols(), 7);
+  EXPECT_EQ(crsm->num_nonzeros(), 25);
+
+  const int* rows = crsm->rows();
+  for (int r = 0; r < crsm->num_rows() + 1; ++r) {
+    EXPECT_EQ(rows[r], expected_rows[r])
+        << r << " "
+        << rows[r] << " "
+        << expected_rows[r];
+  }
+
+  const int* cols = crsm->cols();
+  for (int c = 0; c < crsm->num_nonzeros(); ++c) {
+    EXPECT_EQ(cols[c], expected_cols[c])
+        << c << " "
+        << cols[c] << " "
+        << expected_cols[c];
+  }
+}
+
+TEST(CovarianceImpl, ComputeCovarianceSparsityWithFreeParameterBlock) {
+  double parameters[10];
+
+  double* block1 = parameters;
+  double* block2 = block1 + 1;
+  double* block3 = block2 + 2;
+  double* block4 = block3 + 3;
+
+  ProblemImpl problem;
+
+  // Add in random order
+  Vector junk_jacobian = Vector::Zero(10);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 1, junk_jacobian.data()), NULL, block1);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 4, junk_jacobian.data()), NULL, block4);
+  problem.AddParameterBlock(block3, 3);
+  problem.AddResidualBlock(
+      new UnaryCostFunction(1, 2, junk_jacobian.data()), NULL, block2);
+
+  // Sparsity pattern
+  //
+  // Note that the problem structure does not imply this sparsity
+  // pattern since all the residual blocks are unary. But the
+  // ComputeCovarianceSparsity function in its current incarnation
+  // does not pay attention to this fact and only looks at the
+  // parameter block pairs that the user provides.
+  //
+  //  X . . X X X X
+  //  . X X . . . .
+  //  . X X . . . .
+  //  . . . X X X X
+  //  . . . X X X X
+  //  . . . X X X X
+  //  . . . X X X X
+
+  int expected_rows[] = {0, 5, 7, 9, 13, 17, 21, 25};
+  int expected_cols[] = {0, 3, 4, 5, 6,
+                         1, 2,
+                         1, 2,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6,
+                         3, 4, 5, 6};
+
+  vector<pair<const double*, const double*> > covariance_blocks;
+  covariance_blocks.push_back(make_pair(block1, block1));
+  covariance_blocks.push_back(make_pair(block4, block4));
+  covariance_blocks.push_back(make_pair(block2, block2));
+  covariance_blocks.push_back(make_pair(block3, block3));
+  covariance_blocks.push_back(make_pair(block2, block3));
+  covariance_blocks.push_back(make_pair(block4, block1));  // reversed
+
+  Covariance::Options options;
+  CovarianceImpl covariance_impl(options);
+  EXPECT_TRUE(covariance_impl
+              .ComputeCovarianceSparsity(covariance_blocks, &problem));
+
+  const CompressedRowSparseMatrix* crsm = covariance_impl.covariance_matrix();
+
+  EXPECT_EQ(crsm->num_rows(), 7);
+  EXPECT_EQ(crsm->num_cols(), 7);
+  EXPECT_EQ(crsm->num_nonzeros(), 25);
+
+  const int* rows = crsm->rows();
+  for (int r = 0; r < crsm->num_rows() + 1; ++r) {
+    EXPECT_EQ(rows[r], expected_rows[r])
+        << r << " "
+        << rows[r] << " "
+        << expected_rows[r];
+  }
+
+  const int* cols = crsm->cols();
+  for (int c = 0; c < crsm->num_nonzeros(); ++c) {
+    EXPECT_EQ(cols[c], expected_cols[c])
+        << c << " "
+        << cols[c] << " "
+        << expected_cols[c];
+  }
+}
+
 class CovarianceTest : public ::testing::Test {
  protected:
+  typedef map<const double*, pair<int, int> > BoundsMap;
+
   virtual void SetUp() {
     double* x = parameters_;
     double* y = x + 2;
@@ -247,7 +430,9 @@ class CovarianceTest : public ::testing::Test {
 
     {
       double jacobian = 5.0;
-      problem_.AddResidualBlock(new UnaryCostFunction(1, 1, &jacobian), NULL, z);
+      problem_.AddResidualBlock(new UnaryCostFunction(1, 1, &jacobian),
+                                NULL,
+                                z);
     }
 
     {
@@ -282,11 +467,32 @@ class CovarianceTest : public ::testing::Test {
     column_bounds_[z] = make_pair(5, 6);
   }
 
+  // Computes covariance in ambient space.
   void ComputeAndCompareCovarianceBlocks(const Covariance::Options& options,
                                          const double* expected_covariance) {
+    ComputeAndCompareCovarianceBlocksInTangentOrAmbientSpace(
+        options,
+        true,  // ambient
+        expected_covariance);
+  }
+
+  // Computes covariance in tangent space.
+  void ComputeAndCompareCovarianceBlocksInTangentSpace(
+                                         const Covariance::Options& options,
+                                         const double* expected_covariance) {
+    ComputeAndCompareCovarianceBlocksInTangentOrAmbientSpace(
+        options,
+        false,  // tangent
+        expected_covariance);
+  }
+
+  void ComputeAndCompareCovarianceBlocksInTangentOrAmbientSpace(
+      const Covariance::Options& options,
+      bool lift_covariance_to_ambient_space,
+      const double* expected_covariance) {
     // Generate all possible combination of block pairs and check if the
     // covariance computation is correct.
-    for (int i = 1; i <= 64; ++i) {
+    for (int i = 0; i <= 64; ++i) {
       vector<pair<const double*, const double*> > covariance_blocks;
       if (i & 1) {
         covariance_blocks.push_back(all_covariance_blocks_[0]);
@@ -319,28 +525,50 @@ class CovarianceTest : public ::testing::Test {
         const double* block1 = covariance_blocks[i].first;
         const double* block2 = covariance_blocks[i].second;
         // block1, block2
-        GetCovarianceBlockAndCompare(block1, block2, covariance, expected_covariance);
+        GetCovarianceBlockAndCompare(block1,
+                                     block2,
+                                     lift_covariance_to_ambient_space,
+                                     covariance,
+                                     expected_covariance);
         // block2, block1
-        GetCovarianceBlockAndCompare(block2, block1, covariance, expected_covariance);
+        GetCovarianceBlockAndCompare(block2,
+                                     block1,
+                                     lift_covariance_to_ambient_space,
+                                     covariance,
+                                     expected_covariance);
       }
     }
   }
 
   void GetCovarianceBlockAndCompare(const double* block1,
                                     const double* block2,
+                                    bool lift_covariance_to_ambient_space,
                                     const Covariance& covariance,
                                     const double* expected_covariance) {
-    const int row_begin = FindOrDie(column_bounds_, block1).first;
-    const int row_end = FindOrDie(column_bounds_, block1).second;
-    const int col_begin = FindOrDie(column_bounds_, block2).first;
-    const int col_end = FindOrDie(column_bounds_, block2).second;
+    const BoundsMap& column_bounds = lift_covariance_to_ambient_space ?
+        column_bounds_ : local_column_bounds_;
+    const int row_begin = FindOrDie(column_bounds, block1).first;
+    const int row_end = FindOrDie(column_bounds, block1).second;
+    const int col_begin = FindOrDie(column_bounds, block2).first;
+    const int col_end = FindOrDie(column_bounds, block2).second;
 
     Matrix actual(row_end - row_begin, col_end - col_begin);
-    EXPECT_TRUE(covariance.GetCovarianceBlock(block1,
-                                              block2,
-                                              actual.data()));
+    if (lift_covariance_to_ambient_space) {
+      EXPECT_TRUE(covariance.GetCovarianceBlock(block1,
+                                                block2,
+                                                actual.data()));
+    } else {
+      EXPECT_TRUE(covariance.GetCovarianceBlockInTangentSpace(block1,
+                                                              block2,
+                                                              actual.data()));
+    }
 
-    ConstMatrixRef expected(expected_covariance, 6, 6);
+    int dof = 0;  // degrees of freedom = sum of LocalSize()s
+    for (BoundsMap::const_iterator iter = column_bounds.begin();
+         iter != column_bounds.end(); ++iter) {
+      dof = std::max(dof, iter->second.second);
+    }
+    ConstMatrixRef expected(expected_covariance, dof, dof);
     double diff_norm = (expected.block(row_begin,
                                        col_begin,
                                        row_end - row_begin,
@@ -359,10 +587,11 @@ class CovarianceTest : public ::testing::Test {
         << "\n\n full expected: \n" << expected;
   }
 
-  double parameters_[10];
+  double parameters_[6];
   Problem problem_;
   vector<pair<const double*, const double*> > all_covariance_blocks_;
-  map<const double*, pair<int, int> > column_bounds_;
+  BoundsMap column_bounds_;
+  BoundsMap local_column_bounds_;
 };
 
 
@@ -400,14 +629,14 @@ TEST_F(CovarianceTest, NormalBehavior) {
   Covariance::Options options;
 
 #ifndef CERES_NO_SUITESPARSE
-  options.algorithm_type = SPARSE_CHOLESKY;
-  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
-
-  options.algorithm_type = SPARSE_QR;
+  options.algorithm_type = SUITE_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 #endif
 
   options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 }
 
@@ -448,14 +677,14 @@ TEST_F(CovarianceTest, ThreadedNormalBehavior) {
   options.num_threads = 4;
 
 #ifndef CERES_NO_SUITESPARSE
-  options.algorithm_type = SPARSE_CHOLESKY;
-  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
-
-  options.algorithm_type = SPARSE_QR;
+  options.algorithm_type = SUITE_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 #endif
 
   options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 }
 
@@ -497,14 +726,14 @@ TEST_F(CovarianceTest, ConstantParameterBlock) {
   Covariance::Options options;
 
 #ifndef CERES_NO_SUITESPARSE
-  options.algorithm_type = SPARSE_CHOLESKY;
-  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
-
-  options.algorithm_type = SPARSE_QR;
+  options.algorithm_type = SUITE_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 #endif
 
   options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 }
 
@@ -524,22 +753,21 @@ TEST_F(CovarianceTest, LocalParameterization) {
   //   0   1  0  0  0  0
   //   0   0  2  0  0  0
   //   0   0  0  2  0  0
-  //   0   0  0  0  0  0
+  //   0   0  0  0  2  0
   //   0   0  0  0  0  5
-  //  -5  -6  1  2  0  0
+  //  -5  -6  1  2  3  0
   //   3  -2  0  0  0  2
 
-  // Global to local jacobian: A
+  // Local to global jacobian: A
   //
-  //
-  //  1   0   0   0   0
-  //  1   0   0   0   0
-  //  0   1   0   0   0
-  //  0   0   1   0   0
-  //  0   0   0   1   0
-  //  0   0   0   0   1
+  //  1   0   0   0
+  //  1   0   0   0
+  //  0   1   0   0
+  //  0   0   1   0
+  //  0   0   0   0
+  //  0   0   0   1
 
-  // A * pinv((J*A)'*(J*A)) * A'
+  // A * inv((J*A)'*(J*A)) * A'
   // Computed using octave.
   double expected_covariance[] = {
     0.01766,   0.01766,   0.02158,   0.04316,   0.00000,  -0.00122,
@@ -553,17 +781,134 @@ TEST_F(CovarianceTest, LocalParameterization) {
   Covariance::Options options;
 
 #ifndef CERES_NO_SUITESPARSE
-  options.algorithm_type = SPARSE_CHOLESKY;
-  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
-
-  options.algorithm_type = SPARSE_QR;
+  options.algorithm_type = SUITE_SPARSE_QR;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 #endif
 
   options.algorithm_type = DENSE_SVD;
   ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
 }
 
+TEST_F(CovarianceTest, LocalParameterizationInTangentSpace) {
+  double* x = parameters_;
+  double* y = x + 2;
+  double* z = y + 3;
+
+  problem_.SetParameterization(x, new PolynomialParameterization);
+
+  vector<int> subset;
+  subset.push_back(2);
+  problem_.SetParameterization(y, new SubsetParameterization(3, subset));
+
+  local_column_bounds_[x] = make_pair(0, 1);
+  local_column_bounds_[y] = make_pair(1, 3);
+  local_column_bounds_[z] = make_pair(3, 4);
+
+  // Raw Jacobian: J
+  //
+  //   1   0  0  0  0  0
+  //   0   1  0  0  0  0
+  //   0   0  2  0  0  0
+  //   0   0  0  2  0  0
+  //   0   0  0  0  2  0
+  //   0   0  0  0  0  5
+  //  -5  -6  1  2  3  0
+  //   3  -2  0  0  0  2
+
+  // Local to global jacobian: A
+  //
+  //  1   0   0   0
+  //  1   0   0   0
+  //  0   1   0   0
+  //  0   0   1   0
+  //  0   0   0   0
+  //  0   0   0   1
+
+  // inv((J*A)'*(J*A))
+  // Computed using octave.
+  double expected_covariance[] = {
+    0.01766,   0.02158,   0.04316,   -0.00122,
+    0.02158,   0.24860,  -0.00281,   -0.00149,
+    0.04316,  -0.00281,   0.24439,   -0.00298,
+   -0.00122,  -0.00149,  -0.00298,    0.03457  // NOLINT
+  };
+
+  Covariance::Options options;
+
+#ifndef CERES_NO_SUITESPARSE
+  options.algorithm_type = SUITE_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+#endif
+
+  options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+}
+
+TEST_F(CovarianceTest, LocalParameterizationInTangentSpaceWithConstantBlocks) {
+  double* x = parameters_;
+  double* y = x + 2;
+  double* z = y + 3;
+
+  problem_.SetParameterization(x, new PolynomialParameterization);
+  problem_.SetParameterBlockConstant(x);
+
+  vector<int> subset;
+  subset.push_back(2);
+  problem_.SetParameterization(y, new SubsetParameterization(3, subset));
+  problem_.SetParameterBlockConstant(y);
+
+  local_column_bounds_[x] = make_pair(0, 1);
+  local_column_bounds_[y] = make_pair(1, 3);
+  local_column_bounds_[z] = make_pair(3, 4);
+
+  // Raw Jacobian: J
+  //
+  //   1   0  0  0  0  0
+  //   0   1  0  0  0  0
+  //   0   0  2  0  0  0
+  //   0   0  0  2  0  0
+  //   0   0  0  0  2  0
+  //   0   0  0  0  0  5
+  //  -5  -6  1  2  3  0
+  //   3  -2  0  0  0  2
+
+  // Local to global jacobian: A
+  //
+  //  0   0   0   0
+  //  0   0   0   0
+  //  0   0   0   0
+  //  0   0   0   0
+  //  0   0   0   0
+  //  0   0   0   1
+
+  // pinv((J*A)'*(J*A))
+  // Computed using octave.
+  double expected_covariance[] = {
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.034482 // NOLINT
+  };
+
+  Covariance::Options options;
+
+#ifndef CERES_NO_SUITESPARSE
+  options.algorithm_type = SUITE_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+#endif
+
+  options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+}
 
 TEST_F(CovarianceTest, TruncatedRank) {
   // J
@@ -590,12 +935,12 @@ TEST_F(CovarianceTest, TruncatedRank) {
   // was obtained by dropping the eigenvector corresponding to this
   // eigenvalue.
   double expected_covariance[] = {
-     5.4135e-02,  -3.5121e-02,   1.7257e-04,   3.4514e-04,   5.1771e-04,  -1.6076e-02,
-    -3.5121e-02,   3.8667e-02,  -1.9288e-03,  -3.8576e-03,  -5.7864e-03,   1.2549e-02,
-     1.7257e-04,  -1.9288e-03,   2.3235e-01,  -3.5297e-02,  -5.2946e-02,  -3.3329e-04,
-     3.4514e-04,  -3.8576e-03,  -3.5297e-02,   1.7941e-01,  -1.0589e-01,  -6.6659e-04,
-     5.1771e-04,  -5.7864e-03,  -5.2946e-02,  -1.0589e-01,   9.1162e-02,  -9.9988e-04,
-    -1.6076e-02,   1.2549e-02,  -3.3329e-04,  -6.6659e-04,  -9.9988e-04,   3.9539e-02
+     5.4135e-02,  -3.5121e-02,   1.7257e-04,   3.4514e-04,   5.1771e-04,  -1.6076e-02,  // NOLINT
+    -3.5121e-02,   3.8667e-02,  -1.9288e-03,  -3.8576e-03,  -5.7864e-03,   1.2549e-02,  // NOLINT
+     1.7257e-04,  -1.9288e-03,   2.3235e-01,  -3.5297e-02,  -5.2946e-02,  -3.3329e-04,  // NOLINT
+     3.4514e-04,  -3.8576e-03,  -3.5297e-02,   1.7941e-01,  -1.0589e-01,  -6.6659e-04,  // NOLINT
+     5.1771e-04,  -5.7864e-03,  -5.2946e-02,  -1.0589e-01,   9.1162e-02,  -9.9988e-04,  // NOLINT
+    -1.6076e-02,   1.2549e-02,  -3.3329e-04,  -6.6659e-04,  -9.9988e-04,   3.9539e-02   // NOLINT
   };
 
 
@@ -618,6 +963,120 @@ TEST_F(CovarianceTest, TruncatedRank) {
   }
 }
 
+TEST_F(CovarianceTest, DenseCovarianceMatrixFromSetOfParameters) {
+  Covariance::Options options;
+  Covariance covariance(options);
+  double* x = parameters_;
+  double* y = x + 2;
+  double* z = y + 3;
+  vector<const double*> parameter_blocks;
+  parameter_blocks.push_back(x);
+  parameter_blocks.push_back(y);
+  parameter_blocks.push_back(z);
+  covariance.Compute(parameter_blocks, &problem_);
+  double expected_covariance[36];
+  covariance.GetCovarianceMatrix(parameter_blocks, expected_covariance);
+
+#ifndef CERES_NO_SUITESPARSE
+  options.algorithm_type = SUITE_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+#endif
+
+  options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+}
+
+TEST_F(CovarianceTest, DenseCovarianceMatrixFromSetOfParametersThreaded) {
+  Covariance::Options options;
+  options.num_threads = 4;
+  Covariance covariance(options);
+  double* x = parameters_;
+  double* y = x + 2;
+  double* z = y + 3;
+  vector<const double*> parameter_blocks;
+  parameter_blocks.push_back(x);
+  parameter_blocks.push_back(y);
+  parameter_blocks.push_back(z);
+  covariance.Compute(parameter_blocks, &problem_);
+  double expected_covariance[36];
+  covariance.GetCovarianceMatrix(parameter_blocks, expected_covariance);
+
+#ifndef CERES_NO_SUITESPARSE
+  options.algorithm_type = SUITE_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+#endif
+
+  options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocks(options, expected_covariance);
+}
+
+TEST_F(CovarianceTest, DenseCovarianceMatrixFromSetOfParametersInTangentSpace) {
+  Covariance::Options options;
+  Covariance covariance(options);
+  double* x = parameters_;
+  double* y = x + 2;
+  double* z = y + 3;
+
+  problem_.SetParameterization(x, new PolynomialParameterization);
+
+  vector<int> subset;
+  subset.push_back(2);
+  problem_.SetParameterization(y, new SubsetParameterization(3, subset));
+
+  local_column_bounds_[x] = make_pair(0, 1);
+  local_column_bounds_[y] = make_pair(1, 3);
+  local_column_bounds_[z] = make_pair(3, 4);
+
+  vector<const double*> parameter_blocks;
+  parameter_blocks.push_back(x);
+  parameter_blocks.push_back(y);
+  parameter_blocks.push_back(z);
+  covariance.Compute(parameter_blocks, &problem_);
+  double expected_covariance[16];
+  covariance.GetCovarianceMatrixInTangentSpace(parameter_blocks,
+                                               expected_covariance);
+
+#ifndef CERES_NO_SUITESPARSE
+  options.algorithm_type = SUITE_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+#endif
+
+  options.algorithm_type = DENSE_SVD;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+
+  options.algorithm_type = EIGEN_SPARSE_QR;
+  ComputeAndCompareCovarianceBlocksInTangentSpace(options, expected_covariance);
+}
+
+TEST_F(CovarianceTest, ComputeCovarianceFailure) {
+  Covariance::Options options;
+  Covariance covariance(options);
+  double* x = parameters_;
+  double* y = x + 2;
+  vector<const double*> parameter_blocks;
+  parameter_blocks.push_back(x);
+  parameter_blocks.push_back(x);
+  parameter_blocks.push_back(y);
+  parameter_blocks.push_back(y);
+  EXPECT_DEATH_IF_SUPPORTED(covariance.Compute(parameter_blocks, &problem_),
+                            "Covariance::Compute called with duplicate blocks "
+                            "at indices \\(0, 1\\) and \\(2, 3\\)");
+  vector<pair<const double*, const double*> > covariance_blocks;
+  covariance_blocks.push_back(make_pair(x, x));
+  covariance_blocks.push_back(make_pair(x, x));
+  covariance_blocks.push_back(make_pair(y, y));
+  covariance_blocks.push_back(make_pair(y, y));
+  EXPECT_DEATH_IF_SUPPORTED(covariance.Compute(covariance_blocks, &problem_),
+                            "Covariance::Compute called with duplicate blocks "
+                            "at indices \\(0, 1\\) and \\(2, 3\\)");
+}
+
 class RankDeficientCovarianceTest : public CovarianceTest {
  protected:
   virtual void SetUp() {
@@ -637,7 +1096,9 @@ class RankDeficientCovarianceTest : public CovarianceTest {
 
     {
       double jacobian = 5.0;
-      problem_.AddResidualBlock(new UnaryCostFunction(1, 1, &jacobian), NULL, z);
+      problem_.AddResidualBlock(new UnaryCostFunction(1, 1, &jacobian),
+                                NULL,
+                                z);
     }
 
     {
@@ -715,7 +1176,8 @@ class LargeScaleCovarianceTest : public ::testing::Test {
   virtual void SetUp() {
     num_parameter_blocks_ = 2000;
     parameter_block_size_ = 5;
-    parameters_.reset(new double[parameter_block_size_ * num_parameter_blocks_]);
+    parameters_.reset(
+        new double[parameter_block_size_ * num_parameter_blocks_]);
 
     Matrix jacobian(parameter_block_size_, parameter_block_size_);
     for (int i = 0; i < num_parameter_blocks_; ++i) {
@@ -781,8 +1243,7 @@ class LargeScaleCovarianceTest : public ::testing::Test {
 #if !defined(CERES_NO_SUITESPARSE) && defined(CERES_USE_OPENMP)
 
 TEST_F(LargeScaleCovarianceTest, Parallel) {
-  ComputeAndCompare(SPARSE_CHOLESKY, 4);
-  ComputeAndCompare(SPARSE_QR, 4);
+  ComputeAndCompare(SUITE_SPARSE_QR, 4);
 }
 
 #endif  // !defined(CERES_NO_SUITESPARSE) && defined(CERES_USE_OPENMP)

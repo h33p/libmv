@@ -1,6 +1,6 @@
 // Ceres Solver - A fast non-linear least squares minimizer
-// Copyright 2010, 2011, 2012 Google Inc. All rights reserved.
-// http://code.google.com/p/ceres-solver/
+// Copyright 2015 Google Inc. All rights reserved.
+// http://ceres-solver.org/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -45,17 +45,16 @@
 #include "ceres/types.h"
 #include "glog/logging.h"
 #include "gmock/gmock.h"
-#include "gmock/mock-log.h"
 #include "gtest/gtest.h"
-
-using testing::AllOf;
-using testing::AnyNumber;
-using testing::HasSubstr;
-using testing::ScopedMockLog;
-using testing::_;
 
 namespace ceres {
 namespace internal {
+
+using std::vector;
+using testing::AllOf;
+using testing::AnyNumber;
+using testing::HasSubstr;
+using testing::_;
 
 // Pick a (non-quadratic) function whose derivative are easy:
 //
@@ -161,11 +160,12 @@ TEST(GradientCheckingCostFunction, ResidualsAndJacobiansArePreservedTest) {
   const double kRelativePrecision = 1e-4;
 
   TestTerm<-1, -1> term(arity, dim);
+  GradientCheckingIterationCallback callback;
   scoped_ptr<CostFunction> gradient_checking_cost_function(
-      CreateGradientCheckingCostFunction(&term,
+      CreateGradientCheckingCostFunction(&term, NULL,
                                          kRelativeStepSize,
                                          kRelativePrecision,
-                                         "Ignored."));
+                                         "Ignored.", &callback));
   term.Evaluate(&parameters[0],
                 &original_residual,
                 &original_jacobians[0]);
@@ -217,39 +217,35 @@ TEST(GradientCheckingCostFunction, SmokeTest) {
   LOG(INFO) << "Bad gradient";
   {
     TestTerm<1, 2> term(arity, dim);
+    GradientCheckingIterationCallback callback;
     scoped_ptr<CostFunction> gradient_checking_cost_function(
-        CreateGradientCheckingCostFunction(&term,
+        CreateGradientCheckingCostFunction(&term, NULL,
                                            kRelativeStepSize,
                                            kRelativePrecision,
-                                           "Fuzzy bananas"));
-
-    ScopedMockLog log;
-    EXPECT_CALL(log, Log(_, _, _)).Times(AnyNumber());
-    EXPECT_CALL(log, Log(WARNING, _,
-                         AllOf(HasSubstr("(1,0,2) Relative error worse than"),
-                               HasSubstr("Fuzzy bananas"))));
-
-    gradient_checking_cost_function->Evaluate(&parameters[0],
-                                              &residual,
-                                              &jacobians[0]);
+                                           "Fuzzy banana", &callback));
+    EXPECT_TRUE(
+        gradient_checking_cost_function->Evaluate(&parameters[0], &residual,
+                                                  &jacobians[0]));
+    EXPECT_TRUE(callback.gradient_error_detected());
+    EXPECT_TRUE(callback.error_log().find("Fuzzy banana") != std::string::npos);
+    EXPECT_TRUE(callback.error_log().find("(1,0,2) Relative error worse than")
+                != std::string::npos);
   }
 
   // The gradient is correct, so no errors are reported.
   LOG(INFO) << "Good gradient";
   {
     TestTerm<-1, -1> term(arity, dim);
+    GradientCheckingIterationCallback callback;
     scoped_ptr<CostFunction> gradient_checking_cost_function(
-        CreateGradientCheckingCostFunction(&term,
+        CreateGradientCheckingCostFunction(&term, NULL,
                                            kRelativeStepSize,
                                            kRelativePrecision,
-                                           "Ignored."));
-
-    ScopedMockLog log;
-    EXPECT_CALL(log, Log(_, _, _)).Times(0);
-
-    gradient_checking_cost_function->Evaluate(&parameters[0],
-                                              &residual,
-                                              &jacobians[0]);
+                                           "Fuzzy banana", &callback));
+    EXPECT_TRUE(
+        gradient_checking_cost_function->Evaluate(&parameters[0], &residual,
+                                                  &jacobians[0]));
+    EXPECT_FALSE(callback.gradient_error_detected());
   }
 
   for (int j = 0; j < arity; j++) {
@@ -264,7 +260,7 @@ TEST(GradientCheckingCostFunction, SmokeTest) {
 // Trivial cost function that accepts a single argument.
 class UnaryCostFunction : public CostFunction {
  public:
-  UnaryCostFunction(int num_residuals, int16 parameter_block_size) {
+  UnaryCostFunction(int num_residuals, int32 parameter_block_size) {
     set_num_residuals(num_residuals);
     mutable_parameter_block_sizes()->push_back(parameter_block_size);
   }
@@ -284,8 +280,8 @@ class UnaryCostFunction : public CostFunction {
 class BinaryCostFunction: public CostFunction {
  public:
   BinaryCostFunction(int num_residuals,
-                     int16 parameter_block1_size,
-                     int16 parameter_block2_size) {
+                     int32 parameter_block1_size,
+                     int32 parameter_block2_size) {
     set_num_residuals(num_residuals);
     mutable_parameter_block_sizes()->push_back(parameter_block1_size);
     mutable_parameter_block_sizes()->push_back(parameter_block2_size);
@@ -305,9 +301,9 @@ class BinaryCostFunction: public CostFunction {
 class TernaryCostFunction: public CostFunction {
  public:
   TernaryCostFunction(int num_residuals,
-                      int16 parameter_block1_size,
-                      int16 parameter_block2_size,
-                      int16 parameter_block3_size) {
+                      int32 parameter_block1_size,
+                      int32 parameter_block2_size,
+                      int32 parameter_block3_size) {
     set_num_residuals(num_residuals);
     mutable_parameter_block_sizes()->push_back(parameter_block1_size);
     mutable_parameter_block_sizes()->push_back(parameter_block2_size);
@@ -361,8 +357,9 @@ TEST(GradientCheckingProblemImpl, ProblemDimensionsMatch) {
   problem_impl.AddResidualBlock(new TernaryCostFunction(1, 5, 3, 4),
                                 NULL, z, x, y);
 
+  GradientCheckingIterationCallback callback;
   scoped_ptr<ProblemImpl> gradient_checking_problem_impl(
-      CreateGradientCheckingProblemImpl(&problem_impl, 1.0, 1.0));
+      CreateGradientCheckingProblemImpl(&problem_impl, 1.0, 1.0, &callback));
 
   // The dimensions of the two problems match.
   EXPECT_EQ(problem_impl.NumParameterBlocks(),
@@ -382,7 +379,7 @@ TEST(GradientCheckingProblemImpl, ProblemDimensionsMatch) {
   // Since we added the ParameterBlocks and ResidualBlocks explicitly,
   // they should be in the same order in the two programs. It is
   // possible that may change due to implementation changes to
-  // Program. This is not exepected to be the case and writing code to
+  // Program. This is not expected to be the case and writing code to
   // anticipate that possibility not worth the extra complexity in
   // this test.
   for (int i = 0; i < program.parameter_blocks().size(); ++i) {
