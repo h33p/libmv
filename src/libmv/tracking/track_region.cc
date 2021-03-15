@@ -119,7 +119,8 @@ using ceres::Jet;
 using ceres::JetOps;
 
 TrackRegionOptions::TrackRegionOptions()
-    : mode(TRANSLATION),
+    : direction(FORWARD),
+      mode(TRANSLATION),
       minimum_correlation(0),
       max_iterations(20),
       use_esm(true),

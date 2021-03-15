@@ -33,6 +33,12 @@ namespace libmv {
 struct TrackRegionOptions {
   TrackRegionOptions();
 
+  enum Direction {
+    FORWARD,
+    BACKWARD,
+  };
+  Direction direction;
+
   enum Mode {
     TRANSLATION,
     TRANSLATION_ROTATION,
