@@ -27,15 +27,15 @@ namespace libmv {
 namespace tools {
 
 /// Get the focal in mm from Exif data. Return false, and -1 if not found.
-bool ExifToolHelper::GetFocalmm(const string & sFilename, float * focalmm) {
+bool ExifToolHelper::GetFocalmm(const string& sFilename, float* focalmm) {
   *focalmm = -1.0f;
   ExifImageFile inImageFile_;
   if (inImageFile_.open(sFilename.c_str(), "r") == EXIF_OK) {
     ExifStatus errRtn;
-    ExifTagEntry* entryTag = inImageFile_.getGenericTag(EXIFTAG_FOCALLENGTH,
-     EXIF_APP1_EXIFIFD, errRtn);
+    ExifTagEntry* entryTag = inImageFile_.getGenericTag(
+        EXIFTAG_FOCALLENGTH, EXIF_APP1_EXIFIFD, errRtn);
     if (entryTag != NULL && entryTag->getType() == EXIF_RATIONAL) {
-      *focalmm = (dynamic_cast < ExifTagEntryT<float> *> (entryTag))->getValue();
+      *focalmm = (dynamic_cast<ExifTagEntryT<float>*>(entryTag))->getValue();
       return true;
     }
   }
@@ -43,17 +43,17 @@ bool ExifToolHelper::GetFocalmm(const string & sFilename, float * focalmm) {
 }
 
 /// Indicate metric information.  Return false, and -1 if not found.
-bool ExifToolHelper::GetFocalPlaneUnit(const string & sFilename,
-                                       float * focalPlaceUnit) {
+bool ExifToolHelper::GetFocalPlaneUnit(const string& sFilename,
+                                       float* focalPlaceUnit) {
   *focalPlaceUnit = -1.0f;
   ExifImageFile inImageFile_;
   if (inImageFile_.open(sFilename.c_str(), "r") == EXIF_OK) {
     ExifStatus errRtn;
-    ExifTagEntry* entryTag =
-        inImageFile_.getGenericTag(EXIFTAG_FOCALPLANERESOLUTIONUNIT,
-                                   EXIF_APP1_EXIFIFD, errRtn);
+    ExifTagEntry* entryTag = inImageFile_.getGenericTag(
+        EXIFTAG_FOCALPLANERESOLUTIONUNIT, EXIF_APP1_EXIFIFD, errRtn);
     if (entryTag != NULL && entryTag->getType() == EXIF_SHORT) {
-      *focalPlaceUnit = (dynamic_cast < ExifTagEntryT<unsigned short> *> (entryTag))->getValue();
+      *focalPlaceUnit =
+          (dynamic_cast<ExifTagEntryT<unsigned short>*>(entryTag))->getValue();
       return true;
     } else {
       cout << endl << "BAD INFO" << endl;
@@ -63,17 +63,17 @@ bool ExifToolHelper::GetFocalPlaneUnit(const string & sFilename,
 }
 
 /// Get FocalPlaneXResolution from Exif data. Return false, and -1 if not found.
-bool ExifToolHelper::GetFocalPlaneXRes(const string & sFilename,
-                                       float * focalPlaceXRes) {
+bool ExifToolHelper::GetFocalPlaneXRes(const string& sFilename,
+                                       float* focalPlaceXRes) {
   *focalPlaceXRes = -1.0f;
   ExifImageFile inImageFile_;
   if (inImageFile_.open(sFilename.c_str(), "r") == EXIF_OK) {
     ExifStatus errRtn;
-    ExifTagEntry* entryTag =
-       inImageFile_.getGenericTag(EXIFTAG_FOCALPLANEXRESOLUTION,
-                                  EXIF_APP1_EXIFIFD, errRtn);
+    ExifTagEntry* entryTag = inImageFile_.getGenericTag(
+        EXIFTAG_FOCALPLANEXRESOLUTION, EXIF_APP1_EXIFIFD, errRtn);
     if (entryTag != NULL && entryTag->getType() == EXIF_RATIONAL) {
-      *focalPlaceXRes = (dynamic_cast < ExifTagEntryT<float> *> (entryTag))->getValue();
+      *focalPlaceXRes =
+          (dynamic_cast<ExifTagEntryT<float>*>(entryTag))->getValue();
       return true;
     } else {
       cout << endl << "BAD INFO" << endl;
@@ -85,17 +85,17 @@ bool ExifToolHelper::GetFocalPlaneXRes(const string & sFilename,
 /// Get the 35mm focal equivalent from Exif data
 /// Return false, and -1 if not found.
 /// Experimental.
-bool ExifToolHelper::GetFocalEquiv35mm(const string & sFilename,
-                                       float * focalEquiv35mm) {
+bool ExifToolHelper::GetFocalEquiv35mm(const string& sFilename,
+                                       float* focalEquiv35mm) {
   *focalEquiv35mm = -1.0f;
   ExifImageFile inImageFile_;
   if (inImageFile_.open(sFilename.c_str(), "r") == EXIF_OK) {
     ExifStatus errRtn;
-    ExifTagEntry* entryTag =
-      inImageFile_.getGenericTag(EXIFTAG_FOCALLENGTH_35MM,
-                                 EXIF_APP1_EXIFIFD, errRtn);
+    ExifTagEntry* entryTag = inImageFile_.getGenericTag(
+        EXIFTAG_FOCALLENGTH_35MM, EXIF_APP1_EXIFIFD, errRtn);
     if (entryTag != NULL && entryTag->getType() == EXIF_SHORT) {
-      *focalEquiv35mm = (dynamic_cast < ExifTagEntryT<unsigned short> *> (entryTag))->getValue();
+      *focalEquiv35mm =
+          (dynamic_cast<ExifTagEntryT<unsigned short>*>(entryTag))->getValue();
       return true;
     } else {
       cout << endl << "BAD INFO" << endl;
@@ -105,8 +105,9 @@ bool ExifToolHelper::GetFocalEquiv35mm(const string & sFilename,
 }
 
 /// Get Image Width and Height from Jpeg Header.
-bool ExifToolHelper::GetImageWidthAndHeight(const string & sFilename,
-              unsigned int * width, unsigned int * height) {
+bool ExifToolHelper::GetImageWidthAndHeight(const string& sFilename,
+                                            unsigned int* width,
+                                            unsigned int* height) {
   *width = -1;
   *height = -1;
   ExifImageFile inImageFile_;
@@ -122,27 +123,32 @@ bool ExifToolHelper::GetImageWidthAndHeight(const string & sFilename,
 
 /*// Compute the CCD width, in millimeters.
 if (FocalplaneXRes != 0){
-    // Note: With some cameras, its not possible to compute this correctly because
-    // they don't adjust the indicated focal plane resolution units when using less
-    // than maximum resolution, so the CCDWidth value comes out too small.  Nothing
+    // Note: With some cameras, its not possible to compute this correctly
+because
+    // they don't adjust the indicated focal plane resolution units when using
+less
+    // than maximum resolution, so the CCDWidth value comes out too small.
+Nothing
     // that Jhad can do about it - its a camera problem.
-    ImageInfo.CCDWidth = (float)(ExifImageWidth * FocalplaneUnits / FocalplaneXRes);
+    ImageInfo.CCDWidth = (float)(ExifImageWidth * FocalplaneUnits /
+FocalplaneXRes);
 
     if (ImageInfo.FocalLength && ImageInfo.FocalLength35mmEquiv == 0){
-        // Compute 35 mm equivalent focal length based on sensor geometry if we haven't
+        // Compute 35 mm equivalent focal length based on sensor geometry if we
+haven't
         // already got it explicitly from a tag.
-        ImageInfo.FocalLength35mmEquiv = (int)(ImageInfo.FocalLength/ImageInfo.CCDWidth*36 + 0.5);
+        ImageInfo.FocalLength35mmEquiv =
+(int)(ImageInfo.FocalLength/ImageInfo.CCDWidth*36 + 0.5);
     }
 }*/
 
-
 ExifReader::~ExifReader() {
   if (inImageFile_.close() != EXIF_OK) {
-      cout << "Error: Could not close" << endl;
+    cout << "Error: Could not close" << endl;
   }
 }
 
-bool ExifReader::doesHaveExifInfo(const string & sFilename) {
+bool ExifReader::doesHaveExifInfo(const string& sFilename) {
   bool bRet = false;
   // Create instance of ExifImageFile
   ExifImageFile inImageFile;
@@ -150,7 +156,7 @@ bool ExifReader::doesHaveExifInfo(const string & sFilename) {
   // Open the file in read-only mode and verify that it succeeds
   if (inImageFile.open(sFilename.c_str(), "r") == EXIF_OK) {
     if (inImageFile.close() != EXIF_OK) {
-        cout << "Error: Could not close" << sFilename << endl;
+      cout << "Error: Could not close" << sFilename << endl;
     } else {
       bRet = true;
     }
@@ -158,7 +164,7 @@ bool ExifReader::doesHaveExifInfo(const string & sFilename) {
   return bRet;
 }
 
-bool ExifReader::readExifInfo(const string & sFilename) {
+bool ExifReader::readExifInfo(const string& sFilename) {
   bool bRet = false;
 
   // Open the file in read-only mode and verify that it succeeds
@@ -176,7 +182,7 @@ bool ExifReader::readExifInfo(const string & sFilename) {
       appSegs_ = inImageFile_.getAllAppSegs();
 
       // Now, lets output any COM marker data
-      comList_ = (ExifComMarkerList *)inImageFile_.getComData();
+      comList_ = (ExifComMarkerList*)inImageFile_.getComData();
 
       // And finally, let's output the SOF info
       inImageFile_.getImageInfo(info_);
@@ -197,8 +203,8 @@ void ExifReader::displayInfo() {
     ExifIFDPathIter crntPath = (*crntPathsTags).first.begin();
     ExifIFDPathIter endPath = (*crntPathsTags).first.end();
     while (crntPath != endPath) {
-      cout << "IFD: " << (*crntPath).first
-           << "  Idx: " << (*crntPath).second << endl;
+      cout << "IFD: " << (*crntPath).first << "  Idx: " << (*crntPath).second
+           << endl;
       crntPath++;
     }
 
@@ -223,8 +229,8 @@ void ExifReader::displayInfo() {
     ExifIFDPathIter crntPath = (*crntPathsTags).first.begin();
     ExifIFDPathIter endPath = (*crntPathsTags).first.end();
     while (crntPath != endPath) {
-      cout << "IFD: " << (*crntPath).first
-           << "  Idx: " << (*crntPath).second << endl;
+      cout << "IFD: " << (*crntPath).first << "  Idx: " << (*crntPath).second
+           << endl;
       crntPath++;
     }
 
@@ -250,25 +256,25 @@ void ExifReader::displayInfo() {
   // Loop through the application segments outputting their marker,
   // length and identifier.
   for (int i = 0; i < numOfAppSegs; ++i) {
-      cout << appSegs_[i]->getAppSegmentMarker() << "\t"
-           << appSegs_[i]->getLength() << "\t"
-           << appSegs_[i]->getAppIdent() << endl;
+    cout << appSegs_[i]->getAppSegmentMarker() << "\t"
+         << appSegs_[i]->getLength() << "\t" << appSegs_[i]->getAppIdent()
+         << endl;
   }
 
   // Now, lets output any COM marker data
   cout << endl << endl;
   for (unsigned int i = 0; i < comList_->size(); i++) {
-      tsize_t dataSize;
-      int j;
-      ExifComMarker * marker = comList_->getComMarker(i);
-      const uint8 * comData = marker->getData(dataSize);
-      cout << "COM Marker #" << i+1 << " Data" << endl;
-      for (j = 0; j < dataSize; ++j)
-          cout << setbase(16) << (unsigned short)comData[j] << " ";
-      cout << setbase(10);  // reset display base
-      for (j = 0; j < dataSize; ++j)
-          cout << comData[j];
-      cout << endl << endl;
+    tsize_t dataSize;
+    int j;
+    ExifComMarker* marker = comList_->getComMarker(i);
+    const uint8* comData = marker->getData(dataSize);
+    cout << "COM Marker #" << i + 1 << " Data" << endl;
+    for (j = 0; j < dataSize; ++j)
+      cout << setbase(16) << (unsigned short)comData[j] << " ";
+    cout << setbase(10);  // reset display base
+    for (j = 0; j < dataSize; ++j)
+      cout << comData[j];
+    cout << endl << endl;
   }
 
   // And finally, let's output the SOF info

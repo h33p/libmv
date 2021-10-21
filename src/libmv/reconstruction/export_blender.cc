@@ -20,12 +20,12 @@
 
 #include "libmv/reconstruction/export_blender.h"
 
-#include <stdio.h>
 #include <locale.h>
+#include <stdio.h>
 
 namespace libmv {
 
-void ExportToBlenderScript(const Reconstruction &reconstruct,
+void ExportToBlenderScript(const Reconstruction& reconstruct,
                            std::string out_file_name) {
   // Avoid to have comas instead of dots (foreign lang.)
   setlocale(LC_ALL, "C");
@@ -44,14 +44,14 @@ void ExportToBlenderScript(const Reconstruction &reconstruct,
   //////////////////////////////////////////////////////////////////////////
   // Cameras.
   fprintf(fid, "# Cameras\n");
-  PinholeCamera *pcamera = NULL;
+  PinholeCamera* pcamera = NULL;
   uint i = 0;
   Mat3 K, R;
   Vec3 t;
-  std::map<CameraID, Camera *>::const_iterator camera_iter =
-    reconstruct.cameras().begin();
+  std::map<CameraID, Camera*>::const_iterator camera_iter =
+      reconstruct.cameras().begin();
   for (; camera_iter != reconstruct.cameras().end(); ++camera_iter) {
-    pcamera = dynamic_cast<PinholeCamera *>(camera_iter->second);
+    pcamera = dynamic_cast<PinholeCamera*>(camera_iter->second);
     // TODO(julien) how to export generic cameras ?
     if (pcamera) {
       K = pcamera->intrinsic_matrix();
@@ -111,15 +111,16 @@ void ExportToBlenderScript(const Reconstruction &reconstruct,
   fprintf(fid, "ob.setLocation(0.0,0.0,0.0)\n");
   fprintf(fid, "mesh=ob.getData()\n");
   fprintf(fid, "cur.link(ob)\n");
-  std::map<StructureID, Structure *>::const_iterator track_iter =
-    reconstruct.structures().begin();
+  std::map<StructureID, Structure*>::const_iterator track_iter =
+      reconstruct.structures().begin();
   for (; track_iter != reconstruct.structures().end(); ++track_iter) {
-    PointStructure * point_s =
-      dynamic_cast<PointStructure*>(track_iter->second);
+    PointStructure* point_s = dynamic_cast<PointStructure*>(track_iter->second);
     if (point_s) {
-      fprintf(fid, "v = NMesh.Vert(%g,%g,%g)\n", point_s->coords_affine()(0),
-                                                 point_s->coords_affine()(1),
-                                                 point_s->coords_affine()(2));
+      fprintf(fid,
+              "v = NMesh.Vert(%g,%g,%g)\n",
+              point_s->coords_affine()(0),
+              point_s->coords_affine()(1),
+              point_s->coords_affine()(2));
       fprintf(fid, "mesh.verts.append(v)\n");
     }
   }
@@ -128,8 +129,9 @@ void ExportToBlenderScript(const Reconstruction &reconstruct,
 
   //////////////////////////////////////////////////////////////////////////
   // Scene node including cameras and points.
-  fprintf(fid, "# Add a helper object to help manipulating joined camera and"
-                "points\n");
+  fprintf(fid,
+          "# Add a helper object to help manipulating joined camera and"
+          "points\n");
   fprintf(fid, "scene_dummy = Object.New('Empty','libmv_scene')\n");
   fprintf(fid, "scene_dummy.setLocation(0.0,0.0,0.0)\n");
   fprintf(fid, "cur.link(scene_dummy)\n");

@@ -28,9 +28,9 @@
 #include "testing/testing.h"
 
 using namespace libmv;
-/** 
+/**
  * Methods to test:
- * 
+ *
  * - ComputeBoundingBox TODO(julien) Add a unit test
  * - RotateImage        TODO(julien) Correct bug that fails the unit test
  * - WarpImage          TODO(julien) Add a unit test
@@ -50,16 +50,16 @@ TEST(ImageTransform, RotateImage90) {
   //  |         |
   //  |_________|
   const int y = 5;
-  DrawLine(0, y, w-1, y, 1.0, &image);
-  //WriteImage(image, "i.png");
+  DrawLine(0, y, w - 1, y, 1.0, &image);
+  // WriteImage(image, "i.png");
 
   FloatImage image_rot(h, w);
   image_rot.Fill(0);
 
   bool adapt_img_size = false;
-  double angle90 = M_PI/2.0;
+  double angle90 = M_PI / 2.0;
   RotateImage(image, angle90, &image_rot, adapt_img_size);
-  //WriteImage(image_rot, "r90.png");
+  // WriteImage(image_rot, "r90.png");
 
   // Expect a vertical line
   //  __________
@@ -72,9 +72,9 @@ TEST(ImageTransform, RotateImage90) {
   }
 
   image_rot.Fill(0);
-  angle90 = -M_PI/2.0;
+  angle90 = -M_PI / 2.0;
   RotateImage(image, angle90, &image_rot, adapt_img_size);
-  //WriteImage(image_rot, "r-90.png");
+  // WriteImage(image_rot, "r-90.png");
 
   for (int i = 0; i < h; ++i) {
     EXPECT_EQ(image_rot(i, y), 1.0);
@@ -122,8 +122,8 @@ TEST(ImageTransform, TranslateImage) {
   //  |\  |
   //  | \ |
   //  |__\|
-  DrawLine(0, 0, w-1, h-1, 1.0, &image);
-  //WriteImage(image, "i2.png");
+  DrawLine(0, 0, w - 1, h - 1, 1.0, &image);
+  // WriteImage(image, "i2.png");
 
   FloatImage image_trans(h, w);
   image_trans.Fill(0);
@@ -135,7 +135,7 @@ TEST(ImageTransform, TranslateImage) {
   // Expect a translated diagonal line
   int j = 0;
   for (int i = 2; i < w; ++i) {
-    j = i-dx+dy;
+    j = i - dx + dy;
     if (j < h)
       EXPECT_EQ(image_trans(j, i), 1.0);
   }
@@ -154,17 +154,17 @@ TEST(ImageTransform, RotateImage45) {
   //  |         |
   //  |_________|
   const int y = 5;
-  DrawLine(0, y, w-1, y, 1.0, &image);
+  DrawLine(0, y, w - 1, y, 1.0, &image);
 
   FloatImage image_rot(h, w);
   image_rot.Fill(0);
 
   bool adapt_img_size = false;
-  double angle45 = M_PI/4.0;
+  double angle45 = M_PI / 4.0;
   RotateImage(image, angle45, &image_rot, adapt_img_size);
-  //WriteImage(image_rot, "r45.png");
+  // WriteImage(image_rot, "r45.png");
 
-  for (int i = 1; i < w-1; ++i)
+  for (int i = 1; i < w - 1; ++i)
     EXPECT_EQ(image_rot(i, i), 1.0);
 }
 
@@ -181,9 +181,7 @@ TEST(ImageTransform, RescaleImageTranslation) {
   Vec4i bbox;
 
   const int dx = -2, dy = -7;
-  H << 1, 0, dx,
-       0, 1, dy,
-       0, 0, 1;
+  H << 1, 0, dx, 0, 1, dy, 0, 0, 1;
   // TODO(julien) Test with random affine transformations
   ResizeImage(image_size, H, &image_rs, &Hreg, &bbox);
 

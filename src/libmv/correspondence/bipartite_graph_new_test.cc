@@ -36,9 +36,12 @@ TEST(BipartiteGraph, Empty) {
 
 TEST(BipartiteGraph, InsertEdges) {
   BipartiteGraph<int, int, int> x;
-  x.Insert(1, 3, 2); EXPECT_EQ(1, x.NumEdges());
-  x.Insert(1, 3, 2); EXPECT_EQ(1, x.NumEdges());
-  x.Insert(2, 4, 2); EXPECT_EQ(2, x.NumEdges());
+  x.Insert(1, 3, 2);
+  EXPECT_EQ(1, x.NumEdges());
+  x.Insert(1, 3, 2);
+  EXPECT_EQ(1, x.NumEdges());
+  x.Insert(2, 4, 2);
+  EXPECT_EQ(2, x.NumEdges());
 }
 
 TEST(BipartiteGraph, InsertDuplicateEdges) {
@@ -46,9 +49,12 @@ TEST(BipartiteGraph, InsertDuplicateEdges) {
   // surprising, is expected. There is an argument that the Insert() function
   // should assert fail if an edge is inserted twice; for now leaving as is.
   BipartiteGraph<int, int, int> x;
-  x.Insert(1, 3, 2); EXPECT_EQ(1, x.NumEdges());
-  x.Insert(2, 3, 2); EXPECT_EQ(1, x.NumEdges());
-  x.Insert(4, 3, 1); EXPECT_EQ(1, x.NumEdges());
+  x.Insert(1, 3, 2);
+  EXPECT_EQ(1, x.NumEdges());
+  x.Insert(2, 3, 2);
+  EXPECT_EQ(1, x.NumEdges());
+  x.Insert(4, 3, 1);
+  EXPECT_EQ(1, x.NumEdges());
 }
 
 TEST(BipartiteGraph, NumLeftRight) {
@@ -70,10 +76,14 @@ TEST(BipartiteGraph, MultipleInsertions) {
   x.Insert(1, 30, 4);
   x.Insert(2, 40, 3);
   int edge;
-  EXPECT_TRUE(x.GetEdge(1, 2, &edge)); EXPECT_EQ(10, edge);
-  EXPECT_TRUE(x.GetEdge(2, 2, &edge)); EXPECT_EQ(20, edge);
-  EXPECT_TRUE(x.GetEdge(1, 4, &edge)); EXPECT_EQ(30, edge);
-  EXPECT_TRUE(x.GetEdge(2, 3, &edge)); EXPECT_EQ(40, edge);
+  EXPECT_TRUE(x.GetEdge(1, 2, &edge));
+  EXPECT_EQ(10, edge);
+  EXPECT_TRUE(x.GetEdge(2, 2, &edge));
+  EXPECT_EQ(20, edge);
+  EXPECT_TRUE(x.GetEdge(1, 4, &edge));
+  EXPECT_EQ(30, edge);
+  EXPECT_TRUE(x.GetEdge(2, 3, &edge));
+  EXPECT_EQ(40, edge);
 }
 
 TEST(BipartiteGraph, EdgeIterator) {
@@ -112,13 +122,18 @@ TEST(BipartiteGraph, LeftIterator) {
   x.Insert(2, 20, 2);
 
   BipartiteGraph<int, int, int>::LeftIterator it = x.LeftBegin();
-  ASSERT_TRUE(it != x.LeftEnd()); EXPECT_EQ(1, *it); ++it;
-  ASSERT_TRUE(it != x.LeftEnd()); EXPECT_EQ(2, *it); ++it;
+  ASSERT_TRUE(it != x.LeftEnd());
+  EXPECT_EQ(1, *it);
+  ++it;
+  ASSERT_TRUE(it != x.LeftEnd());
+  EXPECT_EQ(2, *it);
+  ++it;
   ASSERT_FALSE(it != x.LeftEnd());
 }
 
 TEST(BipartiteGraph, LeftRightEdgeIterators) {
   BipartiteGraph<int, int, int> x;
+  // clang-format off
   int expected_ler[] = {
     1, 10, 2,
     1, 30, 4,
@@ -127,6 +142,7 @@ TEST(BipartiteGraph, LeftRightEdgeIterators) {
     5, 50, 5,
     0,
   };
+  // clang-format on
   for (int i = 0; expected_ler[i]; i += 3) {
     x.Insert(expected_ler[i + 0], expected_ler[i + 1], expected_ler[i + 2]);
   }
@@ -134,9 +150,11 @@ TEST(BipartiteGraph, LeftRightEdgeIterators) {
   // Over left nodes, then incoming edges.
   int i = 0;
   for (BipartiteGraph<int, int, int>::LeftIterator it = x.LeftBegin();
-       it != x.LeftEnd(); ++it) {
+       it != x.LeftEnd();
+       ++it) {
     for (BipartiteGraph<int, int, int>::LeftEdgeIterator et = it.begin();
-         et != it.end(); ++et) {
+         et != it.end();
+         ++et) {
       EXPECT_EQ(expected_ler[i + 0], et.left());
       EXPECT_EQ(expected_ler[i + 1], et.edge());
       EXPECT_EQ(expected_ler[i + 2], et.right());
@@ -148,9 +166,11 @@ TEST(BipartiteGraph, LeftRightEdgeIterators) {
   // Over right nodes, then incoming edges.
   i = 0;
   for (BipartiteGraph<int, int, int>::RightIterator it = x.RightBegin();
-       it != x.RightEnd(); ++it) {
+       it != x.RightEnd();
+       ++it) {
     for (BipartiteGraph<int, int, int>::RightEdgeIterator et = it.begin();
-         et != it.end(); ++et) {
+         et != it.end();
+         ++et) {
       EXPECT_EQ(expected_ler[i + 0], et.left());
       EXPECT_EQ(expected_ler[i + 1], et.edge());
       EXPECT_EQ(expected_ler[i + 2], et.right());

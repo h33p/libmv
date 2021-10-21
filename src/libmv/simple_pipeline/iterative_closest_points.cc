@@ -27,10 +27,10 @@ namespace libmv {
 
 // creats two vectors of points in a way that points with euql indices
 // are belong to the same pair (closest to each other)
-static void FindClosestPoints(const vector<Vec3> &points_a,
-                              const vector<Vec3> &points_b,
-                              vector<Vec3> &closest_points_a,
-                              vector<Vec3> &closest_points_b) {
+static void FindClosestPoints(const vector<Vec3>& points_a,
+                              const vector<Vec3>& points_b,
+                              vector<Vec3>& closest_points_a,
+                              vector<Vec3>& closest_points_b) {
   if (points_b.size() < points_a.size()) {
     FindClosestPoints(points_b, points_a, closest_points_b, closest_points_a);
     return;
@@ -56,22 +56,22 @@ static void FindClosestPoints(const vector<Vec3> &points_a,
   }
 }
 
-static void TransformPointCloud(const vector<Vec3> &points,
-                                vector<Vec3> &transformed_points,
-                                const Mat3 &R,
-                                const Mat3 &S,
-                                const Vec3 &t) {
+static void TransformPointCloud(const vector<Vec3>& points,
+                                vector<Vec3>& transformed_points,
+                                const Mat3& R,
+                                const Mat3& S,
+                                const Vec3& t) {
   for (int i = 0; i < points.size(); i++) {
     Vec3 X = R * S * points[i] + t;
     transformed_points.push_back(X);
   }
 }
 
-void IterativeClosestPoints(const vector<Vec3> &reference_points,
-                            const vector<Vec3> &points,
-                            Mat3 &R,
-                            Vec3 &S,
-                            Vec3 &t,
+void IterativeClosestPoints(const vector<Vec3>& reference_points,
+                            const vector<Vec3>& points,
+                            Mat3& R,
+                            Vec3& S,
+                            Vec3& t,
                             int max_iterations,
                             double threshold) {
   // Store scale as matrix for easier math, convert to scale vector at the end
@@ -82,10 +82,8 @@ void IterativeClosestPoints(const vector<Vec3> &reference_points,
   t.setZero();
   SMat.setIdentity();
 
-  LG << "iteractive closest points on maximum iterations "
-     << max_iterations
-     << ", threshold "
-     << threshold;
+  LG << "iteractive closest points on maximum iterations " << max_iterations
+     << ", threshold " << threshold;
 
   double previous_error = 0;
 
@@ -97,7 +95,8 @@ void IterativeClosestPoints(const vector<Vec3> &reference_points,
     TransformPointCloud(points, transformed_points, R, SMat, t);
 
     // Step 1: find pairs of points which are closest to each other
-    FindClosestPoints(reference_points, transformed_points,
+    FindClosestPoints(reference_points,
+                      transformed_points,
                       closest_reference_points,
                       closest_points);
 
@@ -111,8 +110,8 @@ void IterativeClosestPoints(const vector<Vec3> &reference_points,
     Vec3 current_S;
     Mat3 current_SMat;
 
-    LG << "iteractive closest points: iteration " << (it + 1) <<
-      " for " << closest_points.size() << " points";
+    LG << "iteractive closest points: iteration " << (it + 1) << " for "
+       << closest_points.size() << " points";
 
     // Step 2: find current rigid transformation and apply it
     double error = RigidRegistration(closest_reference_points,
@@ -137,7 +136,7 @@ void IterativeClosestPoints(const vector<Vec3> &reference_points,
     // Step 3: check threshold
     if (fabs(previous_error - error) < threshold) {
       LG << "iterative closest points: "
-             "average error is below threshold, finishing";
+            "average error is below threshold, finishing";
       break;
     }
 
@@ -149,8 +148,10 @@ void IterativeClosestPoints(const vector<Vec3> &reference_points,
   S(1) = SMat(1, 1);
   S(2) = SMat(2, 2);
 
-  LG << "iterative closest points: final transformation is " << std::endl << R <<
-    std::endl << S << std::endl << t;
+  LG << "iterative closest points: final transformation is " << std::endl
+     << R << std::endl
+     << S << std::endl
+     << t;
 }
 
 }  // namespace libmv

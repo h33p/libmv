@@ -28,12 +28,13 @@ namespace {
 
 // Check that the E matrix has the essential matrix properties; in other words,
 // the determinant is zero, and the other two singular values are the same.
-#define EXPECT_ESSENTIAL_MATRIX_PROPERTIES(E, expectedPrecision) { \
-  EXPECT_NEAR(0, E.determinant(), expectedPrecision); \
-  Mat3 O = 2 * E * E.transpose() * E - (E * E.transpose()).trace() * E; \
-  Mat3 zero3x3 = Mat3::Zero(); \
-  EXPECT_MATRIX_NEAR(zero3x3, O, expectedPrecision); \
-}
+#define EXPECT_ESSENTIAL_MATRIX_PROPERTIES(E, expectedPrecision)               \
+  {                                                                            \
+    EXPECT_NEAR(0, E.determinant(), expectedPrecision);                        \
+    Mat3 O = 2 * E * E.transpose() * E - (E * E.transpose()).trace() * E;      \
+    Mat3 zero3x3 = Mat3::Zero();                                               \
+    EXPECT_MATRIX_NEAR(zero3x3, O, expectedPrecision);                         \
+  }
 
 TEST(FivePointsRelativePoseKernel, CircularCameraRig) {
   typedef essential::kernel::FivePointKernel Kernel;
@@ -42,23 +43,18 @@ TEST(FivePointsRelativePoseKernel, CircularCameraRig) {
   int focal = 1000;
   int principal_point = 500;
   Mat3 K;
-  K << focal,     0, principal_point,
-           0, focal, principal_point,
-           0,     0, 1;
+  K << focal, 0, principal_point, 0, focal, principal_point, 0, 0, 1;
 
-  // Create a circular camera rig and assert that five point relative pose works.
+  // Create a circular camera rig and assert that five point relative pose
+  // works.
   const int num_views = 5;
   NViewDataSet d = NRealisticCamerasFull(
       num_views,
       Kernel::MINIMUM_SAMPLES,
-      nViewDatasetConfigator(focal,
-                             focal,
-                             principal_point,
-                             principal_point,
-                             5,
-                             0));
+      nViewDatasetConfigator(
+          focal, focal, principal_point, principal_point, 5, 0));
 
-  for (int i = 0; i < num_views; ++i)  {
+  for (int i = 0; i < num_views; ++i) {
     vector<Mat3> Es, Rs;  // Essential and rotation matrices.
     vector<Vec3> ts;      // Translation matrices.
 
@@ -80,11 +76,8 @@ TEST(FivePointsRelativePoseKernel, CircularCameraRig) {
       Vec2 x1Col, x2Col;
       x1Col << d.x[0].col(i)(0), d.x[0].col((i + 1) % num_views)(1);
       x2Col << d.x[1].col(i)(0), d.x[1].col((i + 1) % num_views)(1);
-      CHECK(MotionFromEssentialAndCorrespondence(Es[s],
-            d.K[0], x1Col,
-            d.K[1], x2Col,
-            &Rs[s],
-            &ts[s]));
+      CHECK(MotionFromEssentialAndCorrespondence(
+          Es[s], d.K[0], x1Col, d.K[1], x2Col, &Rs[s], &ts[s]));
     }
 
     // Compute the ground truth motion.
@@ -94,7 +87,8 @@ TEST(FivePointsRelativePoseKernel, CircularCameraRig) {
                          d.t[i],
                          d.R[(i + 1) % num_views],
                          d.t[(i + 1) % num_views],
-                         &R, &t);
+                         &R,
+                         &t);
 
     // Assert that found relative motion is correct for at least one model.
     bool solution_found = false;
@@ -108,9 +102,9 @@ TEST(FivePointsRelativePoseKernel, CircularCameraRig) {
       }
 
       // Check that we find the correct relative orientation.
-      if (FrobeniusDistance(R, Rs[j]) < 1e-3
-        && (t / t.norm() - ts[j] / ts[j].norm()).norm() < 1e-3 ) {
-          solution_found = true;
+      if (FrobeniusDistance(R, Rs[j]) < 1e-3 &&
+          (t / t.norm() - ts[j] / ts[j].norm()).norm() < 1e-3) {
+        solution_found = true;
       }
     }
     CHECK(solution_found);

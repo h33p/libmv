@@ -22,92 +22,70 @@
 
 #include <Eigen/QR>
 
+#include "libmv/multiview/five_point_internal.h"
 #include "libmv/multiview/fundamental.h"
 #include "libmv/multiview/fundamental_kernel.h"
-#include "libmv/multiview/five_point_internal.h"
 
 namespace libmv {
 
-Mat FivePointsNullspaceBasis(const Mat2X &x1, const Mat2X &x2) {
+Mat FivePointsNullspaceBasis(const Mat2X& x1, const Mat2X& x2) {
   Matrix<double, 9, 9> A;
   A.setZero();  // Make A square until Eigen supports rectangular SVD.
   fundamental::kernel::EncodeEpipolarEquation(x1, x2, &A);
-  Eigen::JacobiSVD<Matrix<double, 9, 9> > svd;
+  Eigen::JacobiSVD<Matrix<double, 9, 9>> svd;
   return svd.compute(A, Eigen::ComputeFullV).matrixV().topRightCorner<9, 4>();
 }
 
-Vec o1(const Vec &a, const Vec &b) {
+Vec o1(const Vec& a, const Vec& b) {
   Vec res = Vec::Zero(20);
 
   res(coef_xx) = a(coef_x) * b(coef_x);
-  res(coef_xy) = a(coef_x) * b(coef_y)
-               + a(coef_y) * b(coef_x);
-  res(coef_xz) = a(coef_x) * b(coef_z)
-               + a(coef_z) * b(coef_x);
+  res(coef_xy) = a(coef_x) * b(coef_y) + a(coef_y) * b(coef_x);
+  res(coef_xz) = a(coef_x) * b(coef_z) + a(coef_z) * b(coef_x);
   res(coef_yy) = a(coef_y) * b(coef_y);
-  res(coef_yz) = a(coef_y) * b(coef_z)
-               + a(coef_z) * b(coef_y);
+  res(coef_yz) = a(coef_y) * b(coef_z) + a(coef_z) * b(coef_y);
   res(coef_zz) = a(coef_z) * b(coef_z);
-  res(coef_x)  = a(coef_x) * b(coef_1)
-               + a(coef_1) * b(coef_x);
-  res(coef_y)  = a(coef_y) * b(coef_1)
-               + a(coef_1) * b(coef_y);
-  res(coef_z)  = a(coef_z) * b(coef_1)
-               + a(coef_1) * b(coef_z);
-  res(coef_1)  = a(coef_1) * b(coef_1);
+  res(coef_x) = a(coef_x) * b(coef_1) + a(coef_1) * b(coef_x);
+  res(coef_y) = a(coef_y) * b(coef_1) + a(coef_1) * b(coef_y);
+  res(coef_z) = a(coef_z) * b(coef_1) + a(coef_1) * b(coef_z);
+  res(coef_1) = a(coef_1) * b(coef_1);
 
   return res;
 }
 
-Vec o2(const Vec &a, const Vec &b) {
+Vec o2(const Vec& a, const Vec& b) {
   Vec res(20);
 
   res(coef_xxx) = a(coef_xx) * b(coef_x);
-  res(coef_xxy) = a(coef_xx) * b(coef_y)
-                + a(coef_xy) * b(coef_x);
-  res(coef_xxz) = a(coef_xx) * b(coef_z)
-                + a(coef_xz) * b(coef_x);
-  res(coef_xyy) = a(coef_xy) * b(coef_y)
-                + a(coef_yy) * b(coef_x);
-  res(coef_xyz) = a(coef_xy) * b(coef_z)
-                + a(coef_yz) * b(coef_x)
-                + a(coef_xz) * b(coef_y);
-  res(coef_xzz) = a(coef_xz) * b(coef_z)
-                + a(coef_zz) * b(coef_x);
+  res(coef_xxy) = a(coef_xx) * b(coef_y) + a(coef_xy) * b(coef_x);
+  res(coef_xxz) = a(coef_xx) * b(coef_z) + a(coef_xz) * b(coef_x);
+  res(coef_xyy) = a(coef_xy) * b(coef_y) + a(coef_yy) * b(coef_x);
+  res(coef_xyz) =
+      a(coef_xy) * b(coef_z) + a(coef_yz) * b(coef_x) + a(coef_xz) * b(coef_y);
+  res(coef_xzz) = a(coef_xz) * b(coef_z) + a(coef_zz) * b(coef_x);
   res(coef_yyy) = a(coef_yy) * b(coef_y);
-  res(coef_yyz) = a(coef_yy) * b(coef_z)
-                + a(coef_yz) * b(coef_y);
-  res(coef_yzz) = a(coef_yz) * b(coef_z)
-                + a(coef_zz) * b(coef_y);
+  res(coef_yyz) = a(coef_yy) * b(coef_z) + a(coef_yz) * b(coef_y);
+  res(coef_yzz) = a(coef_yz) * b(coef_z) + a(coef_zz) * b(coef_y);
   res(coef_zzz) = a(coef_zz) * b(coef_z);
-  res(coef_xx)  = a(coef_xx) * b(coef_1)
-                + a(coef_x)  * b(coef_x);
-  res(coef_xy)  = a(coef_xy) * b(coef_1)
-                + a(coef_x)  * b(coef_y)
-                + a(coef_y)  * b(coef_x);
-  res(coef_xz)  = a(coef_xz) * b(coef_1)
-                + a(coef_x)  * b(coef_z)
-                + a(coef_z)  * b(coef_x);
-  res(coef_yy)  = a(coef_yy) * b(coef_1)
-                + a(coef_y)  * b(coef_y);
-  res(coef_yz)  = a(coef_yz) * b(coef_1)
-                + a(coef_y)  * b(coef_z)
-                + a(coef_z)  * b(coef_y);
-  res(coef_zz)  = a(coef_zz) * b(coef_1)
-                + a(coef_z)  * b(coef_z);
-  res(coef_x)   = a(coef_x)  * b(coef_1)
-                + a(coef_1)  * b(coef_x);
-  res(coef_y)   = a(coef_y)  * b(coef_1)
-                + a(coef_1)  * b(coef_y);
-  res(coef_z)   = a(coef_z)  * b(coef_1)
-                + a(coef_1)  * b(coef_z);
-  res(coef_1)   = a(coef_1)  * b(coef_1);
+  res(coef_xx) = a(coef_xx) * b(coef_1) + a(coef_x) * b(coef_x);
+  res(coef_xy) =
+      a(coef_xy) * b(coef_1) + a(coef_x) * b(coef_y) + a(coef_y) * b(coef_x);
+  res(coef_xz) =
+      a(coef_xz) * b(coef_1) + a(coef_x) * b(coef_z) + a(coef_z) * b(coef_x);
+  res(coef_yy) = a(coef_yy) * b(coef_1) + a(coef_y) * b(coef_y);
+  res(coef_yz) =
+      a(coef_yz) * b(coef_1) + a(coef_y) * b(coef_z) + a(coef_z) * b(coef_y);
+  res(coef_zz) = a(coef_zz) * b(coef_1) + a(coef_z) * b(coef_z);
+  res(coef_x) = a(coef_x) * b(coef_1) + a(coef_1) * b(coef_x);
+  res(coef_y) = a(coef_y) * b(coef_1) + a(coef_1) * b(coef_y);
+  res(coef_z) = a(coef_z) * b(coef_1) + a(coef_1) * b(coef_z);
+  res(coef_1) = a(coef_1) * b(coef_1);
 
   return res;
 }
 
 // Builds the polynomial constraint matrix M.
-Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
+Mat FivePointsPolynomialConstraints(const Mat& E_basis) {
   // Build the polynomial form of E (equation (8) in Stewenius et al. [1])
   Vec E[3][3];
   for (int i = 0; i < 3; ++i) {
@@ -135,9 +113,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   for (int i = 0; i < 3; ++i) {    // Since EET is symmetric, we only compute
     for (int j = 0; j < 3; ++j) {  // its upper triangular part.
       if (i <= j) {
-        EET[i][j] = o1(E[i][0], E[j][0])
-                  + o1(E[i][1], E[j][1])
-                  + o1(E[i][2], E[j][2]);
+        EET[i][j] =
+            o1(E[i][0], E[j][0]) + o1(E[i][1], E[j][1]) + o1(E[i][2], E[j][2]);
       } else {
         EET[i][j] = EET[j][i];
       }
@@ -145,8 +122,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   }
 
   // Equation (21).
-  Vec (&L)[3][3] = EET;
-  Vec trace  = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
+  Vec(&L)[3][3] = EET;
+  Vec trace = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
   for (int i = 0; i < 3; ++i) {
     L[i][i] -= trace;
   }
@@ -154,9 +131,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   // Equation (23).
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      Vec LEij = o2(L[i][0], E[0][j])
-               + o2(L[i][1], E[1][j])
-               + o2(L[i][2], E[2][j]);
+      Vec LEij =
+          o2(L[i][0], E[0][j]) + o2(L[i][1], E[1][j]) + o2(L[i][2], E[2][j]);
       M.row(mrow++) = LEij;
     }
   }
@@ -165,8 +141,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
 }
 
 // Gauss--Jordan elimination for the constraint matrix.
-void FivePointsGaussJordan(Mat *Mp) {
-  Mat &M = *Mp;
+void FivePointsGaussJordan(Mat* Mp) {
+  Mat& M = *Mp;
 
   // Gauss Elimination.
   for (int i = 0; i < 10; ++i) {
@@ -184,9 +160,9 @@ void FivePointsGaussJordan(Mat *Mp) {
   }
 }
 
-void FivePointsRelativePose(const Mat2X &x1,
-                            const Mat2X &x2,
-                            vector<Mat3> *Es) {
+void FivePointsRelativePose(const Mat2X& x1,
+                            const Mat2X& x2,
+                            vector<Mat3>* Es) {
   // Step 1: Nullspace exrtraction.
   Mat E_basis = FivePointsNullspaceBasis(x1, x2);
 
@@ -249,4 +225,3 @@ void FivePointsRelativePose(const Mat2X &x1,
 }
 
 }  // namespace libmv
-

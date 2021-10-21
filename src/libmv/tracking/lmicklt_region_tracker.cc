@@ -20,31 +20,30 @@
 
 #include "libmv/tracking/lmicklt_region_tracker.h"
 
-#include "libmv/logging/logging.h"
-#include "libmv/image/image.h"
 #include "libmv/image/convolve.h"
+#include "libmv/image/image.h"
 #include "libmv/image/sample.h"
+#include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
 
 namespace libmv {
 
 // TODO(keir): Reduce duplication between here and the other region trackers.
-static bool RegionIsInBounds(const FloatImage &image1,
-                      double x, double y,
-                      int half_window_size) {
+static bool RegionIsInBounds(const FloatImage& image1,
+                             double x,
+                             double y,
+                             int half_window_size) {
   // Check the minimum coordinates.
   int min_x = floor(x) - half_window_size - 1;
   int min_y = floor(y) - half_window_size - 1;
-  if (min_x < 0.0 ||
-      min_y < 0.0) {
+  if (min_x < 0.0 || min_y < 0.0) {
     return false;
   }
 
   // Check the maximum coordinates.
   int max_x = ceil(x) + half_window_size + 1;
   int max_y = ceil(y) + half_window_size + 1;
-  if (max_x > image1.cols() ||
-      max_y > image1.rows()) {
+  if (max_x > image1.cols() || max_y > image1.rows()) {
     return false;
   }
 
@@ -53,16 +52,17 @@ static bool RegionIsInBounds(const FloatImage &image1,
 }
 
 // Estimate "reasonable" error by computing autocorrelation for a small shift.
-static double EstimateReasonableError(const FloatImage &image,
-                               double x, double y,
-                               int half_width) {
+static double EstimateReasonableError(const FloatImage& image,
+                                      double x,
+                                      double y,
+                                      int half_width) {
   double error = 0.0;
   for (int r = -half_width; r <= half_width; ++r) {
     for (int c = -half_width; c <= half_width; ++c) {
       double s = SampleLinear(image, y + r, x + c, 0);
       double e1 = SampleLinear(image, y + r + 0.5, x + c, 0) - s;
       double e2 = SampleLinear(image, y + r, x + c + 0.5, 0) - s;
-      error += e1*e1 + e2*e2;
+      error += e1 * e1 + e2 * e2;
     }
   }
   return error / 2.0 * 8.0;
@@ -70,10 +70,12 @@ static double EstimateReasonableError(const FloatImage &image,
 
 // This is implemented from "Lukas and Kanade 20 years on: Part 1. Page 42,
 // figure 14: the Levenberg-Marquardt-Inverse Compositional Algorithm".
-bool LmickltRegionTracker::Track(const FloatImage &image1,
-                             const FloatImage &image2,
-                             double  x1, double  y1,
-                             double *x2, double *y2) const {
+bool LmickltRegionTracker::Track(const FloatImage& image1,
+                                 const FloatImage& image2,
+                                 double x1,
+                                 double y1,
+                                 double* x2,
+                                 double* y2) const {
   if (!RegionIsInBounds(image1, x1, y1, half_window_size)) {
     LG << "Fell out of image1's window with x1=" << x1 << ", y1=" << y1
        << ", hw=" << half_window_size << ".";
@@ -96,7 +98,11 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
   // subpixel position x1, x2. This is reused for each iteration, so
   // precomputing it saves time.
   Array3Df image_and_gradient1_sampled;
-  SamplePattern(image_and_gradient1, x1, y1, half_window_size, 3,
+  SamplePattern(image_and_gradient1,
+                x1,
+                y1,
+                half_window_size,
+                3,
                 &image_and_gradient1_sampled);
 
   // Step 0: Initialize delta = 0.01.
@@ -111,7 +117,11 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
   // Use two images for accepting / rejecting updates.
   int current_image = 0, new_image = 1;
   Array3Df image2_sampled[2];
-  SamplePattern(image_and_gradient2, *x2, *y2, half_window_size, 1,
+  SamplePattern(image_and_gradient2,
+                *x2,
+                *y2,
+                half_window_size,
+                1,
                 &image2_sampled[current_image]);
 
   // Step 2: Compute the squared error I - J.
@@ -120,7 +130,7 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
     for (int c = 0; c < width; ++c) {
       double e = image_and_gradient1_sampled(r, c, 0) -
                  image2_sampled[current_image](r, c, 0);
-      error += e*e;
+      error += e * e;
     }
   }
 
@@ -178,7 +188,7 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
     }
 
     // Step 8: Compute Hlm and (dx,dy)
-    Mat2 diag  = H.diagonal().asDiagonal();
+    Mat2 diag = H.diagonal().asDiagonal();
     diag *= mu;
     Mat2 Hlm = H + diag;
     Vec2 d = Hlm.lu().solve(z);
@@ -193,7 +203,11 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
     double new_y2 = *y2 - d[1];
 
     // Step 9.1: Sample the image at the new position.
-    SamplePattern(image_and_gradient2, new_x2, new_y2, half_window_size, 1,
+    SamplePattern(image_and_gradient2,
+                  new_x2,
+                  new_y2,
+                  half_window_size,
+                  1,
                   &image2_sampled[new_image]);
 
     // Step 9.2: Compute the new error.
@@ -203,7 +217,7 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
       for (int c = 0; c < width; ++c) {
         double e = image_and_gradient1_sampled(r, c, 0) -
                    image2_sampled[new_image](r, c, 0);
-        new_error += e*e;
+        new_error += e * e;
       }
     }
     LG << "Old error: " << error << ", new error: " << new_error;
@@ -211,8 +225,8 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
     // If the step was accepted, then check for termination.
     if (d.squaredNorm() < min_update_squared_distance) {
       if (new_error > reasonable_error) {
-        LG << "Update size shrank but reasonable error ("
-           << reasonable_error << ") not achieved; failing.";
+        LG << "Update size shrank but reasonable error (" << reasonable_error
+           << ") not achieved; failing.";
         return false;
       }
       LG << "Successful track in " << i << " iterations.";
@@ -234,7 +248,7 @@ bool LmickltRegionTracker::Track(const FloatImage &image1,
       std::swap(new_image, current_image);
       error = new_error;
 
-      mu *= std::max(1/3., 1 - pow(2*rho - 1, 3));
+      mu *= std::max(1 / 3., 1 - pow(2 * rho - 1, 3));
       nu = 2;
     }
   }

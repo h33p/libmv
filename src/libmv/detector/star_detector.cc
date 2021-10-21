@@ -33,22 +33,22 @@ namespace detector {
 class StarDetector : public Detector {
  public:
   StarDetector(bool bRotationInvariant)
-    : bRotationInvariant_(bRotationInvariant) {}
+      : bRotationInvariant_(bRotationInvariant) {}
   virtual ~StarDetector() {}
 
-  virtual void Detect(const Image &image,
-                      vector<Feature *> *features,
-                      DetectorData **data) {
-    ByteImage *byte_image = image.AsArray3Du();
+  virtual void Detect(const Image& image,
+                      vector<Feature*>* features,
+                      DetectorData** data) {
+    ByteImage* byte_image = image.AsArray3Du();
 
     FloatImage responses(byte_image->Height(), byte_image->Width(), 1);
     ShortImage sizes(byte_image->Height(), byte_image->Width(), 1);
 
-    int iBorder = icvStarDetectorComputeResponses(*byte_image, &responses,
-                                                  &sizes, 45);
+    int iBorder =
+        icvStarDetectorComputeResponses(*byte_image, &responses, &sizes, 45);
 
     if (iBorder >= 0)
-        icvStarDetectorSuppressNonmax(responses, sizes, features, iBorder);
+      icvStarDetectorSuppressNonmax(responses, sizes, features, iBorder);
 
     if (bRotationInvariant_) {
       // rotation response is more stable on response image
@@ -66,7 +66,7 @@ class StarDetector : public Detector {
   bool bRotationInvariant_;
 };
 
-Detector *CreateStarDetector(bool bRotationInvariant) {
+Detector* CreateStarDetector(bool bRotationInvariant) {
   return new StarDetector(bRotationInvariant);
 }
 

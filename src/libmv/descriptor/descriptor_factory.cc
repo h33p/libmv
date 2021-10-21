@@ -18,37 +18,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-
 #include "libmv/descriptor/descriptor_factory.h"
-#include "libmv/descriptor/descriptor.h"
-#include "libmv/descriptor/simpliest_descriptor.h"
-#include "libmv/descriptor/dipole_descriptor.h"
-#include "libmv/descriptor/surf_descriptor.h"
 #include "libmv/descriptor/daisy_descriptor.h"
+#include "libmv/descriptor/descriptor.h"
+#include "libmv/descriptor/dipole_descriptor.h"
+#include "libmv/descriptor/simpliest_descriptor.h"
+#include "libmv/descriptor/surf_descriptor.h"
 #include "libmv/logging/logging.h"
 
 namespace libmv {
 namespace descriptor {
 
-Describer *describerFactory(eDescriber edescriber)  {
+Describer* describerFactory(eDescriber edescriber) {
   switch (edescriber) {
-  case SIMPLEST_DESCRIBER:
-    return descriptor::CreateSimpliestDescriber();
-    break;
-  case DIPOLE_DESCRIBER:
-    return descriptor::CreateDipoleDescriber();
-    break;
-  case SURF_DESCRIBER:
-    return descriptor::CreateSurfDescriber();
-    break;
-  case DAISY_DESCRIBER:
-    return descriptor::CreateDaisyDescriber();
-    break;
-  default:
-    LOG(FATAL) << "ERROR : undefined Describer value : " << edescriber;
+    case SIMPLEST_DESCRIBER:
+      return descriptor::CreateSimpliestDescriber();
+      break;
+    case DIPOLE_DESCRIBER: return descriptor::CreateDipoleDescriber(); break;
+    case SURF_DESCRIBER: return descriptor::CreateSurfDescriber(); break;
+    case DAISY_DESCRIBER: return descriptor::CreateDaisyDescriber(); break;
+    default: LOG(FATAL) << "ERROR : undefined Describer value : " << edescriber;
   }
   return NULL;
 }
 
-}  // namespace detector
+}  // namespace descriptor
 }  // namespace libmv

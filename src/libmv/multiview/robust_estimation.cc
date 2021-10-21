@@ -20,13 +20,11 @@
 
 #include "libmv/multiview/robust_estimation.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <algorithm>
 #include <set>
 
 #include "libmv/numeric/numeric.h"
 
-namespace libmv {
-
-}  // namespace libmv
+namespace libmv {}  // namespace libmv

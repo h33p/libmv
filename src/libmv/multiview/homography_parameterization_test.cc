@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/homography_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "testing/testing.h"
 
 namespace {
@@ -27,9 +27,8 @@ using namespace libmv;
 
 TEST(Homography2DNormalizedParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec8 p; p << 1, 2, 3,
-               4, 5, 6,
-               7, 8;
+  Vec8 p;
+  p << 1, 2, 3, 4, 5, 6, 7, 8;
   Vec8 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -48,10 +47,8 @@ TEST(Homography2DNormalizedParameterization, Roundtripping) {
 
 TEST(Homography3DNormalizedParameterization, Roundtripping) {
   Mat4 h, h_roundtrip;
-  Vec15 p; p << 1,  2,  3,  4,
-                5,  6,  7,  8,
-                9, 10, 11, 12,
-               13, 14, 15;
+  Vec15 p;
+  p << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15;
   Vec15 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.

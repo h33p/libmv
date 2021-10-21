@@ -25,13 +25,13 @@
 
 #include "libmv/logging/logging.h"
 #include "libmv/multiview/projection.h"
-#include "libmv/simple_pipeline/reconstruction.h"
 #include "libmv/simple_pipeline/camera_intrinsics.h"
+#include "libmv/simple_pipeline/reconstruction.h"
 
 namespace libmv {
 
 // Finds a transformation H such that P * H = [I|0].
-Mat4 NormalizingTransform(const Mat34 &P) {
+Mat4 NormalizingTransform(const Mat34& P) {
   // Assuming that
   //
   //   P1 = [Q | q] ,
@@ -50,8 +50,7 @@ Mat4 NormalizingTransform(const Mat34 &P) {
   Vec3 q = P.col(3);
 
   Mat4 H;
-  H << Q_inverse,  q,
-       0., 0., 0., 1.;
+  H << Q_inverse, q, 0., 0., 0., 1.;
   return H;
 }
 
@@ -80,7 +79,7 @@ Mat3 FindZeroingRotation(Vec3 x) {
   // An arbitrary vector perpendicular to x. Note that this vector is not
   // required to be perpendicular, but choose it so to keep the QR
   // decomposition stable. This may not be necessary, oh well.
-  M.col(1) = Vec3(x(2), x(2), - x(0) - x(1));
+  M.col(1) = Vec3(x(2), x(2), -x(0) - x(1));
 
   // Pick another arbitrary vector; this one perpendicular to the prevous two.
   M.col(2) = x.cross(M.col(1));
@@ -91,8 +90,7 @@ Mat3 FindZeroingRotation(Vec3 x) {
 }
 
 // Assumes P1 = [I|0].
-Vec3 ComputePlaneAtInfinityGivenFocalLength(double f,
-                                            const Mat34 &P2) {
+Vec3 ComputePlaneAtInfinityGivenFocalLength(double f, const Mat34& P2) {
   // In the paper's equation 3, they use P2' = [Q2|q2], but instead take
   //
   //   P2' = [Q|q]
@@ -108,9 +106,7 @@ Vec3 ComputePlaneAtInfinityGivenFocalLength(double f,
   // This assumes K is the same for both cameras, and centering is already
   // corrected for, so create K as such.
   Mat3 K;
-  K << f,  0., 0.,
-       0., f,  0.,
-       0., 0., 1.;
+  K << f, 0., 0., 0., f, 0., 0., 0., 1.;
   Mat3 K_inverse = K.inverse();
 
   // With K, q, and lambda, compute t2 for the second camera; note that the
@@ -133,8 +129,8 @@ Vec3 ComputePlaneAtInfinityGivenFocalLength(double f,
 }
 
 Mat4 ComputeUpgradeHomographyFromCamerasGivenFocalLength(double f,
-                                                         const Mat34 &P1,
-                                                         const Mat34 &P2) {
+                                                         const Mat34& P1,
+                                                         const Mat34& P2) {
   // Transform both cameras such that P1 = [I|0].
   Mat4 H_normalizer = NormalizingTransform(P1);
   Mat34 P2H = P2 * H_normalizer;
@@ -145,11 +141,9 @@ Mat4 ComputeUpgradeHomographyFromCamerasGivenFocalLength(double f,
 
   // Form the upgrading homography H.
   Mat4 H;
-  H << f,  0., 0.,    0.,
-       0., f,  0.,    0.,
-       0., 0., 1.,    0.,
+  H << f, 0., 0., 0., 0., f, 0., 0., 0., 0., 1., 0.,
 
-       v.transpose(), 1.;
+      v.transpose(), 1.;
 
   // The full upgrade homography is the concatenation of H_normalizer and H.
   return H_normalizer * H;
@@ -185,7 +179,7 @@ double RelativeDifference(double x, double y) {
 // ratio, rather than the absolute difference of the focal lengths.
 // Furthermore, since this assumes equal focal lengths, the recovered focal
 // length is compared to the expected focal length.
-double CostForProjectiveMatrix(double expected_focal_length, const Mat34 &P) {
+double CostForProjectiveMatrix(double expected_focal_length, const Mat34& P) {
   Mat3 K;
   Mat3 R;
   Vec3 t;
@@ -199,8 +193,8 @@ double CostForProjectiveMatrix(double expected_focal_length, const Mat34 &P) {
   double cy = fabs(K(1, 2));
 
   // Penalize deviation from the guessed focal length.
-  double focal_length_error_cost = RelativeDifference(expected_focal_length,
-                                                      average_focal_length);
+  double focal_length_error_cost =
+      RelativeDifference(expected_focal_length, average_focal_length);
 
   // Penalize deviation from equal aspect ratio.
   double fraction_off_equal_aspect_ratio_cost = RelativeDifference(fx, fy);
@@ -212,10 +206,10 @@ double CostForProjectiveMatrix(double expected_focal_length, const Mat34 &P) {
   double principal_point_cost = cx + cy;
 
   // Combine costs, with approximate weights.
-  double weighted_cost =   1. / 0.05   * focal_length_error_cost +
-                           1. / 0.001  * fraction_off_equal_aspect_ratio_cost +
-                           1. / 0.0005 * skew_cost +
-                           1. / 0.01   * principal_point_cost;
+  double weighted_cost = 1. / 0.05 * focal_length_error_cost +
+                         1. / 0.001 * fraction_off_equal_aspect_ratio_cost +
+                         1. / 0.0005 * skew_cost +
+                         1. / 0.01 * principal_point_cost;
 
   // Rescale for small errors; doesn't matter since it's relative.
   weighted_cost /= 100;
@@ -226,16 +220,15 @@ double CostForProjectiveMatrix(double expected_focal_length, const Mat34 &P) {
 void UpgradeProjectiveReconstructionToEuclidean(
     int keyframe1,
     int keyframe2,
-    const ProjectiveReconstruction &projective_reconstruction,
-    EuclideanReconstruction *euclidean_reconstruction,
-    PolynomialCameraIntrinsics *camera_intrinsics) {
+    const ProjectiveReconstruction& projective_reconstruction,
+    EuclideanReconstruction* euclidean_reconstruction,
+    PolynomialCameraIntrinsics* camera_intrinsics) {
   const int kNumFocalsToTry = 100;
 
   Mat34 P1 = projective_reconstruction.CameraForImage(keyframe1)->P;
   Mat34 P2 = projective_reconstruction.CameraForImage(keyframe2)->P;
 
-  vector<ProjectiveCamera> all_cameras =
-    projective_reconstruction.AllCameras();
+  vector<ProjectiveCamera> all_cameras = projective_reconstruction.AllCameras();
 
   // Compute the costs for each choice of focal length.
   vector<double> costs(kNumFocalsToTry, 0.0);
@@ -271,8 +264,8 @@ void UpgradeProjectiveReconstructionToEuclidean(
       best_cost = costs[i];
     }
   }
-  LG << "Best focal length was " << best_focal_length
-     << " with cost " << best_cost;
+  LG << "Best focal length was " << best_focal_length << " with cost "
+     << best_cost;
 
   // Set the intrinsics to the best one. Since the reconstruction is
   // quasicalibrated, only the focal length needs setting.

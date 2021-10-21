@@ -24,22 +24,22 @@
 
 #include <map>
 
-#include "libmv/numeric/numeric.h"
 #include "libmv/logging/logging.h"
+#include "libmv/numeric/numeric.h"
+#include "third_party/ssba/Geometry/v3d_metricbundle.h"
 #include "third_party/ssba/Math/v3d_linear.h"
 #include "third_party/ssba/Math/v3d_linear_utils.h"
-#include "third_party/ssba/Geometry/v3d_metricbundle.h"
 
 namespace libmv {
 
-static double
-showErrorStatistics(double const f0,
-                    V3D::StdDistortionFunction const& distortion,
-                    std::vector<V3D::CameraMatrix> const& cams,
-                    std::vector<V3D::Vector3d> const& Xs,
-                    std::vector<V3D::Vector2d> const& measurements,
-                    std::vector<int> const& correspondingView,
-                    std::vector<int> const& correspondingPoint) {
+static double showErrorStatistics(
+    double const f0,
+    V3D::StdDistortionFunction const& distortion,
+    std::vector<V3D::CameraMatrix> const& cams,
+    std::vector<V3D::Vector3d> const& Xs,
+    std::vector<V3D::Vector2d> const& measurements,
+    std::vector<int> const& correspondingView,
+    std::vector<int> const& correspondingPoint) {
   using namespace V3D;
   int const K = measurements.size();
 
@@ -51,32 +51,26 @@ showErrorStatistics(double const f0,
     meanReprojectionError += Square(norm_L2(f0 * (p - measurements[k])));
   }
   VLOG(3) << "mean reprojection error (in pixels): "
-            << sqrt(meanReprojectionError/K) << std::endl;
-  return sqrt(meanReprojectionError/K);
+          << sqrt(meanReprojectionError / K) << std::endl;
+  return sqrt(meanReprojectionError / K);
 }
 
 uint ConvertTypeV3D(eLibmvBundleType type) {
   switch (type) {
-     case eBUNDLE_METRIC:
-       return V3D::FULL_BUNDLE_METRIC;
-     case eBUNDLE_FOCAL_LENGTH:
-       return V3D::FULL_BUNDLE_FOCAL_LENGTH;
-     case eBUNDLE_FOCAL_LENGTH_PP:
-       return V3D::FULL_BUNDLE_FOCAL_LENGTH_PP;
-      case eBUNDLE_RADIAL:
-        return V3D::FULL_BUNDLE_RADIAL;
-      case eBUNDLE_RADIAL_TANGENTIAL:
-        return V3D::FULL_BUNDLE_RADIAL_TANGENTIAL;
+    case eBUNDLE_METRIC: return V3D::FULL_BUNDLE_METRIC;
+    case eBUNDLE_FOCAL_LENGTH: return V3D::FULL_BUNDLE_FOCAL_LENGTH;
+    case eBUNDLE_FOCAL_LENGTH_PP: return V3D::FULL_BUNDLE_FOCAL_LENGTH_PP;
+    case eBUNDLE_RADIAL: return V3D::FULL_BUNDLE_RADIAL;
+    case eBUNDLE_RADIAL_TANGENTIAL: return V3D::FULL_BUNDLE_RADIAL_TANGENTIAL;
   }
   return 0;
 }
 
-
-void EuclideanBAFull(const vector<Mat2X> &x,
-                     vector<Mat3> *Ks,
-                     vector<Mat3> *Rs,
-                     vector<Vec3> *ts,
-                     Mat3X *X,
+void EuclideanBAFull(const vector<Mat2X>& x,
+                     vector<Mat3>* Ks,
+                     vector<Mat3>* Rs,
+                     vector<Vec3>* ts,
+                     Mat3X* X,
                      eLibmvBundleType type) {
   using namespace V3D;
 
@@ -108,10 +102,11 @@ void EuclideanBAFull(const vector<Mat2X> &x,
   distortion.p2 = 0;
 
   double const f0 = KMat[0][0];
-  VLOG(3) << "intrinsic before bundle = "; displayMatrix(KMat);
+  VLOG(3) << "intrinsic before bundle = ";
+  displayMatrix(KMat);
   Matrix3x3d Knorm = KMat;
   // Normalize the intrinsic to have unit focal length.
-  scaleMatrixIP(1.0/f0, Knorm);
+  scaleMatrixIP(1.0 / f0, Knorm);
   Knorm[2][2] = 1.0;
 
   std::vector<Vector3d> Xs(num_pointsM);
@@ -126,9 +121,15 @@ void EuclideanBAFull(const vector<Mat2X> &x,
     Matrix3x3d R;
     Vector3d T;
 
-    R[0][0] = (*Rs)[i](0, 0); R[0][1] = (*Rs)[i](0, 1); R[0][2] = (*Rs)[i](0, 2);
-    R[1][0] = (*Rs)[i](1, 0); R[1][1] = (*Rs)[i](1, 1); R[1][2] = (*Rs)[i](1, 2);
-    R[2][0] = (*Rs)[i](2, 0); R[2][1] = (*Rs)[i](2, 1); R[2][2] = (*Rs)[i](2, 2);
+    R[0][0] = (*Rs)[i](0, 0);
+    R[0][1] = (*Rs)[i](0, 1);
+    R[0][2] = (*Rs)[i](0, 2);
+    R[1][0] = (*Rs)[i](1, 0);
+    R[1][1] = (*Rs)[i](1, 1);
+    R[1][2] = (*Rs)[i](1, 2);
+    R[2][0] = (*Rs)[i](2, 0);
+    R[2][1] = (*Rs)[i](2, 1);
+    R[2][2] = (*Rs)[i](2, 2);
     T[0] = (*ts)[i](0);
     T[1] = (*ts)[i](1);
     T[2] = (*ts)[i](2);
@@ -153,7 +154,7 @@ void EuclideanBAFull(const vector<Mat2X> &x,
       p[1] = x[i](1, j);
 
       // Normalize the measurements to match the unit focal length.
-      scaleVectorIP(1.0/f0, p);
+      scaleVectorIP(1.0 / f0, p);
       measurements.push_back(p);
       correspondingView.push_back(i);
       correspondingPoint.push_back(j);
@@ -162,36 +163,53 @@ void EuclideanBAFull(const vector<Mat2X> &x,
 
   assert(num_obsK == measurements.size());
 
-
-  showErrorStatistics(f0, distortion, cams, Xs, measurements, correspondingView,
+  showErrorStatistics(f0,
+                      distortion,
+                      cams,
+                      Xs,
+                      measurements,
+                      correspondingView,
                       correspondingPoint);
 
   V3D::optimizerVerbosenessLevel = 0;
   double const inlierThreshold = 2.0 / f0;
 
   Matrix3x3d K0 = cams[0].getIntrinsic();
-  VLOG(3) << "K0 = "; displayMatrix(K0);
+  VLOG(3) << "K0 = ";
+  displayMatrix(K0);
 
-  CommonInternalsMetricBundleOptimizer opt(mode, inlierThreshold,
-                                           K0, distortion,
-                                           cams, Xs, measurements,
+  CommonInternalsMetricBundleOptimizer opt(mode,
+                                           inlierThreshold,
+                                           K0,
+                                           distortion,
+                                           cams,
+                                           Xs,
+                                           measurements,
                                            correspondingView,
                                            correspondingPoint);
   opt.maxIterations = 50;
   opt.minimize();
   VLOG(3) << "optimizer status = " << opt.status << endl;
-  VLOG(3) << "refined K = "; displayMatrix(K0);
+  VLOG(3) << "refined K = ";
+  displayMatrix(K0);
   VLOG(3) << "distortion = " << distortion.k1 << " " << distortion.k2 << " "
-            << distortion.p1 << " " << distortion.p2 << endl;
+          << distortion.p1 << " " << distortion.p2 << endl;
 
-  for (int i = 0; i < num_camsN; ++i) cams[i].setIntrinsic(K0);
+  for (int i = 0; i < num_camsN; ++i)
+    cams[i].setIntrinsic(K0);
 
   Matrix3x3d Knew = K0;
   scaleMatrixIP(f0, Knew);
   Knew[2][2] = 1.0;
-  VLOG(3) << "Knew = "; displayMatrix(Knew);
+  VLOG(3) << "Knew = ";
+  displayMatrix(Knew);
 
-  showErrorStatistics(f0, distortion, cams, Xs, measurements, correspondingView,
+  showErrorStatistics(f0,
+                      distortion,
+                      cams,
+                      Xs,
+                      measurements,
+                      correspondingView,
                       correspondingPoint);
 
   //////////////////////////////////////////////////
@@ -228,12 +246,12 @@ void EuclideanBAFull(const vector<Mat2X> &x,
   }
 }
 
-double EuclideanBA(const vector<Mat2X> &x,
-                   const vector<Vecu> &x_ids,
-                   vector<Mat3> *Ks,
-                   vector<Mat3> *Rs,
-                   vector<Vec3> *ts,
-                   Mat3X *X,
+double EuclideanBA(const vector<Mat2X>& x,
+                   const vector<Vecu>& x_ids,
+                   vector<Mat3>* Ks,
+                   vector<Mat3>* Rs,
+                   vector<Vec3>* ts,
+                   Mat3X* X,
                    eLibmvBundleType type) {
   using namespace V3D;
 
@@ -248,8 +266,7 @@ double EuclideanBA(const vector<Mat2X> &x,
   assert(x.size() == num_camsN);
   assert(x_ids.size() == num_camsN);
   for (int i = 0; i < num_camsN; ++i) {
-    assert(x[i].cols() == x_ids[i].size() &&
-          x[i].cols() <= num_pointsM);
+    assert(x[i].cols() == x_ids[i].size() && x[i].cols() <= num_pointsM);
     num_obsK += x_ids[i].size();
   }
 
@@ -268,10 +285,11 @@ double EuclideanBA(const vector<Mat2X> &x,
   distortion.p2 = 0;
 
   double f0 = KMat[0][0];
-  VLOG(3) << "intrinsic before bundle = "; displayMatrix(KMat);
+  VLOG(3) << "intrinsic before bundle = ";
+  displayMatrix(KMat);
   Matrix3x3d Knorm = KMat;
   // Normalize the intrinsic to have unit focal length.
-  scaleMatrixIP(1.0/f0, Knorm);
+  scaleMatrixIP(1.0 / f0, Knorm);
   Knorm[2][2] = 1.0;
 
   std::vector<Vector3d> Xs(num_pointsM);
@@ -289,9 +307,15 @@ double EuclideanBA(const vector<Mat2X> &x,
     Matrix3x3d R;
     Vector3d T;
 
-    R[0][0] = (*Rs)[i](0, 0); R[0][1] = (*Rs)[i](0, 1); R[0][2] = (*Rs)[i](0, 2);
-    R[1][0] = (*Rs)[i](1, 0); R[1][1] = (*Rs)[i](1, 1); R[1][2] = (*Rs)[i](1, 2);
-    R[2][0] = (*Rs)[i](2, 0); R[2][1] = (*Rs)[i](2, 1); R[2][2] = (*Rs)[i](2, 2);
+    R[0][0] = (*Rs)[i](0, 0);
+    R[0][1] = (*Rs)[i](0, 1);
+    R[0][2] = (*Rs)[i](0, 2);
+    R[1][0] = (*Rs)[i](1, 0);
+    R[1][1] = (*Rs)[i](1, 1);
+    R[1][2] = (*Rs)[i](1, 2);
+    R[2][0] = (*Rs)[i](2, 0);
+    R[2][1] = (*Rs)[i](2, 1);
+    R[2][2] = (*Rs)[i](2, 2);
     T[0] = (*ts)[i](0);
     T[1] = (*ts)[i](1);
     T[2] = (*ts)[i](2);
@@ -303,9 +327,9 @@ double EuclideanBA(const vector<Mat2X> &x,
     Kmat_all[i][1][1] = (*Ks)[i](1, 1);
     Kmat_all[i][1][2] = (*Ks)[i](1, 2);
 
-    //f0=1;
+    // f0=1;
     cams[i].setIntrinsic(Knorm);
-    //cams[i].setIntrinsic(Kmat_all[i]);
+    // cams[i].setIntrinsic(Kmat_all[i]);
     cams[i].setRotation(R);
     cams[i].setTranslation(T);
   }
@@ -327,7 +351,7 @@ double EuclideanBA(const vector<Mat2X> &x,
       p[1] = x[i](1, j);
 
       // Normalize the measurements to match the unit focal length.
-      scaleVectorIP(1.0/f0, p);
+      scaleVectorIP(1.0 / f0, p);
       measurements.push_back(p);
       correspondingView.push_back(i);
       correspondingPoint.push_back(x_ids[i][j]);
@@ -336,37 +360,53 @@ double EuclideanBA(const vector<Mat2X> &x,
 
   assert(num_obsK == measurements.size());
 
-
-  showErrorStatistics(f0, distortion, cams, Xs, measurements, correspondingView,
+  showErrorStatistics(f0,
+                      distortion,
+                      cams,
+                      Xs,
+                      measurements,
+                      correspondingView,
                       correspondingPoint);
 
   V3D::optimizerVerbosenessLevel = 0;
   double const inlierThreshold = 2.0 / f0;
 
   Matrix3x3d K0 = cams[0].getIntrinsic();
-  VLOG(3) << "K0 = "; displayMatrix(K0);
+  VLOG(3) << "K0 = ";
+  displayMatrix(K0);
 
-  CommonInternalsMetricBundleOptimizer opt(mode, inlierThreshold,
-                                           K0, distortion,
-                                           cams, Xs, measurements,
+  CommonInternalsMetricBundleOptimizer opt(mode,
+                                           inlierThreshold,
+                                           K0,
+                                           distortion,
+                                           cams,
+                                           Xs,
+                                           measurements,
                                            correspondingView,
                                            correspondingPoint);
   opt.maxIterations = 50;
   opt.minimize();
   VLOG(3) << "optimizer status = " << opt.status << std::endl;
-  VLOG(3) << "refined K = "; displayMatrix(K0);
+  VLOG(3) << "refined K = ";
+  displayMatrix(K0);
   VLOG(3) << "distortion = " << distortion.k1 << " " << distortion.k2 << " "
-            << distortion.p1 << " " << distortion.p2 << std::endl;
+          << distortion.p1 << " " << distortion.p2 << std::endl;
 
-  for (int i = 0; i < num_camsN; ++i) cams[i].setIntrinsic(K0);
+  for (int i = 0; i < num_camsN; ++i)
+    cams[i].setIntrinsic(K0);
 
   Matrix3x3d Knew = K0;
   scaleMatrixIP(f0, Knew);
   Knew[2][2] = 1.0;
-  VLOG(3) << "Knew = "; displayMatrix(Knew);
+  VLOG(3) << "Knew = ";
+  displayMatrix(Knew);
 
-  double rms = showErrorStatistics(f0, distortion, cams,
-                                   Xs, measurements, correspondingView,
+  double rms = showErrorStatistics(f0,
+                                   distortion,
+                                   cams,
+                                   Xs,
+                                   measurements,
+                                   correspondingView,
                                    correspondingPoint);
 
   //////////////////////////////////////////////////
@@ -405,4 +445,3 @@ double EuclideanBA(const vector<Mat2X> &x,
 }
 
 }  // namespace libmv
-

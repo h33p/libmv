@@ -20,30 +20,30 @@
 
 #include "libmv/descriptor/simpliest_descriptor.h"
 
+#include <cmath>
 #include "libmv/base/vector.h"
-#include "libmv/logging/logging.h"
+#include "libmv/correspondence/feature.h"
 #include "libmv/descriptor/descriptor.h"
 #include "libmv/descriptor/vector_descriptor.h"
-#include "libmv/correspondence/feature.h"
 #include "libmv/image/image.h"
 #include "libmv/image/sample.h"
-#include <cmath>
+#include "libmv/logging/logging.h"
 
 namespace libmv {
 namespace descriptor {
 
 /// Normalize the input signal to be invariant to bias and gain.
-template < class T>
-void normalize(T * fsrc, T * fdst, int size, T &mean, T &stddev) {
+template <class T>
+void normalize(T* fsrc, T* fdst, int size, T& mean, T& stddev) {
   mean = stddev = 0;
   // Compute mean and standard deviation.
   for (int i = 0; i < size; ++i) {
-    const T & val = fsrc[i];
+    const T& val = fsrc[i];
     mean += val;
     stddev += val * val;
   }
   mean /= size;
-  stddev = sqrt((stddev - (mean * mean) )/(size - 1));
+  stddev = sqrt((stddev - (mean * mean)) / (size - 1));
   // Normalize input data.
   for (int i = 0; i < size; ++i)
     fdst[i] = (fsrc[i] - mean) / stddev;
@@ -57,8 +57,8 @@ void normalize(T * fsrc, T * fdst, int size, T &mean, T &stddev) {
 // Angle is in radian.
 // data the output array (must be allocated to 8*8).
 template <typename TImage, typename T>
-void PickPatch(const TImage & image, float x, float y, float scale,
-              double angle, T * data) {
+void PickPatch(
+    const TImage& image, float x, float y, float scale, double angle, T* data) {
   const int WINDOW_SIZE = 8;
   const float STEP = scale;
 
@@ -66,16 +66,16 @@ void PickPatch(const TImage & image, float x, float y, float scale,
   // where points we must take into account).
 
   // Setup the rotation center.
-  float & cx = x, & cy = y;
+  float &cx = x, &cy = y;
   // Rotation matrix.
   libmv::vector<double> matXY(4);
   // Clockwise rotation matrix.
-  matXY[0] =  cos(angle);
+  matXY[0] = cos(angle);
   matXY[1] = -sin(angle);
-  matXY[2] =  sin(angle);
-  matXY[3] =  cos(angle);
+  matXY[2] = sin(angle);
+  matXY[3] = cos(angle);
 
-  for (int i = 0; i < WINDOW_SIZE; ++i)  {
+  for (int i = 0; i < WINDOW_SIZE; ++i) {
     for (int j = 0; j < WINDOW_SIZE; ++j) {
       float ox = (float)(i * STEP - WINDOW_SIZE / 2.0f);
       float oy = (float)(j * STEP - WINDOW_SIZE / 2.0f);
@@ -105,17 +105,17 @@ void PickPatch(const TImage & image, float x, float y, float scale,
 
 class SimpliestDescriber : public Describer {
  public:
-  virtual void Describe(const vector<Feature *> &features,
-                        const Image &image,
-                        const detector::DetectorData *detector_data,
-                        vector<Descriptor *> *descriptors) {
-    (void) detector_data;  // There is no matching detector for SIMPLIEST.
+  virtual void Describe(const vector<Feature*>& features,
+                        const Image& image,
+                        const detector::DetectorData* detector_data,
+                        vector<Descriptor*>* descriptors) {
+    (void)detector_data;  // There is no matching detector for SIMPLIEST.
 
     const int SIMPLIEST_DESC_SIZE = 64;
     descriptors->resize(features.size());
     for (int i = 0; i < features.size(); ++i) {
-      PointFeature *point = dynamic_cast<PointFeature *>(features[i]);
-      VecfDescriptor *descriptor = NULL;
+      PointFeature* point = dynamic_cast<PointFeature*>(features[i]);
+      VecfDescriptor* descriptor = NULL;
       if (point) {
         descriptor = new VecfDescriptor(SIMPLIEST_DESC_SIZE);
         PickPatch(*(image.AsArray3Du()),
@@ -130,7 +130,7 @@ class SimpliestDescriber : public Describer {
   }
 };
 
-Describer *CreateSimpliestDescriber() {
+Describer* CreateSimpliestDescriber() {
   return new SimpliestDescriber;
 }
 

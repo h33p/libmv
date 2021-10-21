@@ -29,29 +29,35 @@
 namespace libmv {
 namespace detector {
 
-typedef xy* (*FastDetectorCall)(
-    const unsigned char *, int, int, int, int, int *);
+typedef xy* (*FastDetectorCall)(const unsigned char*, int, int, int, int, int*);
 
 class FastDetector : public Detector {
  public:
   virtual ~FastDetector() {}
-  FastDetector(FastDetectorCall detector, int threshold, int size,
-              bool bRotationInvariant)
-    : threshold_(threshold), size_(size), detector_(detector),
-    bRotationInvariant_(bRotationInvariant) {}
+  FastDetector(FastDetectorCall detector,
+               int threshold,
+               int size,
+               bool bRotationInvariant)
+      : threshold_(threshold),
+        size_(size),
+        detector_(detector),
+        bRotationInvariant_(bRotationInvariant) {}
 
-  virtual void Detect(const Image &image,
-                      vector<Feature *> *features,
-                      DetectorData **data) {
+  virtual void Detect(const Image& image,
+                      vector<Feature*>* features,
+                      DetectorData** data) {
     int num_corners = 0;
-    ByteImage *byte_image = image.AsArray3Du();
+    ByteImage* byte_image = image.AsArray3Du();
     if (byte_image) {
       xy* detections = detector_(byte_image->Data(),
-          byte_image->Width(), byte_image->Height(), byte_image->Width(),
-          threshold_, &num_corners);
+                                 byte_image->Width(),
+                                 byte_image->Height(),
+                                 byte_image->Width(),
+                                 threshold_,
+                                 &num_corners);
 
       for (int i = 0; i < num_corners; ++i) {
-        PointFeature *f = new PointFeature(detections[i].x, detections[i].y);
+        PointFeature* f = new PointFeature(detections[i].x, detections[i].y);
         f->scale = 3.0;
         f->orientation = 0.0;
         features->push_back(f);
@@ -60,7 +66,7 @@ class FastDetector : public Detector {
 
       if (bRotationInvariant_) {
         fastRotationEstimation(*byte_image, *features);
-        //gradientBoxesRotationEstimation(*byte_image,*features);
+        // gradientBoxesRotationEstimation(*byte_image,*features);
       }
     } else {
       LOG(ERROR) << "Invalid input image type for FAST detector";
@@ -75,18 +81,21 @@ class FastDetector : public Detector {
 
  private:
   int threshold_;  // Threshold called barrier in Fast paper (cf. [1]).
-  int size_;  // In pixels {9,10,11,12}.
+  int size_;       // In pixels {9,10,11,12}.
   FastDetectorCall detector_;
   bool bRotationInvariant_;
 };
 
-Detector *CreateFastDetector(int size, int threshold,
-                              bool bRotationInvariant) {
+Detector* CreateFastDetector(int size, int threshold, bool bRotationInvariant) {
   FastDetectorCall detector = NULL;
-  if (size ==  9) detector =  fast9_detect_nonmax;
-  if (size == 10) detector = fast10_detect_nonmax;
-  if (size == 11) detector = fast11_detect_nonmax;
-  if (size == 12) detector = fast12_detect_nonmax;
+  if (size == 9)
+    detector = fast9_detect_nonmax;
+  if (size == 10)
+    detector = fast10_detect_nonmax;
+  if (size == 11)
+    detector = fast11_detect_nonmax;
+  if (size == 12)
+    detector = fast12_detect_nonmax;
   if (!detector) {
     LOG(FATAL) << "Invalid size for FAST detector: " << size;
   }

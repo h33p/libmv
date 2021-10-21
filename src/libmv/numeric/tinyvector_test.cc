@@ -22,8 +22,8 @@
 // was for FLENS, but then we switched to Eigen; I ported these tests to make
 // sure everything works in Eigen as well.
 
-#include "testing/testing.h"
 #include "libmv/numeric/numeric.h"
+#include "testing/testing.h"
 
 using namespace libmv;
 
@@ -122,8 +122,7 @@ TEST(TinyVector, ListInitialization) {
 
 TEST(TinyMatrix, ListInitialization) {
   Mat2 A;
-  A << 1.0, 2.0,
-       3.0, 4.0;
+  A << 1.0, 2.0, 3.0, 4.0;
   EXPECT_EQ(A(0, 0), 1.0);
   EXPECT_EQ(A(0, 1), 2.0);
   EXPECT_EQ(A(1, 0), 3.0);
@@ -132,10 +131,8 @@ TEST(TinyMatrix, ListInitialization) {
 
 TEST(TinyMatrix, GEMMSimpleCase) {
   Mat2 A, B, C;
-  A << 1.0, 2.0,
-       3.0, 4.0;
-  B << 4.0, 5.0,
-       6.0, 7.0;
+  A << 1.0, 2.0, 3.0, 4.0;
+  B << 4.0, 5.0, 6.0, 7.0;
   C = A * B;
   EXPECT_EQ(C(0, 0), 16.0);
   EXPECT_EQ(C(0, 1), 19.0);
@@ -145,10 +142,8 @@ TEST(TinyMatrix, GEMMSimpleCase) {
 
 TEST(TinyMatrix, GEMMTransposeA) {
   Mat2 A, B, C;
-  A << 1.0, 2.0,
-       3.0, 4.0;
-  B << 4.0, 5.0,
-       6.0, 7.0;
+  A << 1.0, 2.0, 3.0, 4.0;
+  B << 4.0, 5.0, 6.0, 7.0;
   C = A.transpose() * B;
   EXPECT_EQ(C(0, 0), 22.0);
   EXPECT_EQ(C(0, 1), 26.0);
@@ -159,18 +154,14 @@ TEST(TinyMatrix, GEMMTransposeA) {
 TEST(TinyMatrix, GEMMTransposeB) {
   Mat34 A, B;
   Mat3 C;
-  A << 0,  1,  2,  3,
-       4,  5,  6,  7,
-       8,  9, 10, 11;
-  B << 1,  2,  3,  4,
-       5,  6,  7,  8,
-       9, 10, 11, 12;
+  A << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;
+  B << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
   C = A * B.transpose();
 
-  EXPECT_EQ(C(0, 0),  20);
-  EXPECT_EQ(C(0, 1),  44);
-  EXPECT_EQ(C(0, 2),  68);
-  EXPECT_EQ(C(1, 0),  60);
+  EXPECT_EQ(C(0, 0), 20);
+  EXPECT_EQ(C(0, 1), 44);
+  EXPECT_EQ(C(0, 2), 68);
+  EXPECT_EQ(C(1, 0), 60);
   EXPECT_EQ(C(1, 1), 148);
   EXPECT_EQ(C(1, 2), 236);
   EXPECT_EQ(C(2, 0), 100);
@@ -180,22 +171,16 @@ TEST(TinyMatrix, GEMMTransposeB) {
 
 TEST(Matrix, GEMMMixingVariableWithFixedMatrices) {
   Mat3 T;
-  T << 2, 0, 1,
-       0, 2, 0,
-       0, 0, 1;
+  T << 2, 0, 1, 0, 2, 0, 0, 0, 1;
 
   Mat X(3, 2);
-  X << 0,  1,
-       4,  5,
-       8,  9;
+  X << 0, 1, 4, 5, 8, 9;
 
   Mat Y(3, 2);
   Y = T * X;
 
   Mat expected_y(3, 2);
-  expected_y << 8, 11,
-                8, 10,
-                8,  9;
+  expected_y << 8, 11, 8, 10, 8, 9;
   EXPECT_EQ(expected_y, Y);
 }
 

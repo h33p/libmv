@@ -24,9 +24,9 @@
 
 namespace libmv {
 
-void ImportMatchesFromTxt(const std::string &input_file,
-                          Matches *matches,
-                          FeatureSet *feature_set) {
+void ImportMatchesFromTxt(const std::string& input_file,
+                          Matches* matches,
+                          FeatureSet* feature_set) {
   Matches::ImageID image_id = 0;
   Matches::TrackID track_id = 0;
   float x = 0, y = 0;
@@ -39,8 +39,7 @@ void ImportMatchesFromTxt(const std::string &input_file,
     KeypointFeature pf;
     pf.coords << x, y;
     feature_set->features.push_back(pf);
-    matches->Insert(image_id, track_id,
-                    &feature_set->features.back());
+    matches->Insert(image_id, track_id, &feature_set->features.back());
   }
   infile.close();
 }

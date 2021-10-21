@@ -30,20 +30,21 @@ using namespace libmv;
 /// Check that the E matrix fit the Essential Matrix properties
 /// Determinant is 0
 ///
-#define EXPECT_ESSENTIAL_MATRIX_PROPERTIES(E, expectedPrecision) { \
-  EXPECT_NEAR(0, E.determinant(), expectedPrecision); \
-  Mat3 O = 2 * E * E.transpose() * E - (E * E.transpose()).trace() * E; \
-  Mat3 zero3x3 = Mat3::Zero(); \
-  EXPECT_MATRIX_NEAR(zero3x3, O, expectedPrecision);\
-}
+#define EXPECT_ESSENTIAL_MATRIX_PROPERTIES(E, expectedPrecision)               \
+  {                                                                            \
+    EXPECT_NEAR(0, E.determinant(), expectedPrecision);                        \
+    Mat3 O = 2 * E * E.transpose() * E - (E * E.transpose()).trace() * E;      \
+    Mat3 zero3x3 = Mat3::Zero();                                               \
+    EXPECT_MATRIX_NEAR(zero3x3, O, expectedPrecision);                         \
+  }
 
 TEST(EightPointsRelativePose, test_data_sets) {
   // -- Setup a circular camera rig and assert that 8PT relative pose works.
   const int iNviews = 5;
 
   // Suppose a camera with Unit matrix as K
-  NViewDataSet d = NRealisticCamerasFull(iNviews, 8,
-    nViewDatasetConfigator(1, 1, 0, 0, 5, 0));
+  NViewDataSet d = NRealisticCamerasFull(
+      iNviews, 8, nViewDatasetConfigator(1, 1, 0, 0, 5, 0));
 
   for (int i = 0; i < iNviews; ++i) {
     vector<Mat3> Es;  // Essential,
@@ -56,24 +57,16 @@ TEST(EightPointsRelativePose, test_data_sets) {
     ts.resize(Es.size());
     for (int s = 0; s < Es.size(); ++s) {
       Vec2 x1Col, x2Col;
-      x1Col << d.x[0].col(i)(0), d.x[0].col((i+1)%iNviews)(1);
-      x2Col << d.x[1].col(i)(0), d.x[1].col((i+1)%iNviews)(1);
-      CHECK(
-        MotionFromEssentialAndCorrespondence(Es[s],
-        d.K[0],
-        x1Col,
-        d.K[1],
-        x2Col,
-        &Rs[s],
-        &ts[s]));
+      x1Col << d.x[0].col(i)(0), d.x[0].col((i + 1) % iNviews)(1);
+      x2Col << d.x[1].col(i)(0), d.x[1].col((i + 1) % iNviews)(1);
+      CHECK(MotionFromEssentialAndCorrespondence(
+          Es[s], d.K[0], x1Col, d.K[1], x2Col, &Rs[s], &ts[s]));
     }
     // -- Compute Ground Truth motion
     Mat3 R;
     Vec3 t, t0 = Vec3::Zero(), t1 = Vec3::Zero();
-    RelativeCameraMotion(d.R[i], d.t[i],
-                         d.R[(i+1)%iNviews],
-                         d.t[(i+1)%iNviews],
-                         &R, &t);
+    RelativeCameraMotion(
+        d.R[i], d.t[i], d.R[(i + 1) % iNviews], d.t[(i + 1) % iNviews], &R, &t);
 
     // Assert that found relative motion is correct for almost one model.
     bool bsolution_found = false;
@@ -82,9 +75,9 @@ TEST(EightPointsRelativePose, test_data_sets) {
       EXPECT_ESSENTIAL_MATRIX_PROPERTIES(Es[nModel], 1e-8);
 
       // Check that we find the correct relative orientation.
-      if (FrobeniusDistance(R, Rs[nModel]) < 1e-3
-        && (t / t.norm() - ts[nModel] / ts[nModel].norm()).norm() < 1e-3 ) {
-          bsolution_found = true;
+      if (FrobeniusDistance(R, Rs[nModel]) < 1e-3 &&
+          (t / t.norm() - ts[nModel] / ts[nModel].norm()).norm() < 1e-3) {
+        bsolution_found = true;
       }
     }
     // -- Almost one solution must find the correct relative orientation
@@ -98,16 +91,15 @@ TEST(EightPointsRelativePose_Kernel, test_data_sets) {
   int focal = 1000;
   int principal_Point = 500;
   Mat3 K;
-  K << focal,     0, principal_Point,
-    0, focal, principal_Point,
-    0,     0, 1;
+  K << focal, 0, principal_Point, 0, focal, principal_Point, 0, 0, 1;
 
   // -- Setup a circular camera rig and assert that 8PT relative pose works.
   const int iNviews = 5;
-  NViewDataSet d = NRealisticCamerasFull(iNviews, Kernel::MINIMUM_SAMPLES,
-    nViewDatasetConfigator(focal, focal,
-                           principal_Point, principal_Point,
-                           5, 0));
+  NViewDataSet d = NRealisticCamerasFull(
+      iNviews,
+      Kernel::MINIMUM_SAMPLES,
+      nViewDatasetConfigator(
+          focal, focal, principal_Point, principal_Point, 5, 0));
 
   for (int i = 0; i < iNviews; ++i) {
     vector<Mat3> Es, Rs;  // Essential, Rotation matrix.
@@ -130,24 +122,16 @@ TEST(EightPointsRelativePose_Kernel, test_data_sets) {
     ts.resize(Es.size());
     for (int s = 0; s < Es.size(); ++s) {
       Vec2 x1Col, x2Col;
-      x1Col << d.x[0].col(i)(0), d.x[0].col((i+1)%iNviews)(1);
-      x2Col << d.x[1].col(i)(0), d.x[1].col((i+1)%iNviews)(1);
-      CHECK(
-        MotionFromEssentialAndCorrespondence(Es[s],
-        d.K[0],
-        x1Col,
-        d.K[1],
-        x2Col,
-        &Rs[s],
-        &ts[s]));
+      x1Col << d.x[0].col(i)(0), d.x[0].col((i + 1) % iNviews)(1);
+      x2Col << d.x[1].col(i)(0), d.x[1].col((i + 1) % iNviews)(1);
+      CHECK(MotionFromEssentialAndCorrespondence(
+          Es[s], d.K[0], x1Col, d.K[1], x2Col, &Rs[s], &ts[s]));
     }
     // -- Compute Ground Truth motion
     Mat3 R;
     Vec3 t, t0 = Vec3::Zero(), t1 = Vec3::Zero();
-    RelativeCameraMotion(d.R[i], d.t[i],
-                         d.R[(i+1)%iNviews],
-                         d.t[(i+1)%iNviews],
-                         &R, &t);
+    RelativeCameraMotion(
+        d.R[i], d.t[i], d.R[(i + 1) % iNviews], d.t[(i + 1) % iNviews], &R, &t);
 
     // Assert that found relative motion is correct for almost one model.
     bool bsolution_found = false;
@@ -156,9 +140,9 @@ TEST(EightPointsRelativePose_Kernel, test_data_sets) {
       EXPECT_ESSENTIAL_MATRIX_PROPERTIES(Es[nModel], 1e-8);
 
       // Check that we find the correct relative orientation.
-      if (FrobeniusDistance(R, Rs[nModel]) < 1e-3
-        && (t / t.norm() - ts[nModel] / ts[nModel].norm()).norm() < 1e-3 ) {
-          bsolution_found = true;
+      if (FrobeniusDistance(R, Rs[nModel]) < 1e-3 &&
+          (t / t.norm() - ts[nModel] / ts[nModel].norm()).norm() < 1e-3) {
+        bsolution_found = true;
       }
     }
     // -- Almost one solution must find the correct relative orientation

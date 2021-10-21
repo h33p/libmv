@@ -47,20 +47,20 @@ TEST(BipartiteGraph, EdgeIterator) {
 
   BipartiteGraph<int, int>::Range r = x.All();
   ASSERT_TRUE(r);
-  EXPECT_EQ(1,  r.left());
-  EXPECT_EQ(2,  r.right());
+  EXPECT_EQ(1, r.left());
+  EXPECT_EQ(2, r.right());
   EXPECT_EQ(10, r.edge());
   ++r;
 
   ASSERT_TRUE(r);
-  EXPECT_EQ(1,  r.left());
-  EXPECT_EQ(4,  r.right());
+  EXPECT_EQ(1, r.left());
+  EXPECT_EQ(4, r.right());
   EXPECT_EQ(30, r.edge());
   ++r;
 
   ASSERT_TRUE(r);
-  EXPECT_EQ(2,  r.left());
-  EXPECT_EQ(2,  r.right());
+  EXPECT_EQ(2, r.left());
+  EXPECT_EQ(2, r.right());
   EXPECT_EQ(20, r.edge());
   ++r;
 
@@ -86,14 +86,13 @@ struct Entry {
   char edge;
 };
 
-void CheckIteratorOutput(TestGraph::Range it,
-                         const Entry *expected) {
+void CheckIteratorOutput(TestGraph::Range it, const Entry* expected) {
   int i = 0;
   for (; it; ++it) {
     ASSERT_TRUE(expected[i].left);
-    EXPECT_EQ(expected[i].left,  it.left());
+    EXPECT_EQ(expected[i].left, it.left());
     EXPECT_EQ(expected[i].right, it.right());
-    EXPECT_EQ(expected[i].edge,  it.edge());
+    EXPECT_EQ(expected[i].edge, it.edge());
     ++i;
   }
   EXPECT_EQ(0, expected[i].left);  // Zero terminated.
@@ -108,10 +107,10 @@ TEST(BipartiteGraph, ScanEdgesForRightNode) {
   x.Insert(3, 2, 'f');
 
   Entry kExpected[] = {
-    { 1, 2, 'c' },
-    { 2, 2, 'd' },
-    { 3, 2, 'f' },
-    { 0, 0,  0  }
+      {1, 2, 'c'},
+      {2, 2, 'd'},
+      {3, 2, 'f'},
+      {0, 0, 0},
   };
 
   CheckIteratorOutput(x.ToRight(2), kExpected);
@@ -126,10 +125,10 @@ TEST(BipartiteGraph, ScanEdgesForLeftNode) {
   x.Insert(3, 5, 'a');
 
   Entry kExpected[] = {
-    { 2, 2, 'c' },
-    { 2, 3, 'd' },
-    { 2, 4, 'e' },
-    { 0, 0,  0, }
+      {2, 2, 'c'},
+      {2, 3, 'd'},
+      {2, 4, 'e'},
+      {0, 0, 0},
   };
 
   CheckIteratorOutput(x.ToLeft(2), kExpected);

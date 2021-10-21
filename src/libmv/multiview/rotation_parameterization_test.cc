@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/rotation_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "testing/testing.h"
 
 namespace {
@@ -27,7 +27,7 @@ using namespace libmv;
 
 TEST(Rotation2DEulerParameterization, Roundtripping) {
   Mat2 h, h_roundtrip;
-  double p =  0.6;
+  double p = 0.6;
   double p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -46,7 +46,8 @@ TEST(Rotation2DEulerParameterization, Roundtripping) {
 
 TEST(Rotation2DSCParameterization, Roundtripping) {
   Mat2 h, h_roundtrip;
-  Vec2 p; p << 1, 2;
+  Vec2 p;
+  p << 1, 2;
   Vec2 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -65,7 +66,8 @@ TEST(Rotation2DSCParameterization, Roundtripping) {
 
 TEST(Rotation3DEulerParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec3 p; p << 1, M_PI/2, 3;
+  Vec3 p;
+  p << 1, M_PI / 2, 3;
   Vec3 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -84,7 +86,8 @@ TEST(Rotation3DEulerParameterization, Roundtripping) {
 
 TEST(Rotation3DQuaternionParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec4 p; p << 0.5, 1, 2, 3;
+  Vec4 p;
+  p << 0.5, 1, 2, 3;
   p /= p.norm();
   Vec4 p_roundtrip;
 
@@ -104,7 +107,8 @@ TEST(Rotation3DQuaternionParameterization, Roundtripping) {
 
 TEST(Rotation3DAngleAxisParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec4 p; p << 0.5, 1, 2, 3;
+  Vec4 p;
+  p << 0.5, 1, 2, 3;
   p.segment<3>(1) /= p.segment<3>(1).norm();
   Vec4 p_roundtrip;
 
@@ -124,7 +128,8 @@ TEST(Rotation3DAngleAxisParameterization, Roundtripping) {
 
 TEST(Rotation3DExponentialMapParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec3 p; p << 1, 2, 3;
+  Vec3 p;
+  p << 1, 2, 3;
   Vec3 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -135,7 +140,8 @@ TEST(Rotation3DExponentialMapParameterization, Roundtripping) {
   Rotation3DExponentialMapParameterization<double>::From(h, &p_roundtrip);
 
   // Now convert back to H from p
-  Rotation3DExponentialMapParameterization<double>::To(p_roundtrip, &h_roundtrip);
+  Rotation3DExponentialMapParameterization<double>::To(p_roundtrip,
+                                                       &h_roundtrip);
 
   // Check that going from H to p and back to H goes in a circle.
   EXPECT_MATRIX_PROP(h, h_roundtrip, 1.5e-8);

@@ -20,12 +20,12 @@
 
 #include "libmv/reconstruction/export_ply.h"
 
-#include <fstream>
 #include <locale.h>
+#include <fstream>
 
 namespace libmv {
 
-void ExportToPLY(const Reconstruction &reconstruct, std::string out_file_name) {
+void ExportToPLY(const Reconstruction& reconstruct, std::string out_file_name) {
   std::ofstream outfile;
   outfile.open(out_file_name.c_str(), std::ios_base::out);
   if (outfile.is_open()) {
@@ -34,7 +34,7 @@ void ExportToPLY(const Reconstruction &reconstruct, std::string out_file_name) {
     outfile << "comment Made by libmv authors" << std::endl;
     outfile << "comment 3D points structure:" << std::endl;
     outfile << "element vertex " << reconstruct.GetNumberStructures()
-      << std::endl;
+            << std::endl;
     outfile << "property float x" << std::endl;
     outfile << "property float y" << std::endl;
     outfile << "property float z" << std::endl;
@@ -50,11 +50,11 @@ void ExportToPLY(const Reconstruction &reconstruct, std::string out_file_name) {
     outfile << "property uchar green" << std::endl;
     outfile << "property uchar blue" << std::endl;
     outfile << "end_header" << std::endl;
-    std::map<StructureID, Structure *>::const_iterator track_iter =
-      reconstruct.structures().begin();
+    std::map<StructureID, Structure*>::const_iterator track_iter =
+        reconstruct.structures().begin();
     for (; track_iter != reconstruct.structures().end(); ++track_iter) {
-      PointStructure * point_s =
-        dynamic_cast<PointStructure*>(track_iter->second);
+      PointStructure* point_s =
+          dynamic_cast<PointStructure*>(track_iter->second);
       if (point_s) {
         // Exports the point affine position
         outfile << point_s->coords_affine().transpose() << " ";
@@ -62,11 +62,11 @@ void ExportToPLY(const Reconstruction &reconstruct, std::string out_file_name) {
         outfile << "255 255 255" << std::endl;
       }
     }
-    std::map<CameraID, Camera *>::const_iterator camera_iter =
-      reconstruct.cameras().begin();
+    std::map<CameraID, Camera*>::const_iterator camera_iter =
+        reconstruct.cameras().begin();
     for (; camera_iter != reconstruct.cameras().end(); ++camera_iter) {
-      PinholeCamera * camera_pinhole =
-        dynamic_cast<PinholeCamera *>(camera_iter->second);
+      PinholeCamera* camera_pinhole =
+          dynamic_cast<PinholeCamera*>(camera_iter->second);
       if (camera_pinhole) {
         // Exports the camera position
         outfile << camera_pinhole->position().transpose() << " ";

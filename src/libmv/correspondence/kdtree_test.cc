@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "testing/testing.h"
-#include "libmv/numeric/numeric.h"
 #include "libmv/correspondence/kdtree.h"
+#include "libmv/numeric/numeric.h"
+#include "testing/testing.h"
 
 using namespace libmv;
 
@@ -48,7 +48,6 @@ TEST(PriorityQueue, SortAList) {
   EXPECT_EQ(4, sorted[3]);
 }
 
-
 TEST(KnnSortedList, Size) {
   KnnSortedList<int, float> knn(9);
   knn.AddNeighbor(1, 1.0f);
@@ -72,14 +71,13 @@ TEST(KnnSortedList, SortAList) {
   knn.AddNeighbor(3, 3.0f);
   EXPECT_EQ(3, knn.Size());
   EXPECT_EQ(3, knn.K());
-  EXPECT_EQ(1,    knn.Neighbor(0));
+  EXPECT_EQ(1, knn.Neighbor(0));
   EXPECT_EQ(1.0f, knn.Distance(0));
-  EXPECT_EQ(2,    knn.Neighbor(1));
+  EXPECT_EQ(2, knn.Neighbor(1));
   EXPECT_EQ(2.0f, knn.Distance(1));
-  EXPECT_EQ(3,    knn.Neighbor(2));
+  EXPECT_EQ(3, knn.Neighbor(2));
   EXPECT_EQ(3.0f, knn.Distance(2));
 }
-
 
 TEST(KdTree, Build) {
   Vec2 points[4];
@@ -90,7 +88,8 @@ TEST(KdTree, Build) {
 
   KdTree<double> tree;
   tree.SetDimensions(2);
-  for (int i = 0; i < 4; ++i) tree.AddPoint(points[i].data(), i);
+  for (int i = 0; i < 4; ++i)
+    tree.AddPoint(points[i].data(), i);
   tree.Build(10);
 
   EXPECT_EQ(7, tree.NumNodes());
@@ -105,7 +104,8 @@ TEST(KdTree, ApproximateNearestNeighborBestBinFirst) {
 
   KdTree<double> tree;
   tree.SetDimensions(2);
-  for (int i = 0; i < 4; ++i) tree.AddPoint(points[i].data(), i);
+  for (int i = 0; i < 4; ++i)
+    tree.AddPoint(points[i].data(), i);
   tree.Build(10);
 
   Vec2 query;
@@ -113,10 +113,8 @@ TEST(KdTree, ApproximateNearestNeighborBestBinFirst) {
 
   int nni;
   double distance;
-  tree.ApproximateNearestNeighborBestBinFirst(query.data(),
-                                              1000,
-                                              &nni,
-                                              &distance);
+  tree.ApproximateNearestNeighborBestBinFirst(
+      query.data(), 1000, &nni, &distance);
   EXPECT_EQ(1, points[nni][0]);
   EXPECT_EQ(1, points[nni][1]);
   EXPECT_NEAR(0.1 * 0.1 + 0.2 * 0.2, distance, 1e-10);
@@ -131,7 +129,8 @@ TEST(KdTree, ApproximateKnnBestBinFirstSmall) {
 
   KdTree<double> tree;
   tree.SetDimensions(2);
-  for (int i = 0; i < 4; ++i) tree.AddPoint(points[i].data(), i);
+  for (int i = 0; i < 4; ++i)
+    tree.AddPoint(points[i].data(), i);
   tree.Build(10);
 
   Vec2 queries[4];
@@ -140,10 +139,8 @@ TEST(KdTree, ApproximateKnnBestBinFirstSmall) {
   queries[2] << 2, 1.4;
   queries[3] << 1.8, 1.7;
 
-  KdTree<double>::SearchResults neighbors0(1),
-                                neighbors1(1),
-                                neighbors2(1),
-                                neighbors3(1);
+  KdTree<double>::SearchResults neighbors0(1), neighbors1(1), neighbors2(1),
+      neighbors3(1);
   tree.ApproximateKnnBestBinFirst(queries[0].data(), 1000, &neighbors0);
   tree.ApproximateKnnBestBinFirst(queries[1].data(), 1000, &neighbors1);
   tree.ApproximateKnnBestBinFirst(queries[2].data(), 1000, &neighbors2);
@@ -165,14 +162,15 @@ TEST(KdTree, ApproximateKnnBestBinFirstBig) {
   }
   KdTree<double> tree;
   tree.SetDimensions(2);
-  for (int i = 0; i < N * N; ++i) tree.AddPoint(points[i].data(), i);
+  for (int i = 0; i < N * N; ++i)
+    tree.AddPoint(points[i].data(), i);
   tree.Build(10);
 
   Vec2 query;
   query << 5.4, 5.2;
   KdTree<double>::SearchResults knn(4);
-  int num_explored_leafs
-      = tree.ApproximateKnnBestBinFirst(query.data(), tree.NumLeafs(), &knn);
+  int num_explored_leafs =
+      tree.ApproximateKnnBestBinFirst(query.data(), tree.NumLeafs(), &knn);
   Vec2 p0 = points[knn.Neighbor(0)];
   Vec2 p1 = points[knn.Neighbor(1)];
   Vec2 p2 = points[knn.Neighbor(2)];
@@ -187,7 +185,7 @@ TEST(KdTree, ApproximateKnnBestBinFirstBig) {
   EXPECT_EQ(6, p3[0]);
   EXPECT_EQ(6, p3[1]);
   EXPECT_LE(num_explored_leafs, 13);
-                             // 13 has been found by testing the code itself :(
+  // 13 has been found by testing the code itself :(
 }
 
 }  // namespace

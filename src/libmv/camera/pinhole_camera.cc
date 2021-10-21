@@ -29,29 +29,26 @@ PinholeCamera::PinholeCamera() {
   UpdateProjectionMatrix();
 }
 
-PinholeCamera::PinholeCamera(const Mat34 &P) {
+PinholeCamera::PinholeCamera(const Mat34& P) {
   projection_matrix_ = P;
   // TODO(julien) when the reconstruction is metric, we can call KRt_From_P();
   // but whent it is projective, what to do? add a boolean?
 }
 
-PinholeCamera::PinholeCamera(const Mat3 &R, const Vec3 &t) {
+PinholeCamera::PinholeCamera(const Mat3& R, const Vec3& t) {
   orientation_matrix_ = R;
   position_ = t;
   UpdateProjectionMatrix();
 }
 
-PinholeCamera::PinholeCamera(const Mat3 &K,
-                             const Mat3 &R,
-                             const Vec3 &t) {
+PinholeCamera::PinholeCamera(const Mat3& K, const Mat3& R, const Vec3& t) {
   intrinsic_matrix_ = K;
   orientation_matrix_ = R;
   position_ = t;
   UpdateProjectionMatrix();
 }
 
-PinholeCamera::PinholeCamera(double focal,
-                             const Vec2 &principal_point) {
+PinholeCamera::PinholeCamera(double focal, const Vec2& principal_point) {
   orientation_matrix_.setIdentity();
   SetIntrinsicParameters(focal, principal_point);
 }
@@ -59,32 +56,31 @@ PinholeCamera::PinholeCamera(double focal,
 PinholeCamera::~PinholeCamera() {
 }
 
-PinholeCamera::PinholeCamera(const PinholeCamera &camera) {
+PinholeCamera::PinholeCamera(const PinholeCamera& camera) {
   this->set_intrinsic_matrix(camera.intrinsic_matrix());
 }
 
 // The function computes updates the projection matrix from intrinsic
 // parameters (focal,...).
 void PinholeCamera::UpdateIntrinsicMatrix() {
+  // clang-format off
   intrinsic_matrix_ << focal_x_,  skew_factor_, principal_point_ (0),
                        0,         focal_y_,     principal_point_ (1),
                        0,         0,            1;
+  // clang-format on
   UpdateProjectionMatrix();
 }
 
 // The function updates the projection matrix from intrinsic and
 // extrinsic parameters.
 void PinholeCamera::UpdateProjectionMatrix() {
-  P_From_KRt(intrinsic_matrix_,
-             orientation_matrix_,
-             position_,
-             &projection_matrix_);
+  P_From_KRt(
+      intrinsic_matrix_, orientation_matrix_, position_, &projection_matrix_);
 }
 
 // The function computes the projection of a 3D point.
-bool PinholeCamera::ProjectPointStructure(
-    const PointStructure &point_structure,
-    PointFeature *feature) const {
+bool PinholeCamera::ProjectPointStructure(const PointStructure& point_structure,
+                                          PointFeature* feature) const {
   Vec2 q2;
   Project(projection_matrix_, point_structure.coords(), &q2);
   feature->coords << q2.cast<float>();
@@ -92,46 +88,43 @@ bool PinholeCamera::ProjectPointStructure(
 }
 
 // The function computes the projection of a 3D point.
-bool PinholeCamera::ProjectPointStructure(
-    const PointStructure &point_structure,
-    Vec2 *q) const {
+bool PinholeCamera::ProjectPointStructure(const PointStructure& point_structure,
+                                          Vec2* q) const {
   Project(projection_matrix_, point_structure.coords(), q);
   return true;
 }
 
 PinholeCameraDistortion::PinholeCameraDistortion(
-    LensDistortion *lens_distortion) {
+    LensDistortion* lens_distortion) {
   lens_distortion_ = lens_distortion;
 }
 
 PinholeCameraDistortion::PinholeCameraDistortion(
-    const Mat3 &K,
-    const Mat3 &R,
-    const Vec3 &t,
-    LensDistortion *lens_distortion) :
-    PinholeCamera(K, R, t) {
+    const Mat3& K,
+    const Mat3& R,
+    const Vec3& t,
+    LensDistortion* lens_distortion)
+    : PinholeCamera(K, R, t) {
   lens_distortion_ = lens_distortion;
 }
 
 PinholeCameraDistortion::PinholeCameraDistortion(
-    const Mat3 &R,
-    const Vec3 &t,
-    LensDistortion *lens_distortion) :
-    PinholeCamera(R, t) {
+    const Mat3& R, const Vec3& t, LensDistortion* lens_distortion)
+    : PinholeCamera(R, t) {
   lens_distortion_ = lens_distortion;
 }
 
 // The function copy the camera parameters from the camera provided
 PinholeCameraDistortion::PinholeCameraDistortion(
-    const PinholeCameraDistortion &camera) : PinholeCamera(camera) {
+    const PinholeCameraDistortion& camera)
+    : PinholeCamera(camera) {
   (*this) = camera;
   this->lens_distortion_ = camera.lens_distortion_;
 }
 
 // The function computes the projection of a 3D point
 bool PinholeCameraDistortion::ProjectPointStructure(
-    const PointStructure &point_structure,
-    PointFeature *feature) const {
+    const PointStructure& point_structure, PointFeature* feature) const {
   // Project using the pin-hole model
   PinholeCamera::ProjectPointStructure(point_structure, feature);
   // correct the feature using the lens distortion
@@ -144,36 +137,31 @@ bool PinholeCameraDistortion::ProjectPointStructure(
 // The function computes the undistorted feature using the camera distorsion
 // model
 void PinholeCameraDistortion::ComputeUndistortedFeature(
-    const Feature &feature,
-    Feature *undistorted_feature) const {
+    const Feature& feature, Feature* undistorted_feature) const {
   // TODO(julien) call the 2D undistortion for every 2D component of a feature
-  (void) feature;
-  (void) undistorted_feature;
+  (void)feature;
+  (void)undistorted_feature;
 }
 
 // The function undistorts the feature using the camera distorsion model
-void PinholeCameraDistortion::UndistortFeature(Feature *feature) const {
+void PinholeCameraDistortion::UndistortFeature(Feature* feature) const {
   // TODO(julien) call the 2D undistortion for every 2D component of a feature
-  (void) feature;
+  (void)feature;
 }
 
 void PinholeCameraDistortion::ComputeUndistortedCoordinates(
-    const Vec2 &point,
-    Vec2 *undistorted_point) const {
+    const Vec2& point, Vec2* undistorted_point) const {
   if (lens_distortion_) {
-    lens_distortion_->ComputeUndistortedCoordinates(*this,
-                                                    point,
-                                                    undistorted_point);
+    lens_distortion_->ComputeUndistortedCoordinates(
+        *this, point, undistorted_point);
   }
 }
 
 void PinholeCameraDistortion::ComputeDistortedCoordinates(
-    const Vec2 &point,
-    Vec2 *distorted_point) const {
+    const Vec2& point, Vec2* distorted_point) const {
   if (lens_distortion_) {
-    lens_distortion_->ComputeDistortedCoordinates(*this,
-                                                  point,
-                                                  distorted_point);
+    lens_distortion_->ComputeDistortedCoordinates(
+        *this, point, distorted_point);
   }
 }
 

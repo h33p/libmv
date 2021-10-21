@@ -22,22 +22,22 @@
 
 namespace libmv {
 
-Filter::~Filter() {}
+Filter::~Filter() {
+}
 
-FilteredImageSequence::FilteredImageSequence(ImageSequence *source,
-                                             Filter *filter)
-      : CachedImageSequence(source->Cache()),
-        source_(source),
-        filter_(filter) {}
+FilteredImageSequence::FilteredImageSequence(ImageSequence* source,
+                                             Filter* filter)
+    : CachedImageSequence(source->Cache()), source_(source), filter_(filter) {
+}
 
 FilteredImageSequence::~FilteredImageSequence() {
   delete filter_;
 }
 
-Image *FilteredImageSequence::LoadImage(int i) {
-  Array3Df *destination_image = new Array3Df;
+Image* FilteredImageSequence::LoadImage(int i) {
+  Array3Df* destination_image = new Array3Df;
   // TODO(keir): Make this not specfic to float images...
-  Array3Df *source_image = source_->GetFloatImage(i);
+  Array3Df* source_image = source_->GetFloatImage(i);
   filter_->RunFilter(*source_image, destination_image);
   source_->Unpin(i);
   return new Image(destination_image);

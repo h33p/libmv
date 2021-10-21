@@ -28,9 +28,9 @@ namespace kernel {
 
 using namespace std;
 
-void EightPointRelativePoseSolver::Solve(const Mat &x1,
-                                         const Mat &x2,
-                                         vector<Mat3> *Es) {
+void EightPointRelativePoseSolver::Solve(const Mat& x1,
+                                         const Mat& x2,
+                                         vector<Mat3>* Es) {
   assert(2 == x1.rows());
   assert(8 <= x1.cols());
   assert(x1.rows() == x2.rows());
@@ -50,7 +50,7 @@ void EightPointRelativePoseSolver::Solve(const Mat &x1,
     Vec3 d = USV.singularValues();
     double a = d[0];
     double b = d[1];
-    d << (a+b)/2., (a+b)/2., 0.0;
+    d << (a + b) / 2., (a + b) / 2., 0.0;
     E = USV.matrixU() * d.asDiagonal() * USV.matrixV().transpose();
   }
   Es->push_back(E);

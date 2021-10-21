@@ -23,11 +23,11 @@
 #include <cmath>
 #include <cstdio>
 
-#include "libmv/numeric/numeric.h"
 #include "libmv/logging/logging.h"
+#include "libmv/numeric/numeric.h"
 #include "libmv/simple_pipeline/autocalibrate.h"
-#include "libmv/simple_pipeline/camera_intrinsics.h"
 #include "libmv/simple_pipeline/bundle.h"
+#include "libmv/simple_pipeline/camera_intrinsics.h"
 #include "libmv/simple_pipeline/initialize_reconstruction.h"
 #include "libmv/simple_pipeline/pipeline.h"
 #include "libmv/simple_pipeline/reconstruction.h"
@@ -41,16 +41,15 @@ namespace libmv {
 Mat3 NormalizerMatrix(int width, int height) {
   Mat3 M;
   double s = hypot(width, height);
-  M << s, 0, width,
-       0, s, height,
-       0, 0, 2.0;
+  M << s, 0, width, 0, s, height, 0, 0, 2.0;
   M /= 2.0;
   return M.inverse();
 }
 
 // Normalizes a set of tracks according to the normalizer matrix.
-void TransformTracks(Mat3 transform, const Tracks &tracks,
-                     Tracks *normalized_tracks) {
+void TransformTracks(Mat3 transform,
+                     const Tracks& tracks,
+                     Tracks* normalized_tracks) {
   vector<Marker> markers = tracks.AllMarkers();
   for (int i = 0; i < markers.size(); ++i) {
     Vec3 a = Vec3(markers[i].x, markers[i].y, 1.0);
@@ -61,11 +60,8 @@ void TransformTracks(Mat3 transform, const Tracks &tracks,
   *normalized_tracks = Tracks(markers);
 }
 
-UncalibratedReconstructor::UncalibratedReconstructor(int width,
-                                                     int height,
-                                                     int keyframe1,
-                                                     int keyframe2,
-                                                     const Tracks &tracks) {
+UncalibratedReconstructor::UncalibratedReconstructor(
+    int width, int height, int keyframe1, int keyframe2, const Tracks& tracks) {
   // Save the raw tracks for later use.
   raw_tracks_ = tracks;
 
@@ -80,17 +76,15 @@ UncalibratedReconstructor::UncalibratedReconstructor(int width,
       normalized_tracks_.MarkersForTracksInBothImages(keyframe1, keyframe2);
   ProjectiveReconstructTwoFrames(initial_markers, &projective_reconstruction_);
   PolynomialCameraIntrinsics default_intrinsics;
-  ProjectiveReprojectionError(normalized_tracks_,
-                              projective_reconstruction_,
-                              default_intrinsics);
+  ProjectiveReprojectionError(
+      normalized_tracks_, projective_reconstruction_, default_intrinsics);
 
   LG << "Complete the projective reconstruction.";
   getchar();
   ProjectiveCompleteReconstruction(normalized_tracks_,
                                    &projective_reconstruction_);
-  ProjectiveReprojectionError(normalized_tracks_,
-                              projective_reconstruction_,
-                              default_intrinsics);
+  ProjectiveReprojectionError(
+      normalized_tracks_, projective_reconstruction_, default_intrinsics);
 
   LG << "Upgrade the reconstruction to Euclidean.";
   getchar();
@@ -110,9 +104,8 @@ UncalibratedReconstructor::UncalibratedReconstructor(int width,
 
   LG << "Invert the intrinsics to get calibrated tracks.";
   getchar();
-  InvertIntrinsicsForTracks(raw_tracks_,
-                            camera_intrinsics_,
-                            &calibrated_tracks_);
+  InvertIntrinsicsForTracks(
+      raw_tracks_, camera_intrinsics_, &calibrated_tracks_);
 
   LG << "Bundle adjust the final result.";
   getchar();

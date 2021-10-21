@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/image/image.h"
 #include "libmv/image/image_drawing.h"
+#include "libmv/image/image.h"
 #include "libmv/image/image_io.h"
 #include "libmv/logging/logging.h"
 #include "testing/testing.h"
@@ -40,7 +40,7 @@ TEST(ImageDrawing, Scanlines) {
   //  |         |
   //  |_________|
   const int y = 5;
-  DrawLine(0, y, w-1, y, 255, &image);
+  DrawLine(0, y, w - 1, y, 255, &image);
   for (int i = 0; i < w; ++i)
     EXPECT_EQ(image(y, i), 255);
 
@@ -53,7 +53,7 @@ TEST(ImageDrawing, Scanlines) {
   //  |    r|   |
   //  |____e|___|
   const int x = 5;
-  DrawLine(x, 0, x, h-1, 255, &image);
+  DrawLine(x, 0, x, h - 1, 255, &image);
   for (int i = 0; i < h; ++i)
     EXPECT_EQ(image(i, y), 255);
 }
@@ -70,7 +70,7 @@ TEST(ImageDrawing, Lines45) {
   //  | \ |
   //  |__\|
 
-  DrawLine(0, 0, w-1, h-1, 255, &image);
+  DrawLine(0, 0, w - 1, h - 1, 255, &image);
   for (int i = 0; i < w; ++i)
     EXPECT_EQ(image(i, i), 255);
 
@@ -80,9 +80,9 @@ TEST(ImageDrawing, Lines45) {
   //  |  / |
   //  | /  |
   //  |/___|_
-  DrawLine(0, h-1, w-1, 0, 255, &image);
+  DrawLine(0, h - 1, w - 1, 0, 255, &image);
   for (int i = 0; i < h; ++i)
-    EXPECT_EQ(image(h-1-i, i), 255);
+    EXPECT_EQ(image(h - 1 - i, i), 255);
 }
 
 // Draw a circle in an image and assert that all the points are
@@ -98,13 +98,14 @@ TEST(ImageDrawing, Circle) {
 
   // Distance checking :
   for (int j = 0; j < image.Height(); ++j)
-  for (int i = 0; i < image.Width(); ++i) {
-    if (image(j, i) == 255)  {
-      const float distance =  sqrt((float)((j-y)*(j-y) + (i-x)*(i-x)));
-      EXPECT_NEAR(radius, distance, 1.0f);
-      // Due to discretisation we cannot expect better precision
+    for (int i = 0; i < image.Width(); ++i) {
+      if (image(j, i) == 255) {
+        const float distance =
+            sqrt((float)((j - y) * (j - y) + (i - x) * (i - x)));
+        EXPECT_NEAR(radius, distance, 1.0f);
+        // Due to discretisation we cannot expect better precision
+      }
     }
-  }
 }
 
 // Draw an ellipse with the two radius equal each other...
@@ -121,13 +122,14 @@ TEST(ImageDrawing, Ellipse) {
 
   // Distance checking :
   for (int j = 0; j < image.Height(); ++j)
-  for (int i = 0; i < image.Width(); ++i) {
-    if (image(j, i) == 255)  {
-      const float distance =  sqrt((float)((j-y)*(j-y) + (i-x)*(i-x)));
-      EXPECT_NEAR(radius, distance, 1.0f);
-      // Due to discretisation we cannot expect better precision
+    for (int i = 0; i < image.Width(); ++i) {
+      if (image(j, i) == 255) {
+        const float distance =
+            sqrt((float)((j - y) * (j - y) + (i - x) * (i - x)));
+        EXPECT_NEAR(radius, distance, 1.0f);
+        // Due to discretisation we cannot expect better precision
+      }
     }
-  }
 }
 
 // Draw an ellipse with the two radius and rotated ...
@@ -140,18 +142,20 @@ TEST(ImageDrawing, RotatedEllipse) {
   const int radius = 6;
   const int x = 10, y = 10;
 
-  DrawEllipse(x, y, radius, radius/2.0, (unsigned char)255, &image, M_PI/4.0);
+  DrawEllipse(
+      x, y, radius, radius / 2.0, (unsigned char)255, &image, M_PI / 4.0);
 
   // Distance checking :
   for (int j = 0; j < image.Height(); ++j)
-  for (int i = 0; i < image.Width(); ++i) {
-    if (image(j, i) == 255)  {
-      const float distance =  sqrt((float)((j-y)*(j-y) + (i-x)*(i-x)));
-      EXPECT_EQ(radius+1 >= distance && radius/2.0-1 <= distance, true);
-      // Due to discretisation we cannot expect better precision
-      // Use +-1 to avoid rasterization error.
+    for (int i = 0; i < image.Width(); ++i) {
+      if (image(j, i) == 255) {
+        const float distance =
+            sqrt((float)((j - y) * (j - y) + (i - x) * (i - x)));
+        EXPECT_EQ(radius + 1 >= distance && radius / 2.0 - 1 <= distance, true);
+        // Due to discretisation we cannot expect better precision
+        // Use +-1 to avoid rasterization error.
+      }
     }
-  }
 }
 
 /// Assert that the DrawLine function do not crash
@@ -164,32 +168,32 @@ TEST(ImageDrawing, DrawLine_PointOutsideTheImage) {
   int x = 15, y = 15;
 
   // Distance checking :
-  for (double i = 0; i < 2.0*3.14; i += 3.14/12) {
+  for (double i = 0; i < 2.0 * 3.14; i += 3.14 / 12) {
     int x1 = cos(i) * radius;
     int y1 = sin(i) * radius;
-    DrawLine(x, y, x+x1, y+y1, 255, &image);
+    DrawLine(x, y, x + x1, y + y1, 255, &image);
   }
   // Translate :
-  x += 15/2.0;
-  for (double i = 0; i < 2.0*3.14; i += 3.14/12) {
+  x += 15 / 2.0;
+  for (double i = 0; i < 2.0 * 3.14; i += 3.14 / 12) {
     int x1 = cos(i) * radius;
     int y1 = sin(i) * radius;
-    DrawLine(x, y, x+x1, y+y1, 255, &image);
+    DrawLine(x, y, x + x1, y + y1, 255, &image);
   }
   // Translate :
-  x += 15/2.0;
-  for (double i = 0; i < 2.0*3.14; i += 3.14/12) {
+  x += 15 / 2.0;
+  for (double i = 0; i < 2.0 * 3.14; i += 3.14 / 12) {
     int x1 = cos(i) * radius;
     int y1 = sin(i) * radius;
-    DrawLine(x, y, x+x1, y+y1, 255, &image);
+    DrawLine(x, y, x + x1, y + y1, 255, &image);
   }
 
   // Point totally outside the image
   x = y = -100;
-  for (double i = 0; i < 2.0*3.14; i += 3.14/12) {
+  for (double i = 0; i < 2.0 * 3.14; i += 3.14 / 12) {
     int x1 = cos(i) * radius;
     int y1 = sin(i) * radius;
-    DrawLine(x, y, x+x1, y+y1, 255, &image);
+    DrawLine(x, y, x + x1, y + y1, 255, &image);
   }
 }
 
@@ -209,7 +213,7 @@ TEST(ImageDrawing, ScanlinesRGB) {
   //  |         |
   //  |_________|
   const int y = 5;
-  DrawLine<Array3Du, unsigned char[3]>(0, y, w-1, y, color, &image);
+  DrawLine<Array3Du, unsigned char[3]>(0, y, w - 1, y, color, &image);
   for (int i = 0; i < w; ++i) {
     EXPECT_EQ(image(y, i, 0), color[0]);
     EXPECT_EQ(image(y, i, 1), color[1]);
@@ -225,7 +229,7 @@ TEST(ImageDrawing, ScanlinesRGB) {
   //  |    r|   |
   //  |____e|___|
   const int x = 5;
-  DrawLine<Array3Du, unsigned char[3]>(x, 0, x, h-1, color, &image);
+  DrawLine<Array3Du, unsigned char[3]>(x, 0, x, h - 1, color, &image);
   for (int i = 0; i < h; ++i) {
     EXPECT_EQ(image(i, y, 0), color[0]);
     EXPECT_EQ(image(i, y, 1), color[1]);

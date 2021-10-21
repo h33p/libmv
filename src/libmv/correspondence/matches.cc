@@ -23,10 +23,11 @@
 
 namespace libmv {
 
-Matches::~Matches() {}
+Matches::~Matches() {
+}
 
-void DeleteMatchFeatures(Matches *matches) {
-  (void) matches;
+void DeleteMatchFeatures(Matches* matches) {
+  (void)matches;
   // XXX
   /*
   for (Correspondences::FeatureIterator it = correspondences->ScanAllFeatures();

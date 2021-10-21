@@ -22,8 +22,11 @@
 
 namespace libmv {
 
-Feature::~Feature() {}
-PointFeature::~PointFeature() {}
-LineFeature::~LineFeature() {}
+Feature::~Feature() {
+}
+PointFeature::~PointFeature() {
+}
+LineFeature::~LineFeature() {
+}
 
 }  // namespace libmv

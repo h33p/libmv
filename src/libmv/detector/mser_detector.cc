@@ -20,15 +20,15 @@
 
 #include "libmv/detector/mser_detector.h"
 
+#include <Eigen/QR>
 #include "libmv/base/vector.h"
 #include "libmv/correspondence/feature.h"
 #include "libmv/detector/detector.h"
 #include "libmv/detector/orientation_detector.h"
 #include "libmv/image/image.h"
-#include "third_party/MserDetector/cvMserDetector.h"
-#include "libmv/numeric/numeric.h"
-#include <Eigen/QR>
 #include "libmv/image/image_io.h"
+#include "libmv/numeric/numeric.h"
+#include "third_party/MserDetector/cvMserDetector.h"
 
 namespace libmv {
 namespace detector {
@@ -36,23 +36,23 @@ namespace detector {
 class MserDetector : public Detector {
  public:
   MserDetector(bool bRotationInvariant)
-    : bRotationInvariant_(bRotationInvariant) {}
+      : bRotationInvariant_(bRotationInvariant) {}
   virtual ~MserDetector() {}
 
-  virtual void Detect(const Image &image,
-                      vector<Feature *> *vec_features,
-                      DetectorData **data) {
-    ByteImage *byte_image = image.AsArray3Du();
+  virtual void Detect(const Image& image,
+                      vector<Feature*>* vec_features,
+                      DetectorData** data) {
+    ByteImage* byte_image = image.AsArray3Du();
 
     vector<sMserProperties> vec_ellipses;
     detectPoints(*byte_image, vec_ellipses);
 
     // Build the output Keypoints :
-    for (size_t i = 0; i < vec_ellipses.size(); ++i)  {
-      const sMserProperties & ellipse = vec_ellipses[i];
-      PointFeature *f = new PointFeature(ellipse._x, ellipse._y);
+    for (size_t i = 0; i < vec_ellipses.size(); ++i) {
+      const sMserProperties& ellipse = vec_ellipses[i];
+      PointFeature* f = new PointFeature(ellipse._x, ellipse._y);
       // Use square approximation since we do not have affine PointFeature.
-      f->scale = sqrt(ellipse._l1*ellipse._l2);
+      f->scale = sqrt(ellipse._l1 * ellipse._l2);
       if (bRotationInvariant_)
         f->orientation = ellipse._alpha;
       else
@@ -71,7 +71,7 @@ class MserDetector : public Detector {
   bool bRotationInvariant_;
 };
 
-Detector *CreateMserDetector(bool bRotationInvariant) {
+Detector* CreateMserDetector(bool bRotationInvariant) {
   return new MserDetector(bRotationInvariant);
 }
 

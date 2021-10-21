@@ -25,31 +25,31 @@
 
 namespace libmv {
 
-double EstimateRootMeanSquareError(const Matches &matches,
-                                   Reconstruction *reconstruction) {
-  PinholeCamera * pcamera = NULL;
+double EstimateRootMeanSquareError(const Matches& matches,
+                                   Reconstruction* reconstruction) {
+  PinholeCamera* pcamera = NULL;
   vector<StructureID> structures_ids;
   Mat2X x_image;
   Mat4X X_world;
   double sum_rms2 = 0;
   size_t num_features = 0;
-  std::map<StructureID, Structure *>::iterator stucture_iter;
-  std::map<CameraID, Camera *>::iterator camera_iter =
+  std::map<StructureID, Structure*>::iterator stucture_iter;
+  std::map<CameraID, Camera*>::iterator camera_iter =
       reconstruction->cameras().begin();
   for (; camera_iter != reconstruction->cameras().end(); ++camera_iter) {
-    pcamera = dynamic_cast<PinholeCamera *>(camera_iter->second);
+    pcamera = dynamic_cast<PinholeCamera*>(camera_iter->second);
     if (pcamera) {
-      SelectExistingPointStructures(matches, camera_iter->first,
+      SelectExistingPointStructures(matches,
+                                    camera_iter->first,
                                     *reconstruction,
                                     &structures_ids,
                                     &x_image);
-      MatrixOfPointStructureCoordinates(structures_ids,
-                                        *reconstruction,
-                                        &X_world);
-      Mat2X dx =Project(pcamera->projection_matrix(), X_world) - x_image;
-      VLOG(1)   << "|Err Cam " << camera_iter->first << "| = "
-                << sqrt(Square(dx.norm()) / x_image.cols()) << " ("
-                << x_image.cols() << " pts)" << std::endl;
+      MatrixOfPointStructureCoordinates(
+          structures_ids, *reconstruction, &X_world);
+      Mat2X dx = Project(pcamera->projection_matrix(), X_world) - x_image;
+      VLOG(1) << "|Err Cam " << camera_iter->first
+              << "| = " << sqrt(Square(dx.norm()) / x_image.cols()) << " ("
+              << x_image.cols() << " pts)" << std::endl;
       // TODO(julien) use normSquare
       sum_rms2 += Square(dx.norm());
       num_features += x_image.cols();
@@ -59,27 +59,27 @@ double EstimateRootMeanSquareError(const Matches &matches,
   return sqrt(sum_rms2 / num_features);
 }
 
-double MetricBundleAdjust(const Matches &matches,
-                          Reconstruction *reconstruction) {
+double MetricBundleAdjust(const Matches& matches,
+                          Reconstruction* reconstruction) {
   double rms = 0, rms0 = EstimateRootMeanSquareError(matches, reconstruction);
-  VLOG(1)   << "Initial RMS = " << rms0 << std::endl;
+  VLOG(1) << "Initial RMS = " << rms0 << std::endl;
   size_t ncamera = reconstruction->GetNumberCameras();
   size_t nstructure = reconstruction->GetNumberStructures();
   vector<Mat2X> x(ncamera);
-  vector<Vecu>   x_ids(ncamera);
-  vector<Mat3>  Ks(ncamera);
-  vector<Mat3>  Rs(ncamera);
-  vector<Vec3>  ts(ncamera);
-  Mat3X         X(3, nstructure);
+  vector<Vecu> x_ids(ncamera);
+  vector<Mat3> Ks(ncamera);
+  vector<Mat3> Rs(ncamera);
+  vector<Vec3> ts(ncamera);
+  Mat3X X(3, nstructure);
   vector<StructureID> structures_ids;
   std::map<StructureID, uint> map_structures_ids;
 
   size_t str_id = 0;
-  PointStructure *pstructure = NULL;
-  std::map<StructureID, Structure *>::iterator str_iter =
-    reconstruction->structures().begin();
+  PointStructure* pstructure = NULL;
+  std::map<StructureID, Structure*>::iterator str_iter =
+      reconstruction->structures().begin();
   for (; str_iter != reconstruction->structures().end(); ++str_iter) {
-    pstructure = dynamic_cast<PointStructure *>(str_iter->second);
+    pstructure = dynamic_cast<PointStructure*>(str_iter->second);
     if (pstructure) {
       X.col(str_id) = pstructure->coords_affine();
       map_structures_ids[str_iter->first] = str_id;
@@ -91,24 +91,25 @@ double MetricBundleAdjust(const Matches &matches,
     }
   }
 
-  PinholeCamera * pcamera = NULL;
+  PinholeCamera* pcamera = NULL;
   size_t cam_id = 0;
-  std::map<CameraID, Camera *>::iterator cam_iter =
-    reconstruction->cameras().begin();
+  std::map<CameraID, Camera*>::iterator cam_iter =
+      reconstruction->cameras().begin();
   for (; cam_iter != reconstruction->cameras().end(); ++cam_iter) {
-    pcamera = dynamic_cast<PinholeCamera *>(cam_iter->second);
+    pcamera = dynamic_cast<PinholeCamera*>(cam_iter->second);
     if (pcamera) {
-      pcamera->GetIntrinsicExtrinsicParameters(&Ks[cam_id],
-                                               &Rs[cam_id],
-                                               &ts[cam_id]);
-      SelectExistingPointStructures(matches, cam_iter->first,
+      pcamera->GetIntrinsicExtrinsicParameters(
+          &Ks[cam_id], &Rs[cam_id], &ts[cam_id]);
+      SelectExistingPointStructures(matches,
+                                    cam_iter->first,
                                     *reconstruction,
-                                    &structures_ids, &x[cam_id]);
+                                    &structures_ids,
+                                    &x[cam_id]);
       x_ids[cam_id].resize(structures_ids.size());
       for (size_t s = 0; s < structures_ids.size(); ++s) {
         x_ids[cam_id][s] = map_structures_ids[structures_ids[s]];
       }
-      //VLOG(1)   << "x_ids = " << x_ids[cam_id].transpose()<<"\n";
+      // VLOG(1)   << "x_ids = " << x_ids[cam_id].transpose()<<"\n";
       cam_id++;
     } else {
       LOG(FATAL) << "Error: the bundle adjustment cannot handle non pinhole "
@@ -123,32 +124,31 @@ double MetricBundleAdjust(const Matches &matches,
     cam_id = 0;
     cam_iter = reconstruction->cameras().begin();
     for (; cam_iter != reconstruction->cameras().end(); ++cam_iter) {
-      pcamera = dynamic_cast<PinholeCamera *>(cam_iter->second);
+      pcamera = dynamic_cast<PinholeCamera*>(cam_iter->second);
       if (pcamera) {
-        pcamera->SetIntrinsicExtrinsicParameters(Ks[cam_id],
-                                                 Rs[cam_id],
-                                                 ts[cam_id]);
+        pcamera->SetIntrinsicExtrinsicParameters(
+            Ks[cam_id], Rs[cam_id], ts[cam_id]);
         cam_id++;
       }
     }
     str_id = 0;
     str_iter = reconstruction->structures().begin();
     for (; str_iter != reconstruction->structures().end(); ++str_iter) {
-      pstructure = dynamic_cast<PointStructure *>(str_iter->second);
+      pstructure = dynamic_cast<PointStructure*>(str_iter->second);
       if (pstructure) {
         pstructure->set_coords_affine(X.col(str_id));
         str_id++;
       }
     }
   }
-  //rms = EstimateRootMeanSquareError(matches, reconstruction);
-  VLOG(1)   << "Final RMS = " << rms << std::endl;
+  // rms = EstimateRootMeanSquareError(matches, reconstruction);
+  VLOG(1) << "Final RMS = " << rms << std::endl;
   return rms;
 }
 
 uint RemoveOutliers(CameraID image_id,
-                    Matches *matches,
-                    Reconstruction *reconstruction,
+                    Matches* matches,
+                    Reconstruction* reconstruction,
                     double rmse_threshold) {
   // TODO(julien) finish it !
   // Checks that the camera is in reconstruction
@@ -157,25 +157,25 @@ uint RemoveOutliers(CameraID image_id,
   }
   vector<StructureID> structures_ids;
   // Selects only the reconstructed structures observed in the image
-  SelectExistingPointStructures(*matches, image_id, *reconstruction,
-                                &structures_ids, NULL);
+  SelectExistingPointStructures(
+      *matches, image_id, *reconstruction, &structures_ids, NULL);
   Vec2 q, q2;
   uint number_outliers = 0;
   uint num_views = 0;
   bool current_point_removed = false;
-  PinholeCamera *camera = NULL;
-  PointStructure *pstructure = NULL;
+  PinholeCamera* camera = NULL;
+  PointStructure* pstructure = NULL;
   double err = 0;
   for (size_t t = 0; t < structures_ids.size(); ++t) {
-    pstructure = dynamic_cast<PointStructure *>(
-      reconstruction->GetStructure(structures_ids[t]));
+    pstructure = dynamic_cast<PointStructure*>(
+        reconstruction->GetStructure(structures_ids[t]));
     if (pstructure) {
       Matches::Features<PointFeature> fp =
-       matches->InTrack<PointFeature>(structures_ids[t]);
+          matches->InTrack<PointFeature>(structures_ids[t]);
       current_point_removed = false;
       while (fp) {
-        camera = dynamic_cast<PinholeCamera *>(
-          reconstruction->GetCamera(fp.image()));
+        camera =
+            dynamic_cast<PinholeCamera*>(reconstruction->GetCamera(fp.image()));
         if (camera) {
           q << fp.feature()->x(), fp.feature()->y();
           camera->ProjectPointStructure(*pstructure, &q2);
@@ -194,8 +194,8 @@ uint RemoveOutliers(CameraID image_id,
       fp = matches->InTrack<PointFeature>(structures_ids[t]);
       num_views = 0;
       while (fp) {
-        camera = dynamic_cast<PinholeCamera *>(
-          reconstruction->GetCamera(fp.image()));
+        camera =
+            dynamic_cast<PinholeCamera*>(reconstruction->GetCamera(fp.image()));
         if (camera) {
           num_views++;
         }

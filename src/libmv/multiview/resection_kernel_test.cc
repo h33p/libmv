@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/resection_kernel.h"
 #include "libmv/logging/logging.h"
 #include "libmv/multiview/projection.h"
-#include "libmv/multiview/resection_kernel.h"
 #include "libmv/multiview/robust_estimation.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
@@ -39,7 +39,7 @@ TEST(ResectionKernel, RobustResection) {
     Mat4X X(4, npoints);
     X.block(0, 0, 3, npoints) = d.X;
     X.row(3).setOnes();
-    Mat2X &x = d.x[i];
+    Mat2X& x = d.x[i];
     LOG(INFO) << "\n" << x;
 
     // Now make 30% of the points in x totally wrong.

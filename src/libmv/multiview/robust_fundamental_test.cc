@@ -18,18 +18,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include <iostream>
 #include <algorithm>
+#include <iostream>
 
 #include "libmv/base/vector.h"
+#include "libmv/logging/logging.h"
 #include "libmv/multiview/fundamental.h"
-#include "libmv/multiview/robust_fundamental.h"
 #include "libmv/multiview/fundamental_test_utils.h"
 #include "libmv/multiview/projection.h"
+#include "libmv/multiview/robust_fundamental.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
-#include "libmv/logging/logging.h"
 
 namespace {
 
@@ -38,15 +38,15 @@ using namespace libmv;
 TEST(RobustFundamental, FundamentalFromCorrespondences8PointRobust) {
   const int n = 16;
   Mat x1(2, n);
-  x1 << 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,   5,
-        0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2,   5;
+  x1 << 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 0, 1, 2, 0, 1, 2, 0, 1,
+      2, 0, 1, 2, 0, 1, 2, 5;
 
   Mat x2 = x1;
   for (int i = 0; i < n; ++i) {
     x2(0, i) += i % 2;  // Multiple horizontal disparities.
   }
   x2(0, n - 1) = 10;
-  x2(1, n - 1) = 10;   // The outlier has vertical disparity.
+  x2(1, n - 1) = 10;  // The outlier has vertical disparity.
 
   Mat3 F;
   vector<int> inliers;
@@ -76,8 +76,8 @@ TEST(RobustFundamental,
 
   Mat3 F_estimated;
   vector<int> inliers;
-  FundamentalFromCorrespondences8PointRobust(d.x1, d.x2, 3.0,
-                                             &F_estimated, &inliers);
+  FundamentalFromCorrespondences8PointRobust(
+      d.x1, d.x2, 3.0, &F_estimated, &inliers);
   EXPECT_EQ(d.x1.cols(), inliers.size());
 
   // Normalize.
@@ -93,11 +93,10 @@ TEST(RobustFundamental,
   ExpectFundamentalProperties(F_estimated, d.x1, d.x2, 1e-8);
 }
 
-
 TEST(RobustFundamental, FundamentalFromCorrespondences8PointRealistic) {
   TwoViewDataSet d = TwoRealisticCameras();
 
-  d.X = 3*Mat::Random(3, 50);
+  d.X = 3 * Mat::Random(3, 50);
   LOG(INFO) << "X = \n" << d.X;
 
   Project(d.P1, d.X, &d.x1);
@@ -106,14 +105,14 @@ TEST(RobustFundamental, FundamentalFromCorrespondences8PointRealistic) {
   LOG(INFO) << "x2 = \n" << d.x2;
 
   Mat x1s, x2s;
-  HorizontalStack(d.x1, 400*Mat::Random(2, 20), &x1s);
-  HorizontalStack(d.x2, 400*Mat::Random(2, 20), &x2s);
+  HorizontalStack(d.x1, 400 * Mat::Random(2, 20), &x1s);
+  HorizontalStack(d.x2, 400 * Mat::Random(2, 20), &x2s);
 
   // Compute fundamental matrix from correspondences.
   Mat3 F_estimated;
   vector<int> inliers;
-  FundamentalFromCorrespondences8PointRobust(x1s, x2s, 1,
-                                             &F_estimated, &inliers);
+  FundamentalFromCorrespondences8PointRobust(
+      x1s, x2s, 1, &F_estimated, &inliers);
 
   LOG(INFO) << "Number of inliers = " << inliers.size();
   EXPECT_LE(d.x1.cols(), inliers.size());  // Some outliers may be considered
@@ -133,19 +132,18 @@ TEST(RobustFundamental, FundamentalFromCorrespondences8PointRealistic) {
   ExpectFundamentalProperties(F_estimated, d.x1, d.x2, 1e-8);
 }
 
-
 TEST(RobustFundamental, FundamentalFromCorrespondences7PointRobust) {
   const int n = 16;
   Mat x1(2, n);
-  x1 << 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5,
-        0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 5;
+  x1 << 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 0, 1, 2, 0, 1, 2, 0, 1,
+      2, 0, 1, 2, 0, 1, 2, 5;
 
   Mat x2 = x1;
   for (int i = 0; i < n; ++i) {
     x2(0, i) += i % 2;  // Multiple horizontal disparities.
   }
   x2(0, n - 1) = 10;
-  x2(1, n - 1) = 10;   // The outlier has vertical disparity.
+  x2(1, n - 1) = 10;  // The outlier has vertical disparity.
 
   Mat3 F;
   vector<int> inliers;
@@ -159,7 +157,7 @@ TEST(RobustFundamental, FundamentalFromCorrespondences7PointRobust) {
   // a,  0,  -c,
   // b,  c,   0
   const double expectedPrecision = 1e-8;
-  const double & ep = expectedPrecision;
+  const double& ep = expectedPrecision;
   EXPECT_NEAR(0.0, F(0, 0), ep);
   EXPECT_NEAR(0.0, F(1, 1), ep);
   EXPECT_NEAR(0.0, F(2, 2), ep);
@@ -173,14 +171,14 @@ TEST(RobustFundamental, FundamentalFromCorrespondences7PointRobust) {
             true);
 }
 
-
-TEST(RobustFundamental, FundamentalFromCorrespondences7PointRealisticNoOutliers) {
+TEST(RobustFundamental,
+     FundamentalFromCorrespondences7PointRealisticNoOutliers) {
   TwoViewDataSet d = TwoRealisticCameras();
 
   Mat3 F_estimated;
   vector<int> inliers;
-  FundamentalFromCorrespondences7PointRobust(d.x1, d.x2, 3.0,
-                                             &F_estimated, &inliers);
+  FundamentalFromCorrespondences7PointRobust(
+      d.x1, d.x2, 3.0, &F_estimated, &inliers);
   EXPECT_EQ(d.x1.cols(), inliers.size());
   LG << "inliers number : " << inliers.size();
 

@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/affine_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "testing/testing.h"
 
 namespace {
@@ -27,8 +27,8 @@ using namespace libmv;
 
 TEST(Affine2DGenericParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec6 p; p << 1, 2, 3,
-               4, 5, 6;
+  Vec6 p;
+  p << 1, 2, 3, 4, 5, 6;
   Vec6 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -47,9 +47,8 @@ TEST(Affine2DGenericParameterization, Roundtripping) {
 
 TEST(Affine3DGenericParameterization, Roundtripping) {
   Mat4 h, h_roundtrip;
-  Vec12 p; p << 1, 2, 3, 4,
-                5, 6, 7, 8,
-                9, 10, 11, 12;
+  Vec12 p;
+  p << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
   Vec12 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.

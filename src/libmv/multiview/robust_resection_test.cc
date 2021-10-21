@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/robust_resection.h"
 #include "libmv/logging/logging.h"
 #include "libmv/multiview/projection.h"
-#include "libmv/multiview/robust_resection.h"
 #include "libmv/multiview/robust_estimation.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
@@ -32,7 +32,7 @@ namespace {
 TEST(UncalibratedResectionRobustKernel, TestSynthetic6FullViews) {
   int nviews = 6;
   int npoints = 50;
-  int noutliers = 0.4*npoints;
+  int noutliers = 0.4 * npoints;
   double threshold_inlier = 0.2;
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
   Mat4X X;
@@ -55,7 +55,7 @@ TEST(UncalibratedResectionRobustKernel, TestSynthetic6FullViews) {
       LOG(INFO) << inliers[i];
       EXPECT_EQ(i + noutliers, inliers[i]);  // 0..19 are outliers.
     }
-    EXPECT_EQ(npoints-noutliers, inliers.size());
+    EXPECT_EQ(npoints - noutliers, inliers.size());
   }
 }
 

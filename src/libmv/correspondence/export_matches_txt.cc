@@ -24,7 +24,7 @@
 
 namespace libmv {
 
-void ExportMatchesToTxt(const Matches &matches, std::string out_file_name) {
+void ExportMatchesToTxt(const Matches& matches, std::string out_file_name) {
   std::ofstream outfile;
   outfile.open(out_file_name.c_str(), std::ios_base::out);
   if (outfile.is_open()) {
@@ -36,8 +36,8 @@ void ExportMatchesToTxt(const Matches &matches, std::string out_file_name) {
           matches.InImage<PointFeature>(*iter_image);
       while (pfeatures) {
         outfile << *iter_image << " " << pfeatures.track() << " "
-                << pfeatures.feature()->x() << " "
-                << pfeatures.feature()->y() << std::endl;
+                << pfeatures.feature()->x() << " " << pfeatures.feature()->y()
+                << std::endl;
         pfeatures.operator++();
       }
     }

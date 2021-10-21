@@ -30,10 +30,9 @@ namespace {
 
 class BlurAndTakeDerivativesFilter : public Filter {
  public:
-  BlurAndTakeDerivativesFilter(double sigma)
-      : sigma_(sigma) {}
+  BlurAndTakeDerivativesFilter(double sigma) : sigma_(sigma) {}
   virtual ~BlurAndTakeDerivativesFilter() {}
-  virtual void RunFilter(const Array3Df &source, Array3Df *destination) {
+  virtual void RunFilter(const Array3Df& source, Array3Df* destination) {
     BlurredImageAndDerivativesChannels(source, sigma_, destination);
   }
   double sigma_;
@@ -42,20 +41,20 @@ class BlurAndTakeDerivativesFilter : public Filter {
 class DownSampleBy2Filter : public Filter {
  public:
   virtual ~DownSampleBy2Filter() {}
-  void RunFilter(const Array3Df &source, Array3Df *destination) {
+  void RunFilter(const Array3Df& source, Array3Df* destination) {
     DownsampleChannelsBy2(source, destination);
   }
 };
 
 }  // namespace
 
-ImageSequence *BlurSequenceAndTakeDerivatives(ImageSequence *source,
+ImageSequence* BlurSequenceAndTakeDerivatives(ImageSequence* source,
                                               double sigma) {
   return new FilteredImageSequence(source,
                                    new BlurAndTakeDerivativesFilter(sigma));
 }
 
-ImageSequence *DownsampleSequenceBy2(ImageSequence *source) {
+ImageSequence* DownsampleSequenceBy2(ImageSequence* source) {
   return new FilteredImageSequence(source, new DownSampleBy2Filter());
 }
 

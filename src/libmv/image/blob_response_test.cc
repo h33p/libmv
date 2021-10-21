@@ -68,8 +68,8 @@ TEST(SimpleCase, OnePeakScaledDown) {
   Array3Df integral_image;
   Array3Df response;
   peak.Fill(0.0);
-  peak(9, 8)  = 1.0;  // Making a single spike doesn't work
-  peak(9, 9)  = 1.0;  // well in the scaled down case, so make
+  peak(9, 8) = 1.0;   // Making a single spike doesn't work
+  peak(9, 9) = 1.0;   // well in the scaled down case, so make
   peak(10, 8) = 1.0;  // the blob a 2x2 block.
   peak(10, 9) = 1.0;
   response.resize(7, 7);
@@ -77,7 +77,7 @@ TEST(SimpleCase, OnePeakScaledDown) {
   IntegralImage(peak, &integral_image);
   BlobResponse(integral_image, 3, 2, &response);
   PrintArray(response);
-  EXPECT_TRUE(IsLocalMax2D(response, 3,  4,  4));
+  EXPECT_TRUE(IsLocalMax2D(response, 3, 4, 4));
   EXPECT_EQ(7, response.rows());
   EXPECT_EQ(7, response.cols());
 }
@@ -101,10 +101,10 @@ TEST(SimpleCase, TwoPeaksScaled) {
   response.resize(20, 20);
   response.Fill(0.0);
   IntegralImage(peak, &integral_image);
-  BlobResponse(integral_image, 3, 2/*scale*/, &response);
+  BlobResponse(integral_image, 3, 2 /*scale*/, &response);
   PrintArray(response);
   EXPECT_TRUE(IsLocalMax2D(response, 3, 10, 11));
-  EXPECT_TRUE(IsLocalMax2D(response, 3,  5,  7));
+  EXPECT_TRUE(IsLocalMax2D(response, 3, 5, 7));
   EXPECT_EQ(20, response.rows());
   EXPECT_EQ(20, response.cols());
 }

@@ -20,15 +20,15 @@
 
 #include "libmv/descriptor/dipole_descriptor.h"
 
+#include <cmath>
 #include "libmv/base/vector.h"
-#include "libmv/logging/logging.h"
+#include "libmv/correspondence/feature.h"
 #include "libmv/descriptor/descriptor.h"
 #include "libmv/descriptor/vector_descriptor.h"
-#include "libmv/correspondence/feature.h"
 #include "libmv/image/convolve.h"
 #include "libmv/image/image.h"
 #include "libmv/image/sample.h"
-#include <cmath>
+#include "libmv/logging/logging.h"
 
 namespace libmv {
 namespace descriptor {
@@ -38,17 +38,17 @@ namespace descriptor {
 // - Angle is in radian.
 // - data the output array (must be allocated to 20 values).
 template <typename TImage, typename T>
-void PickDipole(const TImage & image, float x, float y, float scale,
-                double angle, T * data) {
+void PickDipole(
+    const TImage& image, float x, float y, float scale, double angle, T* data) {
   // Setup the rotation center.
-  float & cx = x, & cy = y;
+  float &cx = x, &cy = y;
 
   double lambda1 = scale;
   double lambda2 = lambda1 / 2.0;
   double angleSubdiv = 2.0 * M_PI / 12.0;
 
   Vecf dipoleF1(12);
-  for (int i = 0; i < 12; ++i)  {
+  for (int i = 0; i < 12; ++i) {
     float xi = cx + lambda1 * cos(angle + i * angleSubdiv);
     float yi = cy + lambda1 * sin(angle + i * angleSubdiv);
     float s1 = 0.0f;
@@ -59,6 +59,7 @@ void PickDipole(const TImage & image, float x, float y, float scale,
     dipoleF1(i) = s1;
   }
   Matf A(8, 12);
+  // clang-format off
   A << 0,  0,  0,  1,  0,  0,  0,  0,  0, -1,  0,  0,
        0, -1,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,
        0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  1,
@@ -67,10 +68,11 @@ void PickDipole(const TImage & image, float x, float y, float scale,
        0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,
        0, -1,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,
        1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0;
+  // clang-format on
 
   // Add the second order F2 dipole
   Vecf dipoleF2(12);
-  for (int i = 0; i < 12; ++i)  {
+  for (int i = 0; i < 12; ++i) {
     double angleSample = i * angleSubdiv;
     float xi = cx + (lambda1 + lambda2) * cos(angle + angleSample);
     float yi = cy + (lambda1 + lambda2) * sin(angle + angleSample);
@@ -93,32 +95,32 @@ void PickDipole(const TImage & image, float x, float y, float scale,
 
 class DipoleDescriber : public Describer {
  public:
-  virtual void Describe(const vector<Feature *> &features,
-                        const Image &image,
-                        const detector::DetectorData *detector_data,
-                        vector<Descriptor *> *descriptors) {
-    (void) detector_data;  // There is no matching detector for DipoleDescriptor.
+  virtual void Describe(const vector<Feature*>& features,
+                        const Image& image,
+                        const detector::DetectorData* detector_data,
+                        vector<Descriptor*>* descriptors) {
+    (void)detector_data;  // There is no matching detector for DipoleDescriptor.
 
     const int DIPOLE_DESC_SIZE = 20;
     descriptors->resize(features.size());
     for (int i = 0; i < features.size(); ++i) {
-      PointFeature *point = dynamic_cast<PointFeature *>(features[i]);
-      VecfDescriptor *descriptor = NULL;
+      PointFeature* point = dynamic_cast<PointFeature*>(features[i]);
+      VecfDescriptor* descriptor = NULL;
       if (point) {
         descriptor = new VecfDescriptor(DIPOLE_DESC_SIZE);
         PickDipole(*(image.AsArray3Du()),
-                  point->x(),
-                  point->y(),
-                  point->scale,
-                  point->orientation,
-                  &(descriptor->coords));
+                   point->x(),
+                   point->y(),
+                   point->scale,
+                   point->orientation,
+                   &(descriptor->coords));
       }
       (*descriptors)[i] = descriptor;
     }
   }
 };
 
-Describer *CreateDipoleDescriber() {
+Describer* CreateDipoleDescriber() {
   return new DipoleDescriber;
 }
 

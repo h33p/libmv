@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/image/image.h"
 #include "libmv/image/image_pyramid.h"
+#include "libmv/image/image.h"
 #include "testing/testing.h"
 
 using libmv::Array3Df;
@@ -31,7 +31,7 @@ namespace {
 TEST(ImagePyramid, Init) {
   Array3Df image(32, 32);
   image.Fill(1);
-  ImagePyramid *ip = MakeImagePyramid(image, 2, 0.9);
+  ImagePyramid* ip = MakeImagePyramid(image, 2, 0.9);
 
   EXPECT_EQ(ip->NumLevels(), 2);
   EXPECT_NEAR(ip->Level(0)(16, 16), 1, 1e-7);

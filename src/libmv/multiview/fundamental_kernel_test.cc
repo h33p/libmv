@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/fundamental_kernel.h"
+#include "libmv/logging/logging.h"
 #include "libmv/multiview/projection.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
@@ -33,8 +33,8 @@ using namespace libmv;
 using namespace libmv::fundamental::kernel;
 
 // Check that sin(angle(a, b)) < tolerance.
-template<typename A, typename B>
-bool Colinear(const A &a, const B &b, double tolerance) {
+template <typename A, typename B>
+bool Colinear(const A& a, const B& b, double tolerance) {
   bool dims_match = (a.rows() == b.rows()) && (a.cols() == b.cols());
   if (!dims_match) {
     return false;
@@ -51,10 +51,10 @@ bool Colinear(const A &a, const B &b, double tolerance) {
 //
 //   1. The determinant is 0 (rank deficient)
 //   2. The condition x'T*F*x = 0 is satisfied to precision.
-template<typename TMat>
-void ExpectFundamentalProperties(const TMat &F,
-                                 const Mat &ptsA,
-                                 const Mat &ptsB,
+template <typename TMat>
+void ExpectFundamentalProperties(const TMat& F,
+                                 const Mat& ptsA,
+                                 const Mat& ptsB,
                                  double precision) {
   EXPECT_NEAR(0, F.determinant(), precision);
   assert(ptsA.cols() == ptsB.cols());
@@ -70,9 +70,9 @@ void ExpectFundamentalProperties(const TMat &F,
 // Because of how type parameterized tests work, two classes are required.
 template <class Kernel>
 struct SevenPointTest : public testing::Test {
-  void ExpectKernelProperties(const Mat &x1,
-                              const Mat &x2,
-                              Mat3 *F_expected = NULL) {
+  void ExpectKernelProperties(const Mat& x1,
+                              const Mat& x2,
+                              Mat3* F_expected = NULL) {
     Kernel kernel(x1, x2);
     vector<int> samples;
     for (int i = 0; i < x1.cols(); ++i) {
@@ -94,20 +94,16 @@ struct SevenPointTest : public testing::Test {
   }
 };
 
-typedef Types<SevenPointKernel,
-              NormalizedSevenPointKernel,
-              Kernel>
-  SevenPointImplementations;
+typedef Types<SevenPointKernel, NormalizedSevenPointKernel, Kernel>
+    SevenPointImplementations;
 
 TYPED_TEST_CASE(SevenPointTest, SevenPointImplementations);
 
 TYPED_TEST(SevenPointTest, EasyCase) {
   Mat x1(2, 7);
   Mat x2(2, 7);
-  x1 << 0, 0, 0, 1, 1, 1, 2,
-        0, 1, 2, 0, 1, 2, 0;
-  x2 << 0, 0, 0, 1, 1, 1, 2,
-        1, 2, 3, 1, 2, 3, 1;
+  x1 << 0, 0, 0, 1, 1, 1, 2, 0, 1, 2, 0, 1, 2, 0;
+  x2 << 0, 0, 0, 1, 1, 1, 2, 1, 2, 3, 1, 2, 3, 1;
   this->ExpectKernelProperties(x1, x2);
 }
 
@@ -115,10 +111,10 @@ TYPED_TEST(SevenPointTest, RealCorrespondences) {
   Mat x1(2, 7);
   Mat x2(2, 7);
 
-  x1 <<  723, 1091, 1691, 447,  971, 1903, 1483,
-         887,  699,  811, 635,   91,  447, 1555;
-  x2 << 1251, 1603, 2067, 787, 1355, 2163, 1875,
-        1243,  923, 1031, 484,  363,  743, 1715;
+  x1 << 723, 1091, 1691, 447, 971, 1903, 1483, 887, 699, 811, 635, 91, 447,
+      1555;
+  x2 << 1251, 1603, 2067, 787, 1355, 2163, 1875, 1243, 923, 1031, 484, 363, 743,
+      1715;
   this->ExpectKernelProperties(x1, x2);
 }
 
@@ -126,33 +122,28 @@ TYPED_TEST(SevenPointTest, DegeneratePointsOnCubeStillSolve) {
   // Try the 7 points of a cube and their projections, missing the last corner.
   TwoViewDataSet d = TwoRealisticCameras();
   d.X.resize(3, 7);
-  d.X <<  0, 1, 0, 1, 0, 1, 0,  // X,
-          0, 0, 1, 1, 0, 0, 1,  // Y,
-          0, 0, 0, 0, 1, 1, 1;  // Z.
+  d.X << 0, 1, 0, 1, 0, 1, 0,  // X,
+      0, 0, 1, 1, 0, 0, 1,     // Y,
+      0, 0, 0, 0, 1, 1, 1;     // Z.
   Project(d.P1, d.X, &d.x1);
   Project(d.P2, d.X, &d.x2);
   this->ExpectKernelProperties(d.x1, d.x2, &d.F);
 }
 
 template <class Kernel>
-struct EightPointTest : public SevenPointTest<Kernel> {
-};
+struct EightPointTest : public SevenPointTest<Kernel> {};
 
-typedef Types<EightPointKernel,
-              NormalizedEightPointKernel>
-  EightPointImplementations;
+typedef Types<EightPointKernel, NormalizedEightPointKernel>
+    EightPointImplementations;
 
 TYPED_TEST_CASE(EightPointTest, EightPointImplementations);
 TYPED_TEST(EightPointTest, EasyCase) {
   Mat x1(2, 8);
   Mat x2(2, 8);
-  x1 << 0, 0, 0, 1, 1, 1, 2, 2,
-        0, 1, 2, 0, 1, 2, 0, 1;
-  x2 << 0, 0, 0, 1, 1, 1, 2, 2,
-        1, 2, 3, 1, 2, 3, 1, 2;
+  x1 << 0, 0, 0, 1, 1, 1, 2, 2, 0, 1, 2, 0, 1, 2, 0, 1;
+  x2 << 0, 0, 0, 1, 1, 1, 2, 2, 1, 2, 3, 1, 2, 3, 1, 2;
   this->ExpectKernelProperties(x1, x2);
 }
-
 
 TYPED_TEST(EightPointTest, RealistCaseWith30Points) {
   TwoViewDataSet d = TwoRealisticCameras();
@@ -160,12 +151,10 @@ TYPED_TEST(EightPointTest, RealistCaseWith30Points) {
 }
 
 template <class Kernel>
-struct FundamentalErrorTest : public testing::Test {
-};
+struct FundamentalErrorTest : public testing::Test {};
 
-typedef Types<SampsonError,
-              SymmetricEpipolarDistanceError>
-  FundamentalErrorImplementations;
+typedef Types<SampsonError, SymmetricEpipolarDistanceError>
+    FundamentalErrorImplementations;
 
 TYPED_TEST_CASE(FundamentalErrorTest, FundamentalErrorImplementations);
 TYPED_TEST(FundamentalErrorTest, FundamentalErrorTest2) {
@@ -173,20 +162,17 @@ TYPED_TEST(FundamentalErrorTest, FundamentalErrorTest2) {
   Mat3 F = CrossProductMatrix(t);  // Fundamental matrix corresponding to pure
                                    // translation.
 
-  Vec2 x0(0, 0), y0(  0,   0);  // Good match (at infinity).
-  Vec2 x1(0, 0), y1(100,   0);  // Good match (no vertical disparity).
+  Vec2 x0(0, 0), y0(0, 0);      // Good match (at infinity).
+  Vec2 x1(0, 0), y1(100, 0);    // Good match (no vertical disparity).
   Vec2 x2(0, 0), y2(0.0, 0.1);  // Small error (a bit of vertical disparity).
-  Vec2 x3(0, 0), y3(  0,   1);  // Bigger error.
-  Vec2 x4(0, 0), y4(  0,  10);  // Biggest error.
-  Vec2 x5(0, 0), y5(100,  10);  // Biggest error with horizontal disparity.
+  Vec2 x3(0, 0), y3(0, 1);      // Bigger error.
+  Vec2 x4(0, 0), y4(0, 10);     // Biggest error.
+  Vec2 x5(0, 0), y5(100, 10);   // Biggest error with horizontal disparity.
 
   Vec6 dists;
-  dists << TypeParam::Error(F, x0, y0),
-           TypeParam::Error(F, x1, y1),
-           TypeParam::Error(F, x2, y2),
-           TypeParam::Error(F, x3, y3),
-           TypeParam::Error(F, x4, y4),
-           TypeParam::Error(F, x5, y5);
+  dists << TypeParam::Error(F, x0, y0), TypeParam::Error(F, x1, y1),
+      TypeParam::Error(F, x2, y2), TypeParam::Error(F, x3, y3),
+      TypeParam::Error(F, x4, y4), TypeParam::Error(F, x5, y5);
 
   VLOG(1) << "SampsonDistance: " << dists.transpose();
 

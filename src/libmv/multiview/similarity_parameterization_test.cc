@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/similarity_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "testing/testing.h"
 
 namespace {
@@ -27,7 +27,8 @@ using namespace libmv;
 
 TEST(Similarity2DSCParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec4 p; p << 1, 2, 3, 4;
+  Vec4 p;
+  p << 1, 2, 3, 4;
   Vec4 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -46,7 +47,8 @@ TEST(Similarity2DSCParameterization, Roundtripping) {
 
 TEST(Similarity2DSAParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec4 p; p << 1, 2, 3, 4;
+  Vec4 p;
+  p << 1, 2, 3, 4;
   Vec4 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -65,7 +67,8 @@ TEST(Similarity2DSAParameterization, Roundtripping) {
 
 TEST(Similarity3DEulerParameterization, Roundtripping) {
   Mat4 h, h_roundtrip;
-  Vec7 p; p << 5, 2, 3, 4, 5, 6, 7;
+  Vec7 p;
+  p << 5, 2, 3, 4, 5, 6, 7;
   Vec7 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -77,7 +80,6 @@ TEST(Similarity3DEulerParameterization, Roundtripping) {
 
   // Now convert back to H from p
   Similarity3DEulerParameterization<double>::To(p_roundtrip, &h_roundtrip);
-
 
   // Check that going from H to p and back to H goes in a circle.
   EXPECT_MATRIX_PROP(h, h_roundtrip, 1.5e-8);

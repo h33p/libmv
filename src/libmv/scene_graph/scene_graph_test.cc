@@ -20,16 +20,16 @@
 
 #include <cstring>
 
-#include "libmv/scene_graph/scene_graph.h"
-#include "testing/testing.h"
 #include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
+#include "libmv/scene_graph/scene_graph.h"
+#include "testing/testing.h"
 
-using libmv::SceneGraph;
 using libmv::MakeSGNode;
-using libmv::SGNode;
-using libmv::Mat4;
 using libmv::Mat;
+using libmv::Mat4;
+using libmv::SceneGraph;
+using libmv::SGNode;
 
 struct TestStruct {
   int data_;
@@ -39,20 +39,20 @@ struct TestStruct {
 
 TEST(SceneGraph, Paths) {
   SceneGraph<TestStruct> scene_graph;
-  TestStruct *t0 = new TestStruct;
-  SGNode<TestStruct> *n = MakeSGNode(t0, "child");
+  TestStruct* t0 = new TestStruct;
+  SGNode<TestStruct>* n = MakeSGNode(t0, "child");
   scene_graph.AddChild(n);
   EXPECT_EQ(n->GetParent(), &scene_graph);
   EXPECT_EQ(scene_graph.NumChildren(), 1);
-  SGNode<TestStruct> *node = scene_graph.GetAtPath("/child");
+  SGNode<TestStruct>* node = scene_graph.GetAtPath("/child");
   EXPECT_EQ(node, n);
   EXPECT_EQ(node->GetObject(), t0);
-  char *path = node->GetPath();
+  char* path = node->GetPath();
   EXPECT_FALSE(strcmp(path, "/child"));
-  delete [] path;
+  delete[] path;
 
-  TestStruct *t1 = new TestStruct;
-  SGNode<TestStruct> *child = MakeSGNode(t1, "childb");
+  TestStruct* t1 = new TestStruct;
+  SGNode<TestStruct>* child = MakeSGNode(t1, "childb");
   node = node->AddChild(child);
   EXPECT_EQ(child->GetParent(), node);
   EXPECT_EQ(scene_graph.NumChildren(), 1);
@@ -60,15 +60,15 @@ TEST(SceneGraph, Paths) {
   path = child->GetPath();
   EXPECT_FALSE(strcmp(path, "/child/childb"));
   EXPECT_EQ(scene_graph.GetAtPath("/child/childb"), child);
-  delete [] path;
+  delete[] path;
 }
 
 TEST(SceneGraph, NoHangingPtrs) {
   SceneGraph<TestStruct> scene_graph;
-  TestStruct *t0 = new TestStruct;
+  TestStruct* t0 = new TestStruct;
   scene_graph.AddChild(MakeSGNode(t0, "child"));
   EXPECT_EQ(scene_graph.NumChildren(), 1);
-  SGNode<TestStruct> *n = scene_graph.GetChild("child");
+  SGNode<TestStruct>* n = scene_graph.GetChild("child");
   EXPECT_TRUE(n);
   delete n;
   EXPECT_EQ(scene_graph.NumChildren(), 0);
@@ -93,16 +93,13 @@ TEST(SceneGraph, MatrixTest) {
   // Don't use Mat4 on stack to prevent MSVC alignment breakage.
   Mat mat(4, 4), ident(4, 4);
   ident.setIdentity();
-  mat << 6, 5, 3, 4,
-         7, 3, 2, 1,
-         5, 4, 3, 2,
-         0, 0, 1, 4;
+  mat << 6, 5, 3, 4, 7, 3, 2, 1, 5, 4, 3, 2, 0, 0, 1, 4;
   TestStruct data;
   SceneGraph<TestStruct> scene_graph;
   scene_graph.GetObjectMatrix() = mat;
   scene_graph.UpdateMatrix();
   scene_graph.AddChild(MakeSGNode(new TestStruct(data), "child"));
-  SGNode<TestStruct> *ptr = scene_graph.GetAtPath("/child");
+  SGNode<TestStruct>* ptr = scene_graph.GetAtPath("/child");
   EXPECT_EQ(mat, ptr->GetMatrix());
   EXPECT_EQ(ident, ptr->GetObjectMatrix());
 }
@@ -110,10 +107,9 @@ TEST(SceneGraph, MatrixTest) {
 TEST(SceneGraph, Misc) {
   TestStruct data;
   SceneGraph<TestStruct> scene_graph;
-  SGNode<TestStruct> *node = MakeSGNode(new TestStruct(data), "child");
+  SGNode<TestStruct>* node = MakeSGNode(new TestStruct(data), "child");
   scene_graph.AddChild(node);
   node->AddChild(MakeSGNode(new TestStruct(data), "childofchild"));
   EXPECT_EQ(scene_graph.NumChildrenRecursive(), 2);
   EXPECT_EQ(scene_graph.NumChildren(), 1);
 }
-

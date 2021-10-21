@@ -33,96 +33,88 @@ extern "C" {
 
 namespace libmv {
 
-static bool CmpFormatExt(const char *a, const char *b) {
+static bool CmpFormatExt(const char* a, const char* b) {
   int len_a = strlen(a);
   int len_b = strlen(b);
-  if (len_a != len_b) return false;
+  if (len_a != len_b)
+    return false;
   for (int i = 0; i < len_a; ++i)
     if (tolower(a[i]) != tolower(b[i]))
       return false;
   return true;
 }
 
-Format GetFormat(const char *c) {
-  const char *p = strrchr(c, '.');
+Format GetFormat(const char* c) {
+  const char* p = strrchr(c, '.');
 
   if (p == NULL)
     return Unknown;
 
-  if (CmpFormatExt(p, ".png")) return Png;
-  if (CmpFormatExt(p, ".ppm")) return Pnm;
-  if (CmpFormatExt(p, ".pgm")) return Pnm;
-  if (CmpFormatExt(p, ".pbm")) return Pnm;
-  if (CmpFormatExt(p, ".pnm")) return Pnm;
-  if (CmpFormatExt(p, ".jpg")) return Jpg;
-  if (CmpFormatExt(p, ".jpeg")) return Jpg;
+  if (CmpFormatExt(p, ".png"))
+    return Png;
+  if (CmpFormatExt(p, ".ppm"))
+    return Pnm;
+  if (CmpFormatExt(p, ".pgm"))
+    return Pnm;
+  if (CmpFormatExt(p, ".pbm"))
+    return Pnm;
+  if (CmpFormatExt(p, ".pnm"))
+    return Pnm;
+  if (CmpFormatExt(p, ".jpg"))
+    return Jpg;
+  if (CmpFormatExt(p, ".jpeg"))
+    return Jpg;
 
   LOG(ERROR) << "Error: Couldn't open " << c << " Unknown file format";
   return Unknown;
 }
 
-int ReadImage(const char *filename, ByteImage *im) {
+int ReadImage(const char* filename, ByteImage* im) {
   Format f = GetFormat(filename);
 
   switch (f) {
-    case Pnm:
-      return ReadPnm(filename, im);
-    case Png:
-      return ReadPng(filename, im);
-    case Jpg:
-      return ReadJpg(filename, im);
-    default:
-      return 0;
+    case Pnm: return ReadPnm(filename, im);
+    case Png: return ReadPng(filename, im);
+    case Jpg: return ReadJpg(filename, im);
+    default: return 0;
   };
 }
 
-int ReadImage(const char *filename, FloatImage *im) {
+int ReadImage(const char* filename, FloatImage* im) {
   Format f = GetFormat(filename);
 
   switch (f) {
-    case Pnm:
-      return ReadPnm(filename, im);
-    case Png:
-      return ReadPng(filename, im);
-    case Jpg:
-      return ReadJpg(filename, im);
-    default:
-      return 0;
+    case Pnm: return ReadPnm(filename, im);
+    case Png: return ReadPng(filename, im);
+    case Jpg: return ReadJpg(filename, im);
+    default: return 0;
   };
 }
 
-int WriteImage(const ByteImage &im, const char *filename) {
+int WriteImage(const ByteImage& im, const char* filename) {
   Format f = GetFormat(filename);
 
   switch (f) {
-    case Pnm:
-      return WritePnm(im, filename);
-    case Png:
-      return WritePng(im, filename);
-    case Jpg:
-      return WriteJpg(im, filename);
-    default:
-      return 0;
+    case Pnm: return WritePnm(im, filename);
+    case Png: return WritePng(im, filename);
+    case Jpg: return WriteJpg(im, filename);
+    default: return 0;
   };
 }
 
-int WriteImage(const FloatImage &im, const char *filename) {
+int WriteImage(const FloatImage& im, const char* filename) {
   Format f = GetFormat(filename);
 
   switch (f) {
-    case Pnm:
-      return WritePnm(im, filename);
-    case Png:
-      return WritePng(im, filename);
-    case Jpg:
-      return WriteJpg(im, filename);
-    default:
-      return 0;
+    case Pnm: return WritePnm(im, filename);
+    case Png: return WritePng(im, filename);
+    case Jpg: return WriteJpg(im, filename);
+    default: return 0;
   };
 }
 
-int ReadJpg(const char *filename, ByteImage *im) {
-  FILE *file = fopen(filename, "rb");
+int ReadJpg(const char* filename, ByteImage* im) {
+  FILE* file = fopen(filename, "rb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -132,7 +124,7 @@ int ReadJpg(const char *filename, ByteImage *im) {
   return res;
 }
 
-int ReadJpg(const char *filename, FloatImage *image) {
+int ReadJpg(const char* filename, FloatImage* image) {
   ByteImage byte_image;
   int res = ReadJpg(filename, &byte_image);
   if (!res) {
@@ -149,12 +141,12 @@ struct my_error_mgr {
 
 METHODDEF(void)
 jpeg_error(j_common_ptr cinfo) {
-  my_error_mgr *myerr = (my_error_mgr*) cinfo->err;
-  (*cinfo->err->output_message) (cinfo);
+  my_error_mgr* myerr = (my_error_mgr*)cinfo->err;
+  (*cinfo->err->output_message)(cinfo);
   longjmp(myerr->setjmp_buffer, 1);
 }
 
-int ReadJpgStream(FILE *file, ByteImage *im) {
+int ReadJpgStream(FILE* file, ByteImage* im) {
   jpeg_decompress_struct cinfo;
   struct my_error_mgr jerr;
   JSAMPARRAY buffer;
@@ -173,12 +165,12 @@ int ReadJpgStream(FILE *file, ByteImage *im) {
 
   int row_stride = cinfo.output_width * cinfo.output_components;
 
-  buffer = (*cinfo.mem->alloc_sarray)
-    ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+  buffer = (*cinfo.mem->alloc_sarray)(
+      (j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
 
   im->Resize(cinfo.output_height, cinfo.output_width, cinfo.output_components);
 
-  unsigned char *ptr = im->Data();
+  unsigned char* ptr = im->Data();
 
   while (cinfo.output_scanline < cinfo.output_height) {
     jpeg_read_scanlines(&cinfo, buffer, 1);
@@ -195,8 +187,8 @@ int ReadJpgStream(FILE *file, ByteImage *im) {
   return 1;
 }
 
-int WriteJpg(const ByteImage &im, const char *filename, int quality) {
-  FILE *file = fopen(filename, "wb");
+int WriteJpg(const ByteImage& im, const char* filename, int quality) {
+  FILE* file = fopen(filename, "wb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -206,13 +198,13 @@ int WriteJpg(const ByteImage &im, const char *filename, int quality) {
   return res;
 }
 
-int WriteJpg(const FloatImage &image, const char *filename, int quality) {
+int WriteJpg(const FloatImage& image, const char* filename, int quality) {
   ByteImage byte_image;
   FloatArrayToScaledByteArray(image, &byte_image);
   return WriteJpg(byte_image, filename, quality);
 }
 
-int WriteJpgStream(const ByteImage &im, FILE *file, int quality) {
+int WriteJpgStream(const ByteImage& im, FILE* file, int quality) {
   if (quality < 0 || quality > 100)
     LOG(ERROR) << "Error: The quality parameter should be between 0 and 100";
 
@@ -241,28 +233,28 @@ int WriteJpgStream(const ByteImage &im, FILE *file, int quality) {
   jpeg_set_quality(&cinfo, quality, TRUE);
   jpeg_start_compress(&cinfo, TRUE);
 
-  const unsigned char *ptr = im.Data();
-  int row_bytes = cinfo.image_width*cinfo.input_components;
+  const unsigned char* ptr = im.Data();
+  int row_bytes = cinfo.image_width * cinfo.input_components;
 
-  JSAMPLE *row = new JSAMPLE[row_bytes];
+  JSAMPLE* row = new JSAMPLE[row_bytes];
 
   while (cinfo.next_scanline < cinfo.image_height) {
     int i;
     for (i = 0; i < row_bytes; ++i)
-    row[i] = ptr[i];
+      row[i] = ptr[i];
     jpeg_write_scanlines(&cinfo, &row, 1);
     ptr += row_bytes;
   }
 
-  delete [] row;
+  delete[] row;
 
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
   return 1;
 }
 
-int ReadPng(const char *filename, ByteImage *im) {
-  FILE *file = fopen(filename, "rb");
+int ReadPng(const char* filename, ByteImage* im) {
+  FILE* file = fopen(filename, "rb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -272,7 +264,7 @@ int ReadPng(const char *filename, ByteImage *im) {
   return res;
 }
 
-int ReadPng(const char *filename, FloatImage *image) {
+int ReadPng(const char* filename, FloatImage* image) {
   ByteImage byte_image;
   int res = ReadPng(filename, &byte_image);
   if (!res) {
@@ -284,7 +276,7 @@ int ReadPng(const char *filename, FloatImage *image) {
 
 // The writing and reading functions using libpng are based on
 //     http://zarb.org/~gc/html/libpng.html
-int ReadPngStream(FILE *file, ByteImage *im) {
+int ReadPngStream(FILE* file, ByteImage* im) {
   png_byte header[8];
 
   if (fread(header, 1, 8, file) != 8) {
@@ -293,8 +285,8 @@ int ReadPngStream(FILE *file, ByteImage *im) {
   if (png_sig_cmp(header, 0, 8))
     return 0;
 
-  png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
-                                               NULL, NULL, NULL);
+  png_structp png_ptr =
+      png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
   if (!png_ptr)
     return 0;
@@ -318,14 +310,13 @@ int ReadPngStream(FILE *file, ByteImage *im) {
   if (setjmp(png_jmpbuf(png_ptr)))
     return 0;
 
-  png_bytep *row_pointers =
-       (png_bytep*)malloc(sizeof(png_bytep) * info_ptr->channels *
-       im->Height());
+  png_bytep* row_pointers =
+      (png_bytep*)malloc(sizeof(png_bytep) * info_ptr->channels * im->Height());
 
-  unsigned char *ptr = (unsigned char *)im->Data();
+  unsigned char* ptr = (unsigned char*)im->Data();
   int y;
   for (y = 0; y < im->Height(); ++y)
-    row_pointers[y] = (png_byte*) ptr + info_ptr->rowbytes*y;
+    row_pointers[y] = (png_byte*)ptr + info_ptr->rowbytes * y;
 
   png_read_image(png_ptr, row_pointers);
 
@@ -334,8 +325,8 @@ int ReadPngStream(FILE *file, ByteImage *im) {
   return 1;
 }
 
-int WritePng(const ByteImage &im, const char *filename) {
-  FILE *file = fopen(filename, "wb");
+int WritePng(const ByteImage& im, const char* filename) {
+  FILE* file = fopen(filename, "wb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -345,13 +336,13 @@ int WritePng(const ByteImage &im, const char *filename) {
   return res;
 }
 
-int WritePng(const FloatImage &image, const char *filename) {
+int WritePng(const FloatImage& image, const char* filename) {
   ByteImage byte_image;
   FloatArrayToScaledByteArray(image, &byte_image);
   return WritePng(byte_image, filename);
 }
 
-int WritePngStream(const ByteImage &im, FILE *file) {
+int WritePngStream(const ByteImage& im, FILE* file) {
   png_structp png_ptr =
       png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
@@ -379,22 +370,28 @@ int WritePngStream(const ByteImage &im, FILE *file) {
   else
     return 0;
 
-  png_set_IHDR(png_ptr, info_ptr, im.Width(), im.Height(),
-      8, colour, PNG_INTERLACE_NONE,
-      PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+  png_set_IHDR(png_ptr,
+               info_ptr,
+               im.Width(),
+               im.Height(),
+               8,
+               colour,
+               PNG_INTERLACE_NONE,
+               PNG_COMPRESSION_TYPE_BASE,
+               PNG_FILTER_TYPE_BASE);
 
   png_write_info(png_ptr, info_ptr);
 
   if (setjmp(png_jmpbuf(png_ptr)))
     return 0;
 
-  png_bytep *row_pointers =
-      (png_bytep*) malloc(sizeof(png_bytep) *im.Depth()* im.Height());
+  png_bytep* row_pointers =
+      (png_bytep*)malloc(sizeof(png_bytep) * im.Depth() * im.Height());
 
-  unsigned char *ptr = (unsigned char *)im.Data();
+  unsigned char* ptr = (unsigned char*)im.Data();
   int y;
   for (y = 0; y < im.Height(); ++y)
-    row_pointers[y] = (png_byte*) ptr + info_ptr->rowbytes*y;
+    row_pointers[y] = (png_byte*)ptr + info_ptr->rowbytes * y;
 
   png_write_image(png_ptr, row_pointers);
 
@@ -408,8 +405,8 @@ int WritePngStream(const ByteImage &im, FILE *file) {
   return 1;
 }
 
-int ReadPnm(const char *filename, ByteImage *im) {
-  FILE *file = fopen(filename, "rb");
+int ReadPnm(const char* filename, ByteImage* im) {
+  FILE* file = fopen(filename, "rb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -419,7 +416,7 @@ int ReadPnm(const char *filename, ByteImage *im) {
   return res;
 }
 
-int ReadPnm(const char *filename, FloatImage *image) {
+int ReadPnm(const char* filename, FloatImage* image) {
   ByteImage byte_image;
   int res = ReadPnm(filename, &byte_image);
   if (!res) {
@@ -433,7 +430,7 @@ int ReadPnm(const char *filename, FloatImage *image) {
 // Comment handling as per the description provided at
 //   http://netpbm.sourceforge.net/doc/pgm.html
 // and http://netpbm.sourceforge.net/doc/pbm.html
-int ReadPnmStream(FILE *file, ByteImage *im) {
+int ReadPnmStream(FILE* file, ByteImage* im) {
   const int NUM_VALUES = 3;
   const int INT_BUFFER_SIZE = 256;
 
@@ -465,18 +462,21 @@ int ReadPnmStream(FILE *file, ByteImage *im) {
   while (valuesIndex < NUM_VALUES) {
     char nextChar;
     res = fread(&nextChar, 1, 1, file);
-    if (res == 0) return 0;  // read failed, EOF?
+    if (res == 0)
+      return 0;  // read failed, EOF?
 
     if (isspace(nextChar)) {
-      if (inToken) {  // we were reading a token, so this white space delimits it
+      if (inToken) {  // we were reading a token, so this white space delimits
+                      // it
         inToken = 0;
         intBuffer[intIndex] = 0;  // NULL-terminate the string
         values[valuesIndex++] = atoi(intBuffer);
         intIndex = 0;  // reset for next int token
         // use this line if image class aloows 2-byte grey-scale
-//        if (valuesIndex == 3 && values[2] > 65535) return 0 ;
+        //        if (valuesIndex == 3 && values[2] > 65535) return 0 ;
         // to conform with current image class
-        if (valuesIndex == 3 && values[2] > 255) return 0;
+        if (valuesIndex == 3 && values[2] > 255)
+          return 0;
       }
     } else if (isdigit(nextChar)) {
       inToken = 1;  // in case it's not already set
@@ -487,7 +487,8 @@ int ReadPnmStream(FILE *file, ByteImage *im) {
       do {  // eat all characters from input stream until newline
         res = fread(&nextChar, 1, 1, file);
       } while (res == 1 && nextChar != '\n');
-      if (res == 0) return 0;  // read failed, EOF?
+      if (res == 0)
+        return 0;  // read failed, EOF?
     } else {
       // Encountered a non-whitepace, non-digit outside a comment - bail out.
       return 0;
@@ -495,7 +496,7 @@ int ReadPnmStream(FILE *file, ByteImage *im) {
   }
 
   // use this line if image class aloows 2-byte grey-scale
-//  if (values[2] > 255 && magicnumber == 5) depth = 2 ;
+  //  if (values[2] > 255 && magicnumber == 5) depth = 2 ;
 
   // Read pixels.
   im->Resize(values[1], values[0], depth);
@@ -506,8 +507,8 @@ int ReadPnmStream(FILE *file, ByteImage *im) {
   return 1;
 }
 
-int WritePnm(const ByteImage &im, const char *filename) {
-  FILE *file = fopen(filename, "wb");
+int WritePnm(const ByteImage& im, const char* filename) {
+  FILE* file = fopen(filename, "wb");
   if (!file) {
     LOG(ERROR) << "Error: Couldn't open " << filename << " fopen returned 0";
     return 0;
@@ -519,13 +520,13 @@ int WritePnm(const ByteImage &im, const char *filename) {
 
 // TODO(maclean) Look into using StringPiece here (do a codesearch) to allow
 // passing both strings and const char *'s.
-int WritePnm(const FloatImage &image, const char *filename) {
+int WritePnm(const FloatImage& image, const char* filename) {
   ByteImage byte_image;
   FloatArrayToScaledByteArray(image, &byte_image);
   return WritePnm(byte_image, filename);
 }
 
-int WritePnmStream(const ByteImage &im, FILE *file) {
+int WritePnmStream(const ByteImage& im, FILE* file) {
   int res;
 
   // Write magic number.

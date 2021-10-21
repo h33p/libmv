@@ -29,47 +29,42 @@
 
 namespace libmv {
 
-void FillPairwiseMatchesMatrix(const Matches &matches,
-                               Mat *m) {
-  m->resize(matches.NumImages(),
-            matches.NumImages());
+void FillPairwiseMatchesMatrix(const Matches& matches, Mat* m) {
+  m->resize(matches.NumImages(), matches.NumImages());
   m->setZero();
   std::set<Matches::ImageID>::const_iterator image_iter1 =
-    matches.get_images().begin();
+      matches.get_images().begin();
   std::set<Matches::ImageID>::const_iterator image_iter2;
   vector<Mat> xs2;
-  for (;image_iter1 != matches.get_images().end(); ++image_iter1) {
+  for (; image_iter1 != matches.get_images().end(); ++image_iter1) {
     image_iter2 = image_iter1;
     image_iter2++;
-    for (;image_iter2 != matches.get_images().end(); ++image_iter2) {
+    for (; image_iter2 != matches.get_images().end(); ++image_iter2) {
       TwoViewPointMatchMatrices(matches, *image_iter1, *image_iter2, &xs2);
       (*m)(*image_iter1, *image_iter2) = xs2[0].cols();
     }
   }
 }
 
-void FillPairwiseMatchesHomographyMatrix(const Matches &matches,
-                                         Mat *m) {
-  m->resize(matches.NumImages(),
-            matches.NumImages());
+void FillPairwiseMatchesHomographyMatrix(const Matches& matches, Mat* m) {
+  m->resize(matches.NumImages(), matches.NumImages());
   m->setZero();
   Mat3 H;
   vector<int> inliers;
   double max_error_h = 1;
   std::set<Matches::ImageID>::const_iterator image_iter1 =
-    matches.get_images().begin();
+      matches.get_images().begin();
   std::set<Matches::ImageID>::const_iterator image_iter2;
   vector<Mat> xs2;
-  for (;image_iter1 != matches.get_images().end(); ++image_iter1) {
+  for (; image_iter1 != matches.get_images().end(); ++image_iter1) {
     image_iter2 = image_iter1;
     image_iter2++;
-    for (;image_iter2 != matches.get_images().end(); ++image_iter2) {
+    for (; image_iter2 != matches.get_images().end(); ++image_iter2) {
       TwoViewPointMatchMatrices(matches, *image_iter1, *image_iter2, &xs2);
       (*m)(*image_iter1, *image_iter2) = xs2[0].cols();
       if (xs2[0].cols() >= 4) {
-        Homography2DFromCorrespondences4PointRobust(xs2[0], xs2[1],
-                                                    max_error_h,
-                                                    &H, &inliers, 1e-2);
+        Homography2DFromCorrespondences4PointRobust(
+            xs2[0], xs2[1], max_error_h, &H, &inliers, 1e-2);
         // TODO(julien) Put this in a function
         Vec3 p1;
         Vec2 e;
@@ -83,16 +78,17 @@ void FillPairwiseMatchesHomographyMatrix(const Matches &matches,
           all_errors.push_back(e.norm());
         }
         std::sort(all_errors.begin(), all_errors.end());
-        VLOG(1) << "H median:" << all_errors[round(inliers.size()/2)]
+        VLOG(1) << "H median:" << all_errors[round(inliers.size() / 2)]
                 << "px.\n";
-        (*m)(*image_iter1, *image_iter2) *= all_errors[round(inliers.size()/2)];
+        (*m)(*image_iter1, *image_iter2) *=
+            all_errors[round(inliers.size() / 2)];
       }
     }
   }
 }
 
-bool AddIndex(int id, vector<uint> *id_ordered) {
-  for (uint i = 0; i < id_ordered->size() ;++i) {
+bool AddIndex(int id, vector<uint>* id_ordered) {
+  for (uint i = 0; i < id_ordered->size(); ++i) {
     if ((*id_ordered)[i] == id) {
       return false;
     }
@@ -101,9 +97,9 @@ bool AddIndex(int id, vector<uint> *id_ordered) {
   return true;
 }
 
-void RecursivePairwiseHighScoresSearch(Mat &m,
+void RecursivePairwiseHighScoresSearch(Mat& m,
                                        const Vec2i seed,
-                                       vector<uint> *id_ordered) {
+                                       vector<uint>* id_ordered) {
   double val_c, val_r;
   Vec2i max_c, max_r;
   int nothing;
@@ -144,15 +140,15 @@ void RecursivePairwiseHighScoresSearch(Mat &m,
 }
 
 void RecoverOrderFromPairwiseHighScores(
-  const Matches &matches,
-  Mat &m,
-  std::list<vector<Matches::ImageID> > *connected_graph_list) {
-  //connected_graph_list->clear();
+    const Matches& matches,
+    Mat& m,
+    std::list<vector<Matches::ImageID>>* connected_graph_list) {
+  // connected_graph_list->clear();
   std::map<uint, Matches::ImageID> map_img_ids;
   std::set<Matches::ImageID>::const_iterator image_iter1 =
-    matches.get_images().begin();
+      matches.get_images().begin();
   uint i_img = 0;
-  for (;image_iter1 != matches.get_images().end(); ++image_iter1, ++i_img) {
+  for (; image_iter1 != matches.get_images().end(); ++image_iter1, ++i_img) {
     map_img_ids[i_img] = *image_iter1;
   }
 
@@ -177,11 +173,10 @@ void RecoverOrderFromPairwiseHighScores(
 }
 
 void SelectEfficientImageOrder(
-    const Matches &matches,
-    std::list<vector<Matches::ImageID> >*images_list) {
+    const Matches& matches, std::list<vector<Matches::ImageID>>* images_list) {
   Mat m;
   FillPairwiseMatchesHomographyMatrix(matches, &m);
-  VLOG(1) << " M = " << m <<"\n";
+  VLOG(1) << " M = " << m << "\n";
   RecoverOrderFromPairwiseHighScores(matches, m, images_list);
 }
 }  // namespace libmv

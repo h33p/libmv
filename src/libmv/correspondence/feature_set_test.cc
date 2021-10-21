@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include <cstdio>
 #include <algorithm>
+#include <cstdio>
 
 #include "libmv/correspondence/feature_set.h"
 #include "libmv/logging/logging.h"
@@ -41,7 +41,6 @@ struct MyPoint : public Feature {
 struct SiblingTestFeature : public Feature {
   virtual ~SiblingTestFeature() {}
 };
-
 
 TEST(FeatureSet, New) {
   FeatureSet features;
@@ -73,8 +72,7 @@ TEST(FeatureSet, All) {
 
   // Scan my points.
   std::vector<int> tags;
-  for (FeatureSet::Iterator<MyPoint> it = features.All<MyPoint>();
-       it; ++it) {
+  for (FeatureSet::Iterator<MyPoint> it = features.All<MyPoint>(); it; ++it) {
     tags.push_back(it.feature().tag);
   }
   std::sort(tags.begin(), tags.end());
@@ -98,14 +96,13 @@ TEST(FeatureSet, Delete) {
 
   // Scan my points.
   std::vector<int> tags;
-  for (FeatureSet::Iterator<MyPoint> it = features.All<MyPoint>();
-       it; ++it) {
-         tags.push_back(it.feature().tag);
-       }
-       std::sort(tags.begin(), tags.end());
-       EXPECT_EQ(2, tags.size());
-       EXPECT_EQ(2, tags[0]);
-       EXPECT_EQ(3, tags[1]);
+  for (FeatureSet::Iterator<MyPoint> it = features.All<MyPoint>(); it; ++it) {
+    tags.push_back(it.feature().tag);
+  }
+  std::sort(tags.begin(), tags.end());
+  EXPECT_EQ(2, tags.size());
+  EXPECT_EQ(2, tags[0]);
+  EXPECT_EQ(3, tags[1]);
 }
 
 TEST(FeatureSet, Find) {

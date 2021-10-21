@@ -20,18 +20,18 @@
 
 #include "libmv/reconstruction/tools.h"
 
-#include <stdio.h>
 #include <locale.h>
+#include <stdio.h>
 
 namespace libmv {
 
 // Selects only the already reconstructed tracks observed in the image image_id
 // and returns a vector of StructureID and their feature coordinates
-void SelectExistingPointStructures(const Matches &matches,
+void SelectExistingPointStructures(const Matches& matches,
                                    CameraID image_id,
-                                   const Reconstruction &reconstruction,
-                                   vector<StructureID> *structures_ids,
-                                   Mat2X *x_image) {
+                                   const Reconstruction& reconstruction,
+                                   vector<StructureID>* structures_ids,
+                                   Mat2X* x_image) {
   const size_t kNumberStructuresToReserve = 1000;
   structures_ids->resize(0);
   // TODO(julien) clean this
@@ -39,8 +39,7 @@ void SelectExistingPointStructures(const Matches &matches,
   vector<Vec2> xs;
   if (x_image)
     xs.reserve(kNumberStructuresToReserve);
-  Matches::Features<PointFeature> fp =
-    matches.InImage<PointFeature>(image_id);
+  Matches::Features<PointFeature> fp = matches.InImage<PointFeature>(image_id);
   while (fp) {
     if (reconstruction.TrackHasStructure(fp.track())) {
       structures_ids->push_back(fp.track());
@@ -55,11 +54,11 @@ void SelectExistingPointStructures(const Matches &matches,
 
 // Selects only the NOT already reconstructed tracks observed in the image
 // image_id and returns a vector of StructureID and their feature coordinates
-void SelectNonReconstructedPointStructures(const Matches &matches,
+void SelectNonReconstructedPointStructures(const Matches& matches,
                                            CameraID image_id,
-                                           const Reconstruction &reconstruction,
-                                           vector<StructureID> *structures_ids,
-                                           Mat2X *x_image) {
+                                           const Reconstruction& reconstruction,
+                                           vector<StructureID>* structures_ids,
+                                           Mat2X* x_image) {
   const size_t kNumberStructuresToReserve = 10000;
   structures_ids->resize(0);
   // TODO(julien) clean this
@@ -67,8 +66,7 @@ void SelectNonReconstructedPointStructures(const Matches &matches,
   vector<Vec2> xs;
   if (x_image)
     xs.reserve(kNumberStructuresToReserve);
-  Matches::Features<PointFeature> fp =
-    matches.InImage<PointFeature>(image_id);
+  Matches::Features<PointFeature> fp = matches.InImage<PointFeature>(image_id);
   while (fp) {
     if (!reconstruction.TrackHasStructure(fp.track())) {
       structures_ids->push_back(fp.track());
@@ -83,14 +81,14 @@ void SelectNonReconstructedPointStructures(const Matches &matches,
 
 // Recover the position of the selected point structures
 void MatrixOfPointStructureCoordinates(
-    const vector<StructureID> &structures_ids,
-    const Reconstruction &reconstruction,
-    Mat4X *X_world) {
+    const vector<StructureID>& structures_ids,
+    const Reconstruction& reconstruction,
+    Mat4X* X_world) {
   X_world->resize(4, structures_ids.size());
-  PointStructure *point_s = NULL;
+  PointStructure* point_s = NULL;
   for (size_t s = 0; s < structures_ids.size(); ++s) {
     point_s = dynamic_cast<PointStructure*>(
-      reconstruction.GetStructure(structures_ids[s]));
+        reconstruction.GetStructure(structures_ids[s]));
     if (point_s) {
       X_world->col(s) << point_s->coords();
     }

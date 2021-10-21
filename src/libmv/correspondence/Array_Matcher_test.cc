@@ -20,8 +20,8 @@
 
 #include "libmv/correspondence/ArrayMatcher.h"
 #include "libmv/correspondence/ArrayMatcher_BruteForce.h"
-#include "libmv/correspondence/ArrayMatcher_Kdtree_Flann.h"
 #include "libmv/correspondence/ArrayMatcher_Kdtree.h"
+#include "libmv/correspondence/ArrayMatcher_Kdtree_Flann.h"
 
 #include "libmv/correspondence/feature_matching.h"
 #include "libmv/logging/logging.h"
@@ -35,17 +35,16 @@ using namespace libmv::descriptor;
 using namespace libmv::correspondence;
 
 template <class Kernel>
-struct MatchingKernelTest : public testing::Test {
-};
+struct MatchingKernelTest : public testing::Test {};
 
 // Test :
 // - Libmv Kdtree,
 // - Linear matching FLANN,
 // - FLANN Kdtree.
-typedef Types< ArrayMatcher_Kdtree<float>,
-               ArrayMatcher_BruteForce<float>,
-               ArrayMatcher_Kdtree_Flann<float>
-               > MatchingKernelImpl;
+typedef Types<ArrayMatcher_Kdtree<float>,
+              ArrayMatcher_BruteForce<float>,
+              ArrayMatcher_Kdtree_Flann<float>>
+    MatchingKernelImpl;
 
 TYPED_TEST_CASE(MatchingKernelTest, MatchingKernelImpl);
 
@@ -56,18 +55,16 @@ TYPED_TEST(MatchingKernelTest, MatcherInterfaceSymmetry) {
   for (int i = 0; i < 4; ++i) {
     KeypointFeature feat;
     Vecf desc(descriptorSize);
-    desc << i+1, i+1;
+    desc << i + 1, i + 1;
     feat.descriptor = VecfDescriptor(desc);
     featureSet.features.push_back(feat);
   }
 
   // Match feature set between same feature set and assert the result.
-  float * data =
-    FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSet);
+  float* data = FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSet);
 
   // Build the array matcher in order to compute matches pair.
-  libmv::correspondence::ArrayMatcher<float> * pArrayMatcher =
-    new TypeParam;
+  libmv::correspondence::ArrayMatcher<float>* pArrayMatcher = new TypeParam;
 
   libmv::vector<int> indices;
   libmv::vector<float> distances;
@@ -75,22 +72,21 @@ TYPED_TEST(MatchingKernelTest, MatcherInterfaceSymmetry) {
   bool breturn = false;
   int nbFeatures = featureSet.features.size();
   if (pArrayMatcher->build(data, nbFeatures, descriptorSize)) {
-      const int NN = 1;
-      breturn =
-        pArrayMatcher->searchNeighbours(data, nbFeatures,
-          &indices, &distances, NN);
+    const int NN = 1;
+    breturn = pArrayMatcher->searchNeighbours(
+        data, nbFeatures, &indices, &distances, NN);
   }
   delete pArrayMatcher;
 
-  delete [] data;
+  delete[] data;
 
   EXPECT_EQ(indices.size(), 4);
   EXPECT_EQ(distances.size(), 4);
   // Check that matches are symmetric.
-  if (breturn)  {
+  if (breturn) {
     for (size_t i = 0; i < indices.size(); ++i) {
-      EXPECT_EQ(i , indices[i]);
-      }
+      EXPECT_EQ(i, indices[i]);
+    }
   }
 }
 
@@ -101,7 +97,7 @@ TYPED_TEST(MatchingKernelTest, MatcherInterface) {
   for (int i = 0; i < 4; ++i) {
     KeypointFeature feat;
     Vecf desc(descriptorSize);
-    desc << i*2, i*2;
+    desc << i * 2, i * 2;
     feat.descriptor = VecfDescriptor(desc);
     featureSetA.features.push_back(feat);
   }
@@ -111,41 +107,44 @@ TYPED_TEST(MatchingKernelTest, MatcherInterface) {
   for (int i = 0; i < 5; ++i) {
     KeypointFeature feat;
     Vecf desc(descriptorSize);
-    desc << i*2, i*2;
+    desc << i * 2, i * 2;
     feat.descriptor = VecfDescriptor(desc);
     featureSetB.features.push_back(feat);
   }
 
   // Match feature set between same feature set and assert the result.
-  float * dataA =
-    FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSetA);
-  float * dataB =
-    FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSetB);
+  float* dataA =
+      FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSetA);
+  float* dataB =
+      FeatureSet::FeatureSetDescriptorsToContiguousArray(featureSetB);
 
   // Build the array matcher in order to compute matches pair.
-  libmv::correspondence::ArrayMatcher<float> * pArrayMatcherA =
-    new TypeParam;
-  libmv::correspondence::ArrayMatcher<float> * pArrayMatcherB =
-    new TypeParam;
+  libmv::correspondence::ArrayMatcher<float>* pArrayMatcherA = new TypeParam;
+  libmv::correspondence::ArrayMatcher<float>* pArrayMatcherB = new TypeParam;
 
   libmv::vector<int> indices, indicesReverse;
   libmv::vector<float> distances, distancesReverse;
 
   bool breturn = false;
-  if (pArrayMatcherA->build(dataA, featureSetA.features.size(), descriptorSize) &&
-      pArrayMatcherB->build(dataB, featureSetB.features.size(), descriptorSize)) {
+  if (pArrayMatcherA->build(
+          dataA, featureSetA.features.size(), descriptorSize) &&
+      pArrayMatcherB->build(
+          dataB, featureSetB.features.size(), descriptorSize)) {
     const int NN = 1;
     breturn =
-        pArrayMatcherB->searchNeighbours(dataA, featureSetA.features.size(),
-          &indices, &distances, NN) &&
-        pArrayMatcherA->searchNeighbours(dataB, featureSetB.features.size(),
-          &indicesReverse, &distancesReverse, NN);
+        pArrayMatcherB->searchNeighbours(
+            dataA, featureSetA.features.size(), &indices, &distances, NN) &&
+        pArrayMatcherA->searchNeighbours(dataB,
+                                         featureSetB.features.size(),
+                                         &indicesReverse,
+                                         &distancesReverse,
+                                         NN);
   }
   delete pArrayMatcherA;
   delete pArrayMatcherB;
 
-  delete [] dataA;
-  delete [] dataB;
+  delete[] dataA;
+  delete[] dataB;
 
   EXPECT_EQ(indices.size(), 4);
   EXPECT_EQ(distances.size(), 4);
@@ -169,7 +168,7 @@ TYPED_TEST(MatchingKernelTest, MatcherInterface) {
   // Check that matches are symmetric.
   if (breturn) {
     for (size_t i = 0; i < indices.size(); ++i) {
-      EXPECT_EQ(i , indicesReverse[indices[i]]);
+      EXPECT_EQ(i, indicesReverse[indices[i]]);
     }
   }
 }

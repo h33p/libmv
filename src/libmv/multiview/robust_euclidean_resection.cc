@@ -28,20 +28,24 @@ namespace libmv {
 // Estimate robustly the the extrinsic parameters, R and t for a calibrated
 // camera from 4 or more 3D points and their images.
 // The euclidean resection solver relies on the EPnP method.
-double EuclideanResectionEPnPRobust(const Mat2X &x_image,
-                                    const Mat3X &X_world,
-                                    const Mat3  &K,
+double EuclideanResectionEPnPRobust(const Mat2X& x_image,
+                                    const Mat3X& X_world,
+                                    const Mat3& K,
                                     double max_error,
-                                    Mat3 *R, Vec3 *t,
-                                    vector<int> *inliers,
+                                    Mat3* R,
+                                    Vec3* t,
+                                    vector<int>* inliers,
                                     double outliers_probability) {
   // The threshold is on the sum of the squared errors.
   double threshold = Square(max_error);
   double best_score = HUGE_VAL;
   typedef libmv::euclidean_resection::kernel::Kernel Kernel;
   Kernel kernel(x_image, X_world, K);
-  Mat34 P = Estimate(kernel, MLEScorer<Kernel>(threshold),
-                     inliers, &best_score, outliers_probability);
+  Mat34 P = Estimate(kernel,
+                     MLEScorer<Kernel>(threshold),
+                     inliers,
+                     &best_score,
+                     outliers_probability);
   Mat3 K_unused;
   KRt_From_P(P, &K_unused, R, t);
   if (best_score == HUGE_VAL)

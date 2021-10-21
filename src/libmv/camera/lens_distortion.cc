@@ -29,31 +29,31 @@ class UndistortionOptimizerClass {
   typedef Vec2 FMatrixType;
   typedef Vec2 XMatrixType;
 
-  UndistortionOptimizerClass(const LensDistortion &lens_distortion,
-                             const PinholeCamera &camera,
-                             const Vec2 &distorted_point) :
-    lens_distortion_(lens_distortion),
-    camera_(camera),
-    distorted_point_(distorted_point) {}
+  UndistortionOptimizerClass(const LensDistortion& lens_distortion,
+                             const PinholeCamera& camera,
+                             const Vec2& distorted_point)
+      : lens_distortion_(lens_distortion),
+        camera_(camera),
+        distorted_point_(distorted_point) {}
 
-  Vec2 operator()(const Vec2 &x) const {
+  Vec2 operator()(const Vec2& x) const {
     Vec2 fx;
     Vec2 point_x(x.x(), x.y());
     Vec2 distorted_point_x;
-    lens_distortion_.ComputeUndistortedCoordinates(camera_, point_x,
-                                                   &distorted_point_x);
+    lens_distortion_.ComputeUndistortedCoordinates(
+        camera_, point_x, &distorted_point_x);
     fx = (distorted_point_ - distorted_point_x).cast<double>();
 
     return fx;
   }
 
-  const LensDistortion &lens_distortion_;
-  const PinholeCamera &camera_;
-  const Vec2 &distorted_point_;
+  const LensDistortion& lens_distortion_;
+  const PinholeCamera& camera_;
+  const Vec2& distorted_point_;
 };
 
-LensDistortion::LensDistortion(const Vec &radial_distortion,
-                               const Vec &tangential_distortion) {
+LensDistortion::LensDistortion(const Vec& radial_distortion,
+                               const Vec& tangential_distortion) {
   set_radial_distortion(radial_distortion);
   set_tangential_distortion(tangential_distortion);
 }
@@ -61,24 +61,24 @@ LensDistortion::LensDistortion(const Vec &radial_distortion,
 // Compute the Undistortion of the lens
 // (using Levenberg-marquardt)
 void LensDistortion::ComputeDistortedCoordinates(
-    const PinholeCamera &camera,
-    const Vec2 &point,
-    Vec2 *undistorted_point) const {
+    const PinholeCamera& camera,
+    const Vec2& point,
+    Vec2* undistorted_point) const {
   Vec2 undistorted_point_wanted(point.x(), point.y());
   UndistortionOptimizerClass undistortion_optimizer(*this, camera, point);
   LevenbergMarquardt<UndistortionOptimizerClass>::SolverParameters params;
   LevenbergMarquardt<UndistortionOptimizerClass> lm(undistortion_optimizer);
 
   LevenbergMarquardt<UndistortionOptimizerClass>::Results results =
-    lm.minimize(params, &undistorted_point_wanted);
+      lm.minimize(params, &undistorted_point_wanted);
 
   (*undistorted_point) = undistorted_point_wanted;
 }
 
 void LensDistortion::ComputeUndistortedCoordinates(
-    const PinholeCamera &camera,
-    const Vec2 &point,
-    Vec2 *undistorted_point) const {
+    const PinholeCamera& camera,
+    const Vec2& point,
+    Vec2* undistorted_point) const {
   Vec2 point_centered = point - camera.principal_point();
 
   double u = point_centered.x() / camera.focal_x();
@@ -101,36 +101,37 @@ void LensDistortion::ComputeUndistortedCoordinates(
     for (size_t i = 2; i < tangential_distortion_.size(); ++i) {
       coef_tangential += tangential_distortion_[i] * radius_squared;
     }
-    undistorted_point->x() += (tangential_distortion_.x() * (radius_squared +
-                               2. * u * u) + 2. * tangential_distortion_.y() *
-                               u * v) * coef_tangential;
-    undistorted_point->y() += (tangential_distortion_.y() * (radius_squared +
-                               2. * v * v) + 2. * tangential_distortion_.x() *
-                               u * v) * coef_tangential;
+    undistorted_point->x() +=
+        (tangential_distortion_.x() * (radius_squared + 2. * u * u) +
+         2. * tangential_distortion_.y() * u * v) *
+        coef_tangential;
+    undistorted_point->y() +=
+        (tangential_distortion_.y() * (radius_squared + 2. * v * v) +
+         2. * tangential_distortion_.x() * u * v) *
+        coef_tangential;
   }
 }
 
-LensDistortionField::LensDistortionField(const Vec &radial_distortion,
-                                         const Vec &tangential_distortion) :
-    LensDistortion(radial_distortion, tangential_distortion) {
+LensDistortionField::LensDistortionField(const Vec& radial_distortion,
+                                         const Vec& tangential_distortion)
+    : LensDistortion(radial_distortion, tangential_distortion) {
   is_precomputed_grid_done_ = false;
 }
 
 void LensDistortionField::ComputeUndistortedCoordinates(
-    const PinholeCamera &camera,
-    const Vec2 &point,
-    Vec2 *undistorted_point) const {
+    const PinholeCamera& camera,
+    const Vec2& point,
+    Vec2* undistorted_point) const {
   // TODO(julien) Computes the undistorted coordinates of a point using the
   // look-up table
-  (void) camera;
-  (void) point;
-  (void) undistorted_point;
+  (void)camera;
+  (void)point;
+  (void)undistorted_point;
 }
 
-void LensDistortionField::ComputeDistortionMap(
-    const PinholeCamera &camera) {
+void LensDistortionField::ComputeDistortionMap(const PinholeCamera& camera) {
   // TODO(julien) add a look-up table with precomputed radius for instance
-  (void) camera;
+  (void)camera;
 }
 
 }  // namespace libmv

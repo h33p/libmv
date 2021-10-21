@@ -20,21 +20,22 @@
 
 #include "libmv/image/image_sequence.h"
 
+#include <cstdio>
 #include <string>
 #include <vector>
-#include <cstdio>
 
 #include "libmv/image/image.h"
 
 namespace libmv {
 
-ImageSequence::~ImageSequence() {}
-Array3Df *ImageSequence::GetFloatImage(int i) {
-  Image *image = GetImage(i);
+ImageSequence::~ImageSequence() {
+}
+Array3Df* ImageSequence::GetFloatImage(int i) {
+  Image* image = GetImage(i);
   assert(image);
   return image->AsArray3Df();
 }
-ImageCache *ImageSequence::Cache() {
+ImageCache* ImageSequence::Cache() {
   return NULL;
 }
 

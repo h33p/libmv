@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/euclidean_resection_kernel.h"
 #include "libmv/logging/logging.h"
 #include "libmv/multiview/projection.h"
-#include "libmv/multiview/euclidean_resection_kernel.h"
 #include "libmv/multiview/robust_estimation.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
@@ -34,7 +34,7 @@ using libmv::euclidean_resection::kernel::Kernel;
 TEST(EuclideanResectionKernel, RobustEuclideanResection) {
   int nviews = 5;
   int npoints = 60;
-  int noutliers = 0.3*npoints;
+  int noutliers = 0.3 * npoints;
   double threshold_inlier = Square(0.2);
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
   for (int i = 0; i < nviews; ++i) {
@@ -45,9 +45,7 @@ TEST(EuclideanResectionKernel, RobustEuclideanResection) {
 
     Kernel kernel(x, d.X, d.K[i]);
     vector<int> inliers;
-    Mat34 P = Estimate(kernel,
-                       MLEScorer<Kernel>(threshold_inlier),
-                       &inliers);
+    Mat34 P = Estimate(kernel, MLEScorer<Kernel>(threshold_inlier), &inliers);
     Mat34 P_expected = d.K[i].inverse() * d.P(i);
     EXPECT_MATRIX_PROP(P_expected, P, 3e-8);
 
@@ -56,7 +54,7 @@ TEST(EuclideanResectionKernel, RobustEuclideanResection) {
       LOG(INFO) << inliers[i];
       EXPECT_EQ(i + noutliers, inliers[i]);  // 0..19 are outliers.
     }
-    EXPECT_EQ(npoints-noutliers, inliers.size());
+    EXPECT_EQ(npoints - noutliers, inliers.size());
   }
 }
 

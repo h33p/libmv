@@ -20,6 +20,4 @@
 
 #include "libmv/camera/camera.h"
 
-namespace libmv {
-
-}  // namespace libmv
+namespace libmv {}  // namespace libmv

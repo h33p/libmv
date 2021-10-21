@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/base/vector.h"
 #include "libmv/camera/pinhole_camera.h"
+#include "libmv/base/vector.h"
 #include "libmv/multiview/projection.h"
 #include "libmv/multiview/structure.h"
 #include "libmv/multiview/test_data_sets.h"
@@ -36,13 +36,13 @@ TEST(CameraModel, PinholeCameraProjection) {
   vector<PinholeCamera> cameras(nviews);
 
   for (size_t i = 0; i < nviews; ++i) {
-    if (i < nviews/3.) {
+    if (i < nviews / 3.) {
       cameras[i].SetFocal(d.K[i](0, 0), d.K[i](1, 1));
       cameras[i].set_principal_point(Vec2(d.K[i](0, 2), d.K[i](1, 2)));
       cameras[i].set_skew_factor(d.K[i](0, 1));
       cameras[i].set_orientation_matrix(d.R[i]);
       cameras[i].set_position(d.t[i]);
-    } else if (i < 2.*nviews/3.) {
+    } else if (i < 2. * nviews / 3.) {
       cameras[i].set_intrinsic_matrix(d.K[i]);
       cameras[i].set_orientation_matrix(d.R[i]);
       cameras[i].set_position(d.t[i]);
@@ -56,10 +56,10 @@ TEST(CameraModel, PinholeCameraProjection) {
   }
 
   PointStructure point_3d;
-  Vec3           point_3d_coords;
-  PointFeature   point_2d;
-  Vec2           point_2d_gt;
-  Vec2           point_2d_coords;
+  Vec3 point_3d_coords;
+  PointFeature point_2d;
+  Vec2 point_2d_gt;
+  Vec2 point_2d_coords;
   for (size_t i = 0; i < nviews; ++i) {
     for (size_t j = 0; j < d.X.cols(); ++j) {
       MatrixColumn(d.x[i], j, &point_2d_gt);
@@ -69,15 +69,11 @@ TEST(CameraModel, PinholeCameraProjection) {
       cameras[i].ProjectPointStructure(point_3d, &point_2d);
       point_2d_coords << point_2d.coords.cast<double>();
 
-      EXPECT_NEAR(0, DistanceLInfinity(point_2d_gt,
-                                       point_2d_coords),
-                                       1e-4);
+      EXPECT_NEAR(0, DistanceLInfinity(point_2d_gt, point_2d_coords), 1e-4);
 
       cameras[i].ProjectPointStructure(point_3d, &point_2d_coords);
 
-      EXPECT_NEAR(0, DistanceLInfinity(point_2d_gt,
-                                       point_2d_coords),
-                                       1e-4);
+      EXPECT_NEAR(0, DistanceLInfinity(point_2d_gt, point_2d_coords), 1e-4);
     }
   }
 }

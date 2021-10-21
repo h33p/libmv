@@ -26,11 +26,11 @@
 #include "libmv/image/image_sequence_io.h"
 #include "testing/testing.h"
 
+using libmv::Array3Df;
 using libmv::Image;
 using libmv::ImageCache;
 using libmv::ImageSequence;
 using libmv::ImageSequenceFromFiles;
-using libmv::Array3Df;
 using std::string;
 
 namespace {
@@ -52,10 +52,10 @@ TEST(ImageSequenceIO, FromFiles) {
   files.push_back(image1_fn);
   files.push_back(image2_fn);
   ImageCache cache;
-  ImageSequence *sequence = ImageSequenceFromFiles(files, &cache);
+  ImageSequence* sequence = ImageSequenceFromFiles(files, &cache);
   EXPECT_EQ(2, sequence->Length());
 
-  Array3Df *image = sequence->GetFloatImage(0);
+  Array3Df* image = sequence->GetFloatImage(0);
   ASSERT_TRUE(image);
   EXPECT_EQ(2, image->Width());
   EXPECT_EQ(1, image->Height());

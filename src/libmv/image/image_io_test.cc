@@ -37,7 +37,7 @@ namespace {
 
 class ImageIOTest : public testing::Test {
  public:
-  string TmpFile(const char *filename) {
+  string TmpFile(const char* filename) {
     string temp_filename = string(THIS_SOURCE_DIR) + "/image_test/" + filename;
     temp_files_.push_back(temp_filename);
     return temp_filename;
@@ -48,6 +48,7 @@ class ImageIOTest : public testing::Test {
       unlink(temp_files_[i].c_str());
     }
   }
+
  private:
   std::vector<string> temp_files_;
 };
@@ -75,8 +76,8 @@ TEST(ReadPnm, Pgm) {
 
 TEST(ReadPnm, PgmComments) {
   Array3Du image;
-  string pgm_filename = string(THIS_SOURCE_DIR) +
-      "/image_test/two_pixels_gray.pgm";
+  string pgm_filename =
+      string(THIS_SOURCE_DIR) + "/image_test/two_pixels_gray.pgm";
   EXPECT_TRUE(ReadPnm(pgm_filename.c_str(), &image));
   EXPECT_EQ(2, image.Width());
   EXPECT_EQ(1, image.Height());

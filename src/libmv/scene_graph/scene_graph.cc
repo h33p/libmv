@@ -24,8 +24,4 @@
 
 using std::list;
 
-namespace libmv {
-
-
-
-}  // namespace libmv
+namespace libmv {}  // namespace libmv

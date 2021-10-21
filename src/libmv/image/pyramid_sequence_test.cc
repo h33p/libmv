@@ -26,8 +26,8 @@
 #include "testing/testing.h"
 
 using libmv::Array3Df;
-using libmv::ImagePyramid;
 using libmv::ImageCache;
+using libmv::ImagePyramid;
 using libmv::MockImageSequence;
 using libmv::PyramidSequence;
 
@@ -45,19 +45,19 @@ TEST(FilteredSequence, TwoLevelFilters) {
   source.Append(&image0);
   source.Append(&image1);
 
-  PyramidSequence *pyramid_sequence = MakePyramidSequence(&source, 2, 1.0);
+  PyramidSequence* pyramid_sequence = MakePyramidSequence(&source, 2, 1.0);
 
   // TODO(keir): Add helpers to make it easier to compare arrays in tests.
-  ImagePyramid *pyramid0 = pyramid_sequence->Pyramid(0);
-  const Array3Df &imageP0L0 = pyramid0->Level(0);
+  ImagePyramid* pyramid0 = pyramid_sequence->Pyramid(0);
+  const Array3Df& imageP0L0 = pyramid0->Level(0);
   ASSERT_EQ(16, imageP0L0.Height());
   ASSERT_EQ(16, imageP0L0.Width());
-  ASSERT_EQ(3,  imageP0L0.Depth());
+  ASSERT_EQ(3, imageP0L0.Depth());
   EXPECT_NEAR(1.0, imageP0L0(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP0L0(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP0L0(4, 4, 2), 1e-9);  // Gradient y.
 
-  const Array3Df &imageP0L1 = pyramid0->Level(1);
+  const Array3Df& imageP0L1 = pyramid0->Level(1);
   ASSERT_EQ(8, imageP0L1.Height());
   ASSERT_EQ(8, imageP0L1.Width());
   ASSERT_EQ(3, imageP0L1.Depth());
@@ -66,19 +66,19 @@ TEST(FilteredSequence, TwoLevelFilters) {
   EXPECT_NEAR(0.0, imageP0L1(4, 4, 2), 1e-9);  // Gradient y.
 
   // TODO(keir): Add helpers to make it easier to compare arrays in tests.
-  ImagePyramid *pyramid1 = pyramid_sequence->Pyramid(1);
-  const Array3Df &imageP1L0 = pyramid1->Level(0);
+  ImagePyramid* pyramid1 = pyramid_sequence->Pyramid(1);
+  const Array3Df& imageP1L0 = pyramid1->Level(0);
   ASSERT_EQ(32, imageP1L0.Height());
   ASSERT_EQ(32, imageP1L0.Width());
-  ASSERT_EQ(3,  imageP1L0.Depth());
+  ASSERT_EQ(3, imageP1L0.Depth());
   EXPECT_NEAR(9.0, imageP1L0(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP1L0(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP1L0(4, 4, 2), 1e-9);  // Gradient y.
 
-  const Array3Df &imageP1L1 = pyramid1->Level(1);
+  const Array3Df& imageP1L1 = pyramid1->Level(1);
   ASSERT_EQ(16, imageP1L1.Height());
   ASSERT_EQ(16, imageP1L1.Width());
-  ASSERT_EQ(3,  imageP1L1.Depth());
+  ASSERT_EQ(3, imageP1L1.Depth());
   EXPECT_NEAR(9.0, imageP1L1(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP1L1(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP1L1(4, 4, 2), 1e-9);  // Gradient y.
@@ -95,20 +95,20 @@ TEST(SimpleFilteredSequence, TwoLevelFilters) {
   source.Append(&image0);
   source.Append(&image1);
 
-  PyramidSequence *pyramid_sequence
-    = MakeSimplePyramidSequence(&source, 2, 1.0);
+  PyramidSequence* pyramid_sequence =
+      MakeSimplePyramidSequence(&source, 2, 1.0);
 
   // TODO(keir): Add helpers to make it easier to compare arrays in tests.
-  ImagePyramid *pyramid0 = pyramid_sequence->Pyramid(0);
-  const Array3Df &imageP0L0 = pyramid0->Level(0);
+  ImagePyramid* pyramid0 = pyramid_sequence->Pyramid(0);
+  const Array3Df& imageP0L0 = pyramid0->Level(0);
   ASSERT_EQ(16, imageP0L0.Height());
   ASSERT_EQ(16, imageP0L0.Width());
-  ASSERT_EQ(3,  imageP0L0.Depth());
+  ASSERT_EQ(3, imageP0L0.Depth());
   EXPECT_NEAR(1.0, imageP0L0(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP0L0(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP0L0(4, 4, 2), 1e-9);  // Gradient y.
 
-  const Array3Df &imageP0L1 = pyramid0->Level(1);
+  const Array3Df& imageP0L1 = pyramid0->Level(1);
   ASSERT_EQ(8, imageP0L1.Height());
   ASSERT_EQ(8, imageP0L1.Width());
   ASSERT_EQ(3, imageP0L1.Depth());
@@ -117,23 +117,22 @@ TEST(SimpleFilteredSequence, TwoLevelFilters) {
   EXPECT_NEAR(0.0, imageP0L1(4, 4, 2), 1e-9);  // Gradient y.
 
   // TODO(keir): Add helpers to make it easier to compare arrays in tests.
-  ImagePyramid *pyramid1 = pyramid_sequence->Pyramid(1);
-  const Array3Df &imageP1L0 = pyramid1->Level(0);
+  ImagePyramid* pyramid1 = pyramid_sequence->Pyramid(1);
+  const Array3Df& imageP1L0 = pyramid1->Level(0);
   ASSERT_EQ(32, imageP1L0.Height());
   ASSERT_EQ(32, imageP1L0.Width());
-  ASSERT_EQ(3,  imageP1L0.Depth());
+  ASSERT_EQ(3, imageP1L0.Depth());
   EXPECT_NEAR(9.0, imageP1L0(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP1L0(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP1L0(4, 4, 2), 1e-9);  // Gradient y.
 
-  const Array3Df &imageP1L1 = pyramid1->Level(1);
+  const Array3Df& imageP1L1 = pyramid1->Level(1);
   ASSERT_EQ(16, imageP1L1.Height());
   ASSERT_EQ(16, imageP1L1.Width());
-  ASSERT_EQ(3,  imageP1L1.Depth());
+  ASSERT_EQ(3, imageP1L1.Depth());
   EXPECT_NEAR(9.0, imageP1L1(4, 4, 0), 1e-9);  // Blurred.
   EXPECT_NEAR(0.0, imageP1L1(4, 4, 1), 1e-9);  // Gradient x.
   EXPECT_NEAR(0.0, imageP1L1(4, 4, 2), 1e-9);  // Gradient y.
 }
-
 
 }  // namespace

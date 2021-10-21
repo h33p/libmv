@@ -19,8 +19,8 @@
 // IN THE SOFTWARE.
 
 #include "libmv/image/image_sequence_io.h"
-#include "libmv/image/image_io.h"
 #include "libmv/image/cached_image_sequence.h"
+#include "libmv/image/image_io.h"
 
 namespace libmv {
 
@@ -29,22 +29,19 @@ class LazyImageSequenceFromFiles : public CachedImageSequence {
  public:
   virtual ~LazyImageSequenceFromFiles() {}
 
-  LazyImageSequenceFromFiles(const std::vector<std::string> &image_filenames,
-                        ImageCache *cache)
-      : CachedImageSequence(cache),
-        filenames_(image_filenames) {}
+  LazyImageSequenceFromFiles(const std::vector<std::string>& image_filenames,
+                             ImageCache* cache)
+      : CachedImageSequence(cache), filenames_(image_filenames) {}
 
-  virtual int Length() {
-    return filenames_.size();
-  }
+  virtual int Length() { return filenames_.size(); }
 
-  virtual Image *LoadImage(int i) {
-    Array3Df *image = new Array3Df;
+  virtual Image* LoadImage(int i) {
+    Array3Df* image = new Array3Df;
     if (!ReadImage(filenames_[i].c_str(), image)) {
       delete image;
       // TODO(keir): Better error reporting?
-      fprintf(stderr, "Failed loading image %d: %s\n",
-              i, filenames_[i].c_str());
+      fprintf(
+          stderr, "Failed loading image %d: %s\n", i, filenames_[i].c_str());
       return 0;
     }
     return new Image(image);
@@ -54,8 +51,8 @@ class LazyImageSequenceFromFiles : public CachedImageSequence {
   std::vector<std::string> filenames_;
 };
 
-ImageSequence *ImageSequenceFromFiles(const std::vector<std::string> &filenames,
-                                      ImageCache *cache) {
+ImageSequence* ImageSequenceFromFiles(const std::vector<std::string>& filenames,
+                                      ImageCache* cache) {
   return new LazyImageSequenceFromFiles(filenames, cache);
 }
 

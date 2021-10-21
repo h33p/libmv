@@ -18,12 +18,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/camera/lens_distortion.h"
 #include "libmv/base/vector.h"
 #include "libmv/camera/pinhole_camera.h"
-#include "libmv/camera/lens_distortion.h"
-#include "libmv/numeric/levenberg_marquardt.h"
 #include "libmv/multiview/structure.h"
 #include "libmv/multiview/test_data_sets.h"
+#include "libmv/numeric/levenberg_marquardt.h"
 #include "testing/testing.h"
 
 namespace libmv {
@@ -34,7 +34,7 @@ TEST(LensDistortion, LensDistortionDistortUndistor) {
 
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
 
-  Vec2u size_image(d.K[0](0, 2)*2., d.K[0](1, 2)*2.);
+  Vec2u size_image(d.K[0](0, 2) * 2., d.K[0](1, 2) * 2.);
   Vec radial_k, tangential_p;
 
   Mat2X x_distorted_undistorted[nviews];
@@ -63,8 +63,8 @@ TEST(LensDistortion, LensDistortionDistortUndistor) {
 
     x_distorted_undistorted[i].resize(2, npoints);
 
-    radial_k = realistic_radial_k[i%realistic_radial_k.size()];
-    tangential_p = realistic_tangential_p[i%realistic_tangential_p.size()];
+    radial_k = realistic_radial_k[i % realistic_radial_k.size()];
+    tangential_p = realistic_tangential_p[i % realistic_tangential_p.size()];
 
     lens_distortion[i].set_radial_distortion(radial_k);
     lens_distortion[i].set_tangential_distortion(tangential_p);

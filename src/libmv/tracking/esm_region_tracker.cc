@@ -23,25 +23,25 @@
 
 #include "libmv/tracking/esm_region_tracker.h"
 
-#include "libmv/logging/logging.h"
-#include "libmv/image/image.h"
 #include "libmv/image/convolve.h"
 #include "libmv/image/correlation.h"
+#include "libmv/image/image.h"
 #include "libmv/image/sample.h"
+#include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
 #include "libmv/tracking/track_region.h"
 
 namespace libmv {
 
 // TODO(keir): Reduce duplication between here and the other region trackers.
-static bool RegionIsInBounds(const FloatImage &image1,
-                      double x, double y,
-                      int half_window_size) {
+static bool RegionIsInBounds(const FloatImage& image1,
+                             double x,
+                             double y,
+                             int half_window_size) {
   // Check the minimum coordinates.
   int min_x = floor(x) - half_window_size - 1;
   int min_y = floor(y) - half_window_size - 1;
-  if (min_x < 0.0 ||
-      min_y < 0.0) {
+  if (min_x < 0.0 || min_y < 0.0) {
     LG << "Out of bounds; min_x: " << min_x << ", min_y: " << min_y;
     return false;
   }
@@ -49,8 +49,7 @@ static bool RegionIsInBounds(const FloatImage &image1,
   // Check the maximum coordinates.
   int max_x = ceil(x) + half_window_size + 1;
   int max_y = ceil(y) + half_window_size + 1;
-  if (max_x > image1.cols() ||
-      max_y > image1.rows()) {
+  if (max_x > image1.cols() || max_y > image1.rows()) {
     LG << "Out of bounds; max_x: " << max_x << ", max_y: " << max_y
        << ", image1.cols(): " << image1.cols()
        << ", image1.rows(): " << image1.rows();
@@ -63,10 +62,12 @@ static bool RegionIsInBounds(const FloatImage &image1,
 
 // This is implemented from "Lukas and Kanade 20 years on: Part 1. Page 42,
 // figure 14: the Levenberg-Marquardt-Inverse Compositional Algorithm".
-bool EsmRegionTracker::Track(const FloatImage &image1,
-                             const FloatImage &image2,
-                             double  x1, double  y1,
-                             double *x2, double *y2) const {
+bool EsmRegionTracker::Track(const FloatImage& image1,
+                             const FloatImage& image2,
+                             double x1,
+                             double y1,
+                             double* x2,
+                             double* y2) const {
   if (!RegionIsInBounds(image1, x1, y1, half_window_size)) {
     LG << "Fell out of image1's window with x1=" << x1 << ", y1=" << y1
        << ", hw=" << half_window_size << ".";
@@ -125,7 +126,11 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
   // subpixel position x1, x2. This is reused for each iteration, so
   // precomputing it saves time.
   Array3Df image_and_gradient1_sampled;
-  SamplePattern(image_and_gradient1, x1, y1, half_window_size, 3,
+  SamplePattern(image_and_gradient1,
+                x1,
+                y1,
+                half_window_size,
+                3,
                 &image_and_gradient1_sampled);
 
   // Step 0: Initialize delta = 0.01.
@@ -138,7 +143,11 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
   // XXX is this necessary?
   int current_image = 0, new_image = 1;
   Array3Df image_and_gradient2_sampled[2];
-  SamplePattern(image_and_gradient2, *x2, *y2, half_window_size, 3,
+  SamplePattern(image_and_gradient2,
+                *x2,
+                *y2,
+                half_window_size,
+                3,
                 &image_and_gradient2_sampled[current_image]);
 
   // Step 2: Compute the squared error I - J.
@@ -147,7 +156,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
     for (int c = 0; c < width; ++c) {
       double e = image_and_gradient1_sampled(r, c, 0) -
                  image_and_gradient2_sampled[current_image](r, c, 0);
-      error += e*e;
+      error += e * e;
     }
   }
 
@@ -221,7 +230,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
     z /= 2.0;
 
     // Step 8: Compute Hlm and (dx,dy)
-    Mat2 diag  = H.diagonal().asDiagonal();
+    Mat2 diag = H.diagonal().asDiagonal();
     diag *= mu;
     Mat2 Hlm = H + diag;
     Vec2 d = Hlm.lu().solve(z);
@@ -236,7 +245,11 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
     double new_y2 = *y2 - d[1];
 
     // Step 9.1: Sample the image at the new position.
-    SamplePattern(image_and_gradient2, new_x2, new_y2, half_window_size, 3,
+    SamplePattern(image_and_gradient2,
+                  new_x2,
+                  new_y2,
+                  half_window_size,
+                  3,
                   &image_and_gradient2_sampled[new_image]);
 
     // Step 9.2: Compute the new error.
@@ -246,7 +259,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
       for (int c = 0; c < width; ++c) {
         double e = image_and_gradient1_sampled(r, c, 0) -
                    image_and_gradient2_sampled[new_image](r, c, 0);
-        new_error += e*e;
+        new_error += e * e;
       }
     }
     LG << "Old error: " << error << ", new error: " << new_error;
@@ -272,7 +285,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
       std::swap(new_image, current_image);
       error = new_error;
 
-      mu *= std::max(1/3., 1 - pow(2*rho - 1, 3));
+      mu *= std::max(1 / 3., 1 - pow(2 * rho - 1, 3));
       nu = M_E;  // See above for why to use e.
       LG << "Error decreased, so accept update.";
     }
@@ -282,8 +295,7 @@ bool EsmRegionTracker::Track(const FloatImage &image1,
       // Compute the Pearson product-moment correlation coefficient to check
       // for sanity.
       double correlation = PearsonProductMomentCorrelation(
-              image_and_gradient1_sampled,
-              image_and_gradient2_sampled[new_image]);
+          image_and_gradient1_sampled, image_and_gradient2_sampled[new_image]);
       LG << "Final correlation: " << correlation;
 
       // Note: Do the comparison here to handle nan's correctly (since all

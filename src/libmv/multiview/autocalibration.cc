@@ -22,7 +22,7 @@
 
 namespace libmv {
 
-void K_From_AbsoluteConic(const Mat3 &W, Mat3 *K) {
+void K_From_AbsoluteConic(const Mat3& W, Mat3* K) {
   // To compute upper-triangular Cholesky, we flip the indices of the input
   // matrix, compute lower-triangular Cholesky, and then unflip the result.
   Mat3 dual = W.inverse();
@@ -52,8 +52,9 @@ void K_From_AbsoluteConic(const Mat3 &W, Mat3 *K) {
   }
 }
 
-int AutoCalibrationLinear::AddProjection(const Mat34 &P,
-                                         double width, double height) {
+int AutoCalibrationLinear::AddProjection(const Mat34& P,
+                                         double width,
+                                         double height) {
   Mat34 P_normalized;
   NormalizeProjection(P, width, height, &P_normalized);
 
@@ -68,10 +69,10 @@ int AutoCalibrationLinear::AddProjection(const Mat34 &P,
 }
 
 // TODO(pau): make this generic and move it to numeric.h
-static void SortEigenVectors(const Vec &values,
-                             const Mat &vectors,
-                             Vec *sorted_values,
-                             Mat *sorted_vectors) {
+static void SortEigenVectors(const Vec& values,
+                             const Mat& vectors,
+                             Vec* sorted_values,
+                             Mat* sorted_vectors) {
   // Compute eigenvalues order.
   std::pair<double, int> order[4];
   for (int i = 0; i < 4; ++i) {
@@ -111,8 +112,8 @@ Mat4 AutoCalibrationLinear::MetricTransformation() {
   // and sorted, so that last one is 0.
   Vec eigenvalues;
   Mat eigenvectors;
-  SortEigenVectors(temp_values, eigen_solver.eigenvectors(),
-                   &eigenvalues, &eigenvectors);
+  SortEigenVectors(
+      temp_values, eigen_solver.eigenvectors(), &eigenvalues, &eigenvectors);
 
   LOG(INFO) << "Q\n" << Q << "\n";
   LOG(INFO) << "eigen values\n" << eigenvalues << "\n";
@@ -127,7 +128,7 @@ Mat4 AutoCalibrationLinear::MetricTransformation() {
   return H;
 }
 
-void AutoCalibrationLinear::AddProjectionConstraints(const Mat34 &P) {
+void AutoCalibrationLinear::AddProjectionConstraints(const Mat34& P) {
   double nu = 1;
 
   // Non-extreme focal lenght.
@@ -145,7 +146,7 @@ void AutoCalibrationLinear::AddProjectionConstraints(const Mat34 &P) {
   constraints_.push_back(wc(P, 1, 2) / 0.1 / nu);
 }
 
-Vec AutoCalibrationLinear::wc(const Mat34 &P, int i, int j) {
+Vec AutoCalibrationLinear::wc(const Mat34& P, int i, int j) {
   Vec constraint(10);
   for (int k = 0; k < 10; ++k) {
     Vec q = Vec::Zero(10);
@@ -159,36 +160,31 @@ Vec AutoCalibrationLinear::wc(const Mat34 &P, int i, int j) {
   return constraint;
 }
 
-Mat4 AutoCalibrationLinear::AbsoluteQuadricMatFromVec(const Vec &q) {
+Mat4 AutoCalibrationLinear::AbsoluteQuadricMatFromVec(const Vec& q) {
   Mat4 Q;
-  Q << q(0), q(1), q(2), q(3),
-       q(1), q(4), q(5), q(6),
-       q(2), q(5), q(7), q(8),
-       q(3), q(6), q(8), q(9);
+  Q << q(0), q(1), q(2), q(3), q(1), q(4), q(5), q(6), q(2), q(5), q(7), q(8),
+      q(3), q(6), q(8), q(9);
   return Q;
 }
 
-void AutoCalibrationLinear::NormalizeProjection(const Mat34 &P,
+void AutoCalibrationLinear::NormalizeProjection(const Mat34& P,
                                                 double width,
                                                 double height,
-                                                Mat34 *P_new) {
+                                                Mat34* P_new) {
   Mat3 T;
-  T << width + height,              0,  (width - 1) / 2,
-                    0, width + height, (height - 1) / 2,
-                    0,              0,                1;
+  T << width + height, 0, (width - 1) / 2, 0, width + height, (height - 1) / 2,
+      0, 0, 1;
   *P_new = T.inverse() * P;
 }
 
-void AutoCalibrationLinear::DenormalizeProjection(const Mat34 &P,
+void AutoCalibrationLinear::DenormalizeProjection(const Mat34& P,
                                                   double width,
                                                   double height,
-                                                  Mat34 *P_new) {
+                                                  Mat34* P_new) {
   Mat3 T;
-  T << width + height,              0,  (width - 1) / 2,
-                    0, width + height, (height - 1) / 2,
-                    0,              0,                1;
+  T << width + height, 0, (width - 1) / 2, 0, width + height, (height - 1) / 2,
+      0, 0, 1;
   *P_new = T * P;
 }
-
 
 }  // namespace libmv

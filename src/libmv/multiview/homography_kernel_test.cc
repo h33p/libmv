@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/homography_kernel.h"
 #include "libmv/base/vector.h"
 #include "libmv/logging/logging.h"
-#include "libmv/multiview/homography_kernel.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
 
@@ -32,12 +32,9 @@ using namespace libmv;
 using namespace libmv::homography::homography2D::kernel;
 
 template <class Kernel>
-struct HomographyKernelTest : public testing::Test {
-};
+struct HomographyKernelTest : public testing::Test {};
 
-typedef Types<Kernel,
-              UnnormalizedKernel>
-  HomographyKernelImplementations;
+typedef Types<Kernel, UnnormalizedKernel> HomographyKernelImplementations;
 
 TYPED_TEST_CASE(HomographyKernelTest, HomographyKernelImplementations);
 
@@ -46,17 +43,15 @@ TYPED_TEST(HomographyKernelTest, Fitting) {
   vector<Mat3> H_gt(3);
 
   H_gt[0] = Mat3::Identity();
-  H_gt[1] << 1,  0, -4,
-             0,  1,  5,
-             0,  0,  1;
-  H_gt[2] << 1, -2,  3,
-             4,  5, -6,
-            -7,  8,  1;
+  H_gt[1] << 1, 0, -4, 0, 1, 5, 0, 0, 1;
+  H_gt[2] << 1, -2, 3, 4, 5, -6, -7, 8, 1;
 
   // Define a set of points.
   Mat x(2, 9), xh;
+  // clang-format off
   x << 0, 0, 0, 1, 1, 1, 2, 2, 2,
        0, 1, 2, 0, 1, 2, 0, 1, 2;
+  // clang-format on
   EuclideanToHomogeneous(x, &xh);
 
   for (int i = 0; i < H_gt.size(); ++i) {

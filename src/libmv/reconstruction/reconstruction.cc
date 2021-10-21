@@ -20,6 +20,4 @@
 
 #include "libmv/reconstruction/reconstruction.h"
 
-namespace libmv {
-
-}  // namespace libmv
+namespace libmv {}  // namespace libmv

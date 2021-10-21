@@ -18,10 +18,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "testing/testing.h"
 #include "libmv/image/integral_image.h"
 #include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
+#include "testing/testing.h"
 
 using namespace libmv;
 
@@ -55,12 +55,12 @@ TEST(BoxIntegral, ThreeByThree) {
   LOG(INFO) << "\n" << integral_image;
   EXPECT_EQ(25, BoxIntegral(integral_image, 0, 0, 9, 9));
   EXPECT_EQ(25, BoxIntegral(integral_image, 2, 2, 5, 5));
-  EXPECT_EQ(9,  BoxIntegral(integral_image, 3, 3, 3, 3));
-  EXPECT_EQ(0,  BoxIntegral(integral_image, 0, 0, 2, 9));
-  EXPECT_EQ(0,  BoxIntegral(integral_image, 0, 0, 9, 2));
-  EXPECT_EQ(0,  BoxIntegral(integral_image, 7, 7, 2, 2));
-  EXPECT_EQ(0,  BoxIntegral(integral_image, 0, 7, 9, 2));
-  EXPECT_EQ(0,  BoxIntegral(integral_image, 7, 0, 2, 9));
+  EXPECT_EQ(9, BoxIntegral(integral_image, 3, 3, 3, 3));
+  EXPECT_EQ(0, BoxIntegral(integral_image, 0, 0, 2, 9));
+  EXPECT_EQ(0, BoxIntegral(integral_image, 0, 0, 9, 2));
+  EXPECT_EQ(0, BoxIntegral(integral_image, 7, 7, 2, 2));
+  EXPECT_EQ(0, BoxIntegral(integral_image, 0, 7, 9, 2));
+  EXPECT_EQ(0, BoxIntegral(integral_image, 7, 0, 2, 9));
 }
 
 }  // namespace

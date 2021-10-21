@@ -20,14 +20,14 @@
 
 #include <iostream>
 
-#include "testing/testing.h"
 #include "libmv/logging/logging.h"
-#include "libmv/numeric/numeric.h"
-#include "libmv/multiview/fundamental.h"
-#include "libmv/multiview/projection.h"
 #include "libmv/multiview/five_point.h"
 #include "libmv/multiview/five_point_internal.h"
+#include "libmv/multiview/fundamental.h"
+#include "libmv/multiview/projection.h"
 #include "libmv/multiview/test_data_sets.h"
+#include "libmv/numeric/numeric.h"
+#include "testing/testing.h"
 
 namespace libmv {
 namespace {
@@ -59,7 +59,6 @@ TestData SomeTestData() {
   return d;
 }
 
-
 TEST(FivePointsNullspaceBasis, SatisfyEpipolarConstraint) {
   TestData d = SomeTestData();
 
@@ -81,26 +80,14 @@ TEST(FivePointsNullspaceBasis, SatisfyEpipolarConstraint) {
 }
 
 double EvalPolynomial(Vec p, double x, double y, double z) {
-  return p(coef_xxx) * x * x * x
-       + p(coef_xxy) * x * x * y
-       + p(coef_xxz) * x * x * z
-       + p(coef_xyy) * x * y * y
-       + p(coef_xyz) * x * y * z
-       + p(coef_xzz) * x * z * z
-       + p(coef_yyy) * y * y * y
-       + p(coef_yyz) * y * y * z
-       + p(coef_yzz) * y * z * z
-       + p(coef_zzz) * z * z * z
-       + p(coef_xx)  * x * x
-       + p(coef_xy)  * x * y
-       + p(coef_xz)  * x * z
-       + p(coef_yy)  * y * y
-       + p(coef_yz)  * y * z
-       + p(coef_zz)  * z * z
-       + p(coef_x)   * x
-       + p(coef_y)   * y
-       + p(coef_z)   * z
-       + p(coef_1)   * 1;
+  return p(coef_xxx) * x * x * x + p(coef_xxy) * x * x * y +
+         p(coef_xxz) * x * x * z + p(coef_xyy) * x * y * y +
+         p(coef_xyz) * x * y * z + p(coef_xzz) * x * z * z +
+         p(coef_yyy) * y * y * y + p(coef_yyz) * y * y * z +
+         p(coef_yzz) * y * z * z + p(coef_zzz) * z * z * z +
+         p(coef_xx) * x * x + p(coef_xy) * x * y + p(coef_xz) * x * z +
+         p(coef_yy) * y * y + p(coef_yz) * y * z + p(coef_zz) * z * z +
+         p(coef_x) * x + p(coef_y) * y + p(coef_z) * z + p(coef_1) * 1;
 }
 
 TEST(o1, Evaluation) {
@@ -135,14 +122,14 @@ TEST(o2, Evaluation) {
   p1(coef_yy) = double(rand()) / RAND_MAX;
   p1(coef_yz) = double(rand()) / RAND_MAX;
   p1(coef_zz) = double(rand()) / RAND_MAX;
-  p1(coef_x)  = double(rand()) / RAND_MAX;
-  p1(coef_y)  = double(rand()) / RAND_MAX;
-  p1(coef_z)  = double(rand()) / RAND_MAX;
-  p1(coef_1)  = double(rand()) / RAND_MAX;
-  p2(coef_x)  = double(rand()) / RAND_MAX;
-  p2(coef_y)  = double(rand()) / RAND_MAX;
-  p2(coef_z)  = double(rand()) / RAND_MAX;
-  p2(coef_1)  = double(rand()) / RAND_MAX;
+  p1(coef_x) = double(rand()) / RAND_MAX;
+  p1(coef_y) = double(rand()) / RAND_MAX;
+  p1(coef_z) = double(rand()) / RAND_MAX;
+  p1(coef_1) = double(rand()) / RAND_MAX;
+  p2(coef_x) = double(rand()) / RAND_MAX;
+  p2(coef_y) = double(rand()) / RAND_MAX;
+  p2(coef_z) = double(rand()) / RAND_MAX;
+  p2(coef_1) = double(rand()) / RAND_MAX;
 
   Vec p3 = o2(p1, p2);
 
@@ -195,8 +182,8 @@ TEST(FivePointsRelativePose, Random) {
     EXPECT_MATRIX_NEAR(Mat3::Zero(), O, 1e-8);
 
     // Check that we find the correct relative orientation.
-    if (FrobeniusDistance(d.R, Rs[i]) < 1e-3
-        && (d.t / d.t.norm() - ts[i] / ts[i].norm()).norm() < 1e-3) {
+    if (FrobeniusDistance(d.R, Rs[i]) < 1e-3 &&
+        (d.t / d.t.norm() - ts[i] / ts[i].norm()).norm() < 1e-3) {
       solution_found = true;
       break;
     }
@@ -209,8 +196,8 @@ TEST(FivePointsRelativePose, test_data_sets) {
   const int num_views = 5;
 
   // Suppose a camera with Unit matrix as K
-  NViewDataSet d = NRealisticCamerasFull(num_views, 5,
-    nViewDatasetConfigator(1, 1, 0, 0, 5, 0));
+  NViewDataSet d = NRealisticCamerasFull(
+      num_views, 5, nViewDatasetConfigator(1, 1, 0, 0, 5, 0));
 
   for (int i = 0; i < num_views; ++i) {
     vector<Mat3> Es, Rs;  // Essential, Rotation matrix.
@@ -222,23 +209,20 @@ TEST(FivePointsRelativePose, test_data_sets) {
     ts.resize(Es.size());
     for (int s = 0; s < Es.size(); ++s) {
       Vec2 x1Col, x2Col;
-      x1Col << d.x[0].col(i)(0), d.x[0].col((i+1) % num_views)(1);
-      x2Col << d.x[1].col(i)(0), d.x[1].col((i+1) % num_views)(1);
-      MotionFromEssentialAndCorrespondence(Es[s],
-                                           d.K[0],
-                                           x1Col,
-                                           d.K[1],
-                                           x2Col,
-                                           &Rs[s],
-                                           &ts[s]);
+      x1Col << d.x[0].col(i)(0), d.x[0].col((i + 1) % num_views)(1);
+      x2Col << d.x[1].col(i)(0), d.x[1].col((i + 1) % num_views)(1);
+      MotionFromEssentialAndCorrespondence(
+          Es[s], d.K[0], x1Col, d.K[1], x2Col, &Rs[s], &ts[s]);
     }
     // Compute the ground truth motion.
     Mat3 R;
     Vec3 t, t0 = Vec3::Zero(), t1 = Vec3::Zero();
-    RelativeCameraMotion(d.R[i], d.t[i],
+    RelativeCameraMotion(d.R[i],
+                         d.t[i],
                          d.R[(i + 1) % num_views],
                          d.t[(i + 1) % num_views],
-                         &R, &t);
+                         &R,
+                         &t);
 
     // Assert that the found relative motion is correct for at least one model.
     bool bsolution_found = false;
@@ -250,9 +234,9 @@ TEST(FivePointsRelativePose, test_data_sets) {
       EXPECT_MATRIX_NEAR(Mat3::Zero(), O, 1e-8);
 
       // Check that we find the correct relative orientation.
-      if (FrobeniusDistance(R, Rs[j]) < 1e-3
-        && (t / t.norm() - ts[j] / ts[j].norm()).norm() < 1e-3 ) {
-          bsolution_found = true;
+      if (FrobeniusDistance(R, Rs[j]) < 1e-3 &&
+          (t / t.norm() - ts[j] / ts[j].norm()).norm() < 1e-3) {
+        bsolution_found = true;
       }
     }
     // At least one solution must find the correct relative orientation.

@@ -28,24 +28,16 @@
 namespace libmv {
 namespace detector {
 
-Detector *detectorFactory(eDetector edetector)  {
+Detector* detectorFactory(eDetector edetector) {
   switch (edetector) {
-  case FAST_DETECTOR:
-    return detector::CreateFastDetector();
-    break;
-  case FAST_LIMITED_DETECTOR:
-    return detector::CreateFastDetectorLimited();
-    break;
-  case SURF_DETECTOR:
-    return detector::CreateSURFDetector();
-    break;
-  case STAR_DETECTOR:
-    return detector::CreateStarDetector();
-    break;
-  case MSER_DETECTOR:
-    break;
-  default:
-    LOG(FATAL) << "ERROR : undefined Detector value : " << edetector;
+    case FAST_DETECTOR: return detector::CreateFastDetector(); break;
+    case FAST_LIMITED_DETECTOR:
+      return detector::CreateFastDetectorLimited();
+      break;
+    case SURF_DETECTOR: return detector::CreateSURFDetector(); break;
+    case STAR_DETECTOR: return detector::CreateStarDetector(); break;
+    case MSER_DETECTOR: break;
+    default: LOG(FATAL) << "ERROR : undefined Detector value : " << edetector;
   }
   return NULL;
 }

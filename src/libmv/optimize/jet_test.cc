@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/optimize/jet.h"
 #include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
-#include "libmv/optimize/jet.h"
 #include "testing/testing.h"
 
 using namespace libmv;
@@ -34,7 +34,7 @@ TEST(JetTest, SimpleJet) {
 
 TEST(JetTest, ProductRule) {
   Jet<1> x(6, 0);
-  Jet<1> fx = x*x;  // f(x) = x^2, df/dx = 2x
+  Jet<1> fx = x * x;  // f(x) = x^2, df/dx = 2x
 
   EXPECT_EQ(36, fx.x);
   EXPECT_EQ(12, fx.d[0]);
@@ -44,7 +44,7 @@ TEST(JetTest, ProductRulePartials) {
   Jet<3> x(6, 0);
   Jet<3> y(3, 1);
   Jet<3> z(5, 2);
-  Jet<3> f = x*x*y*z;
+  Jet<3> f = x * x * y * z;
 
   EXPECT_EQ(540, f.x);
   EXPECT_EQ(180, f.d[0]);
@@ -53,7 +53,7 @@ TEST(JetTest, ProductRulePartials) {
 }
 
 TEST(JetTest, ProductRuleSecondDerivative) {
-  Jet<1, Jet<1> > x(3);
+  Jet<1, Jet<1>> x(3);
 
   // There is a small amount of waste, in that the first derivative gets
   // calculated twice. It may be possible for a sufficiently clever person
@@ -63,7 +63,7 @@ TEST(JetTest, ProductRuleSecondDerivative) {
   x.x.d[0] = 1.0;
   x.d[0].x = 1.0;
 
-  Jet<1, Jet<1> > fx = x*x;
+  Jet<1, Jet<1>> fx = x * x;
 
   EXPECT_EQ(9, fx.x.x);
   EXPECT_EQ(6, fx.x.d[0]);     // First derivative.
@@ -75,20 +75,26 @@ TEST(JetTest, ProductRuleSecondDerivative) {
 // hessian, but it involves making a specialized "hessian jet" type that does
 // both first and second derivatives at the same time.
 TEST(JetTest, ProductRuleHessian) {
-  Jet<3, Jet<3> > x(3); x.x.d[0] = 1.0; x.d[0].x = 1.0;
-  Jet<3, Jet<3> > y(2); y.x.d[1] = 1.0; y.d[1].x = 1.0;
-  Jet<3, Jet<3> > z(4); z.x.d[2] = 1.0; z.d[2].x = 1.0;
-  Jet<3, Jet<3> > constant(100);
+  Jet<3, Jet<3>> x(3);
+  x.x.d[0] = 1.0;
+  x.d[0].x = 1.0;
+  Jet<3, Jet<3>> y(2);
+  y.x.d[1] = 1.0;
+  y.d[1].x = 1.0;
+  Jet<3, Jet<3>> z(4);
+  z.x.d[2] = 1.0;
+  z.d[2].x = 1.0;
+  Jet<3, Jet<3>> constant(100);
 
-  Jet<3, Jet<3> > f = x*x + y*z + constant;
+  Jet<3, Jet<3>> f = x * x + y * z + constant;
 
-  EXPECT_EQ(117, f.x.x);      // f(3, 2, 4)
+  EXPECT_EQ(117, f.x.x);  // f(3, 2, 4)
 
-  EXPECT_EQ(6, f.x.d[0]);     // Gradient.
+  EXPECT_EQ(6, f.x.d[0]);  // Gradient.
   EXPECT_EQ(4, f.x.d[1]);
   EXPECT_EQ(2, f.x.d[2]);
 
-  EXPECT_EQ(6, f.d[0].x);     // Gradient (again).
+  EXPECT_EQ(6, f.d[0].x);  // Gradient (again).
   EXPECT_EQ(4, f.d[1].x);
   EXPECT_EQ(2, f.d[2].x);
 
@@ -107,10 +113,10 @@ TEST(JetTest, QuotentRulePartials) {
   Jet<3> x(1, 0);
   Jet<3> y(3, 1);
   Jet<3> z(5, 2);
-  Jet<3> f = (x + Jet<3>(2)) / (y + z*z + Jet<3>(4));
+  Jet<3> f = (x + Jet<3>(2)) / (y + z * z + Jet<3>(4));
 
-  EXPECT_EQ(3./32.,           f.x);
-  EXPECT_EQ(1./32.,           f.d[0]);
-  EXPECT_EQ(-3./32./32.,      f.d[1]);
-  EXPECT_EQ(-3./32./32.*2*5,  f.d[2]);
+  EXPECT_EQ(3. / 32., f.x);
+  EXPECT_EQ(1. / 32., f.d[0]);
+  EXPECT_EQ(-3. / 32. / 32., f.d[1]);
+  EXPECT_EQ(-3. / 32. / 32. * 2 * 5, f.d[2]);
 }

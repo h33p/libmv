@@ -38,8 +38,9 @@ namespace libmv {
 //                | tx    | =
 //                | ty    |
 //
-bool Similarity2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
-                                           Mat3 *M,
+bool Similarity2DFromCorrespondencesLinear(const Mat& x1,
+                                           const Mat& x2,
+                                           Mat3* M,
                                            double expected_precision) {
   assert(2 == x1.rows());
   assert(2 <= x1.cols());
@@ -47,26 +48,26 @@ bool Similarity2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
   assert(x1.cols() == x2.cols());
 
   const int n = x1.cols();
-  Mat A = Mat::Zero(2*n, 4);
-  Mat b = Mat::Zero(2*n, 1);
+  Mat A = Mat::Zero(2 * n, 4);
+  Mat b = Mat::Zero(2 * n, 1);
   for (int i = 0; i < n; ++i) {
-    const int j= i * 2;
+    const int j = i * 2;
     A(j, 0) = -x1(1, i);
-    A(j, 1) =  x1(0, i);
-    A(j, 2) =  1.0;
-    //A(j, 3) =  0.0;
+    A(j, 1) = x1(0, i);
+    A(j, 2) = 1.0;
+    // A(j, 3) =  0.0;
 
-    A(j+1, 0) = x1(0, i);
-    A(j+1, 1) = x1(1, i);
-    //A(j+1, 2) = 0.0;
-    A(j+1, 3) = 1.0;
+    A(j + 1, 0) = x1(0, i);
+    A(j + 1, 1) = x1(1, i);
+    // A(j+1, 2) = 0.0;
+    A(j + 1, 3) = 1.0;
 
-    b(j, 0)   = x2(0, i);
-    b(j+1, 0) = x2(1, i);
+    b(j, 0) = x2(0, i);
+    b(j + 1, 0) = x2(1, i);
   }
   // Solve Ax=B
   Vec x = A.fullPivLu().solve(b);
-  if ((A * x).isApprox(b, expected_precision))  {
+  if ((A * x).isApprox(b, expected_precision)) {
     Similarity2DSCParameterization<double>::To(x, M);
     return true;
   } else {
@@ -74,16 +75,16 @@ bool Similarity2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
   }
 }
 
-bool Similarity3DFromCorrespondencesLinear(const Mat &x1,
-                                          const Mat &x2,
-                                          Mat4 *H,
-                                          double expected_precision) {
+bool Similarity3DFromCorrespondencesLinear(const Mat& x1,
+                                           const Mat& x2,
+                                           Mat4* H,
+                                           double expected_precision) {
   // TODO(julien) Compare to *H = umeyama (x1, x2, true);
   // and keep the best one (quality&speed)
   if (Affine3DFromCorrespondencesLinear(x1, x2, H, expected_precision)) {
     // Ensures that R is orthogonal (using SDV decomposition)
-    Eigen::JacobiSVD<Mat> svd(H->block<3, 3>(0, 0), Eigen::ComputeThinU |
-                                                    Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Mat> svd(H->block<3, 3>(0, 0),
+                              Eigen::ComputeThinU | Eigen::ComputeThinV);
     double scale = svd.singularValues()(0);
     Mat3 sI3 = scale * Mat3::Identity();
     H->block<3, 3>(0, 0) = svd.matrixU() * sI3 * svd.matrixV().transpose();
@@ -94,10 +95,10 @@ bool Similarity3DFromCorrespondencesLinear(const Mat &x1,
   return false;
 }
 
-bool ExtractSimilarity2DCoefficients(const Mat3 &M,
-                                     Vec2   *tr,
-                                     double *angle,
-                                     double *scale) {
+bool ExtractSimilarity2DCoefficients(const Mat3& M,
+                                     Vec2* tr,
+                                     double* angle,
+                                     double* scale) {
   Vec4 p;
   Similarity2DSAParameterization<double>::From(M, &p);
   *scale = p(0);

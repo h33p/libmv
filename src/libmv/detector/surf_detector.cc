@@ -20,11 +20,11 @@
 
 #include "libmv/detector/surf_detector.h"
 
-#include "libmv/logging/logging.h"
-#include "libmv/detector/detector.h"
 #include "libmv/correspondence/feature.h"
+#include "libmv/detector/detector.h"
 #include "libmv/image/image.h"
 #include "libmv/image/surf.h"
+#include "libmv/logging/logging.h"
 
 namespace libmv {
 namespace detector {
@@ -33,23 +33,23 @@ class SurfDetector : public Detector {
  public:
   virtual ~SurfDetector() {}
   SurfDetector(int num_octaves, int num_intervals)
-    :num_octaves_(num_octaves), num_intervals_(num_intervals) {}
+      : num_octaves_(num_octaves), num_intervals_(num_intervals) {}
 
-  virtual void Detect(const Image &image,
-                      vector<Feature *> *features,
-                      DetectorData **data) {
-    ByteImage *byte_image = image.AsArray3Du();
+  virtual void Detect(const Image& image,
+                      vector<Feature*>* features,
+                      DetectorData** data) {
+    ByteImage* byte_image = image.AsArray3Du();
     // TODO(pmoulon) Assert that byte_image is valid.
 
     Matu integral_image;
     IntegralImage(*byte_image, &integral_image);
 
     libmv::vector<PointFeature> detections;
-    MultiscaleDetectFeatures(integral_image, num_octaves_, num_intervals_,
-                           &detections);
+    MultiscaleDetectFeatures(
+        integral_image, num_octaves_, num_intervals_, &detections);
 
     for (int i = 0; i < detections.size(); ++i) {
-      PointFeature *f = new PointFeature(detections[i].x(), detections[i].y());
+      PointFeature* f = new PointFeature(detections[i].x(), detections[i].y());
       f->scale = detections[i].scale;
       f->orientation = detections[i].orientation;
       features->push_back(f);
@@ -67,7 +67,7 @@ class SurfDetector : public Detector {
   int num_intervals_;
 };
 
-Detector *CreateSURFDetector(int num_octaves, int num_intervals) {
+Detector* CreateSURFDetector(int num_octaves, int num_intervals) {
   return new SurfDetector(num_octaves, num_intervals);
 }
 

@@ -35,8 +35,9 @@ namespace libmv {
 //                      | d |
 //                      | x |
 //                      | y |
-bool Affine2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
-                                       Mat3 *M,
+bool Affine2DFromCorrespondencesLinear(const Mat& x1,
+                                       const Mat& x2,
+                                       Mat3* M,
                                        double expected_precision) {
   assert(2 == x1.rows());
   assert(3 <= x1.cols());
@@ -44,24 +45,24 @@ bool Affine2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
   assert(x1.cols() == x2.cols());
 
   const int n = x1.cols();
-  Mat A = Mat::Zero(2*n, 6);
-  Mat b = Mat::Zero(2*n, 1);
+  Mat A = Mat::Zero(2 * n, 6);
+  Mat b = Mat::Zero(2 * n, 1);
   for (int i = 0; i < n; ++i) {
-    const int j= i * 2;
-    A(j, 0) =  x1(0, i);
-    A(j, 1) =  x1(1, i);
-    A(j, 4) =  1.0;
+    const int j = i * 2;
+    A(j, 0) = x1(0, i);
+    A(j, 1) = x1(1, i);
+    A(j, 4) = 1.0;
 
-    A(j+1, 2) = x1(0, i);
-    A(j+1, 3) = x1(1, i);
-    A(j+1, 5) = 1.0;
+    A(j + 1, 2) = x1(0, i);
+    A(j + 1, 3) = x1(1, i);
+    A(j + 1, 5) = 1.0;
 
-    b(j, 0)   = x2(0, i);
-    b(j+1, 0) = x2(1, i);
+    b(j, 0) = x2(0, i);
+    b(j + 1, 0) = x2(1, i);
   }
   // Solve Ax=B
   Vec x = A.fullPivLu().solve(b);
-  if ((A * x).isApprox(b, expected_precision))  {
+  if ((A * x).isApprox(b, expected_precision)) {
     Affine2DGenericParameterization<double>::To(x, M);
     return true;
   } else {
@@ -88,9 +89,9 @@ bool Affine2DFromCorrespondencesLinear(const Mat &x1, const Mat &x2,
 //                                      | x |
 //                                      | y |
 //                                      | z |
-bool Affine3DFromCorrespondencesLinear(const Mat &x1,
-                                       const Mat &x2,
-                                       Mat4 *M,
+bool Affine3DFromCorrespondencesLinear(const Mat& x1,
+                                       const Mat& x2,
+                                       Mat4* M,
                                        double expected_precision) {
   assert(3 == x1.rows());
   assert(4 <= x1.cols());
@@ -98,34 +99,34 @@ bool Affine3DFromCorrespondencesLinear(const Mat &x1,
   assert(x1.cols() == x2.cols());
 
   const int n = x1.cols();
-  Mat A = Mat::Zero(3*n, 12);
-  Mat b = Mat::Zero(3*n, 1);
+  Mat A = Mat::Zero(3 * n, 12);
+  Mat b = Mat::Zero(3 * n, 1);
   for (int i = 0; i < n; ++i) {
-    const int j= i * 3;
-    const int j1= j + 1;
-    const int j2= j + 2;
-    A(j, 0) =  x1(0, i);
-    A(j, 1) =  x1(1, i);
-    A(j, 2) =  x1(2, i);
-    A(j, 9) =  1.0;
+    const int j = i * 3;
+    const int j1 = j + 1;
+    const int j2 = j + 2;
+    A(j, 0) = x1(0, i);
+    A(j, 1) = x1(1, i);
+    A(j, 2) = x1(2, i);
+    A(j, 9) = 1.0;
 
-    A(j1, 3)  =  x1(0, i);
-    A(j1, 4)  =  x1(1, i);
-    A(j1, 5)  =  x1(2, i);
-    A(j1, 10) =  1.0;
+    A(j1, 3) = x1(0, i);
+    A(j1, 4) = x1(1, i);
+    A(j1, 5) = x1(2, i);
+    A(j1, 10) = 1.0;
 
-    A(j2, 6)  =  x1(0, i);
-    A(j2, 7)  =  x1(1, i);
-    A(j2, 8)  =  x1(2, i);
-    A(j2, 11) =  1.0;
+    A(j2, 6) = x1(0, i);
+    A(j2, 7) = x1(1, i);
+    A(j2, 8) = x1(2, i);
+    A(j2, 11) = 1.0;
 
-    b(j, 0)  = x2(0, i);
+    b(j, 0) = x2(0, i);
     b(j1, 0) = x2(1, i);
     b(j2, 0) = x2(2, i);
   }
   // Solve Ax=B
   Vec x = A.fullPivLu().solve(b);
-  if ((A * x).isApprox(b, expected_precision))  {
+  if ((A * x).isApprox(b, expected_precision)) {
     Affine3DGenericParameterization<double>::To(x, M);
     return true;
   } else {

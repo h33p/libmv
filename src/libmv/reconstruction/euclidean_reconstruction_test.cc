@@ -27,28 +27,28 @@
 #include "libmv/multiview/random_sample.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
-#include "libmv/reconstruction/reconstruction.h"
 #include "libmv/reconstruction/mapping.h"
 #include "libmv/reconstruction/optimization.h"
 #include "libmv/reconstruction/projective_reconstruction.h"
+#include "libmv/reconstruction/reconstruction.h"
 #include "testing/testing.h"
 
 namespace libmv {
 namespace {
 
-void GenerateMatchesFromNViewDataSet(const NViewDataSet &d,
+void GenerateMatchesFromNViewDataSet(const NViewDataSet& d,
                                      int noutliers,
-                                     Matches *matches,
-                                     std::list<Feature *> *list_features) {
+                                     Matches* matches,
+                                     std::list<Feature*>* list_features) {
   Matches::TrackID track_id;
   vector<int> wrong_matches;
   for (size_t n = 0; n < d.n; ++n) {
-    //std::cout << "n -> "<< d.x[n]<< std::endl;
+    // std::cout << "n -> "<< d.x[n]<< std::endl;
     // Generates wrong matches
     UniformSample(noutliers, d.X.cols(), &wrong_matches);
-    //std::cout << "Features :"<<d.x[n].transpose()<<"\n";
+    // std::cout << "Features :"<<d.x[n].transpose()<<"\n";
     for (size_t p = 0; p < d.x[n].cols(); ++p) {
-      PointFeature * feature = new PointFeature(d.x[n](0, p), d.x[n](1, p));
+      PointFeature* feature = new PointFeature(d.x[n](0, p), d.x[n](1, p));
       list_features->push_back(feature);
       track_id = p;
       if (p < noutliers) {
@@ -63,7 +63,7 @@ TEST(CalibratedReconstruction, TestSynthetic6FullViews) {
   // TODO(julien) maybe a better check is the relative motion
   int nviews = 6;
   int npoints = 100;
-  int noutliers = 0.4*npoints;  // 30% of outliers
+  int noutliers = 0.4 * npoints;  // 30% of outliers
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
 
   Mat4X X;
@@ -73,7 +73,7 @@ TEST(CalibratedReconstruction, TestSynthetic6FullViews) {
   // Create the matches
   Matches matches;
   Matches matches_inliers;
-  std::list<Feature *> list_features;
+  std::list<Feature*> list_features;
   GenerateMatchesFromNViewDataSet(d, noutliers, &matches, &list_features);
 
   // We fix the gauge by setting the pose of the initial camera to the true pose
@@ -87,14 +87,11 @@ TEST(CalibratedReconstruction, TestSynthetic6FullViews) {
   std::cout << "Proceed Initial Motion Estimation" << std::endl;
   // Proceed Initial Motion Estimation
   bool recons_ok = true;
-  recons_ok = InitialReconstructionTwoViews(matches,
-                                            0, 1,
-                                            d.K[0], d.K[1],
-                                            image_size1, image_size2,
-                                            &reconstruction);
-  PinholeCamera * camera = NULL;
+  recons_ok = InitialReconstructionTwoViews(
+      matches, 0, 1, d.K[0], d.K[1], image_size1, image_size2, &reconstruction);
+  PinholeCamera* camera = NULL;
   EXPECT_EQ(reconstruction.GetNumberCameras(), 2);
-  camera = dynamic_cast<PinholeCamera *>(reconstruction.GetCamera(0));
+  camera = dynamic_cast<PinholeCamera*>(reconstruction.GetCamera(0));
   EXPECT_TRUE(camera != NULL);
   /*
   PinholeCamera * camera0 = new PinholeCamera(d.K[0], d.R[0], d.t[0]);
@@ -179,7 +176,7 @@ TEST(CalibratedReconstruction, TestSynthetic6FullViews) {
   // clear the cameras, structures and features
   reconstruction.ClearCamerasMap();
   reconstruction.ClearStructuresMap();
-  std::list<Feature *>::iterator features_iter = list_features.begin();
+  std::list<Feature*>::iterator features_iter = list_features.begin();
   for (; features_iter != list_features.end(); ++features_iter)
     delete *features_iter;
   list_features.clear();

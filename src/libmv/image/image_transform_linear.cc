@@ -29,13 +29,13 @@ namespace libmv {
 /**
  * Computes the bounding box of an image warp.
  */
-void ComputeBoundingBox(const Vec2u &image_size,
-                        const Mat3 &H,
-                        Vec4i *bbox) {
+void ComputeBoundingBox(const Vec2u& image_size, const Mat3& H, Vec4i* bbox) {
   Mat34 q_bounds;
+  // clang-format off
   q_bounds << 0,             0, image_size(0), image_size(0),
               0, image_size(1), image_size(1),             0,
               1,             1,             1,             1;
+  // clang-format on
 
   (*bbox) << image_size(0), 0, image_size(1), 0;
   Vec3 q;
@@ -58,14 +58,14 @@ void ComputeBoundingBox(const Vec2u &image_size,
 /**
  * Resize an image so that all the warpped image will be kept.
  */
-void ResizeImage(const Vec2u &image_size,
-                 const Mat3 &H,
-                 FloatImage *image_out,
-                 Mat3  *Hreg,
-                 Vec4i *bbox) {
+void ResizeImage(const Vec2u& image_size,
+                 const Mat3& H,
+                 FloatImage* image_out,
+                 Mat3* Hreg,
+                 Vec4i* bbox) {
   assert(image_out != NULL);
   Vec4i bbox_loc;
-  Vec4i *bbox_ptr = bbox;
+  Vec4i* bbox_ptr = bbox;
   if (bbox_ptr == NULL)
     bbox_ptr = &bbox_loc;
 
@@ -78,9 +78,11 @@ void ResizeImage(const Vec2u &image_size,
   image_out->Resize(h, w, image_out->Depth());
   // Register the image so that the min (x, y) are (0, 0)
   if (Hreg) {
+    // clang-format off
     (*Hreg) << 1, 0, -(*bbox_ptr)(0),
                0, 1, -(*bbox_ptr)(2),
                0, 0, 1;
+    // clang-format on
     (*Hreg) = (*Hreg) * H;
   }
 }
@@ -88,15 +90,17 @@ void ResizeImage(const Vec2u &image_size,
 /**
  * Translates the image.
  */
-void TranslateImage(const FloatImage &image_in,
+void TranslateImage(const FloatImage& image_in,
                     double dx,
                     double dy,
-                    FloatImage *image_out,
+                    FloatImage* image_out,
                     bool adapt_img_size) {
   Mat3 H;
+  // clang-format off
   H << 1, 0, dx,
        0, 1, dy,
        0, 0, 1;
+  // clang-format on
   if (adapt_img_size) {
     Vec2u image_size;
     image_size << image_in.Width(), image_in.Height();
@@ -108,19 +112,27 @@ void TranslateImage(const FloatImage &image_in,
 /**
  * Rotates the image.
  */
-void RotateImage(const FloatImage &image_in,
+void RotateImage(const FloatImage& image_in,
                  double angle,
-                 FloatImage *image_out,
+                 FloatImage* image_out,
                  bool adapt_img_size) {
   Mat3 H, Hr, Ht;
+
+  // clang-format off
   Hr << cos(angle), -sin(angle),  0,
         sin(angle),  cos(angle),  0,
                0,           0,    1;
+  // clang-format on
+
   // Add an offset of 0.5 pixels to be sure we're rotating
   // the image around the middle of the pixel.
+
+  // clang-format off
   Ht << 1, 0, -image_in.Height() / 2.0 + 0.5,
         0, 1, -image_in.Width() / 2.0 + 0.5,
         0, 0,  1;
+  // clang-format on
+
   H = Ht.inverse() * Hr * Ht;
   if (adapt_img_size) {
     Vec2u image_size;
@@ -133,9 +145,9 @@ void RotateImage(const FloatImage &image_in,
 /**
  * Warps an input image by a 3x3 matrix H and write the result in another image.
  */
-void WarpImage(const FloatImage &image_in,
-               const Mat3 &H,
-               FloatImage *image_out,
+void WarpImage(const FloatImage& image_in,
+               const Mat3& H,
+               FloatImage* image_out,
                bool adapt_img_size) {
   assert(image_out != NULL);
   assert(image_in.Depth() == image_out->Depth());
@@ -170,9 +182,9 @@ void WarpImage(const FloatImage &image_in,
 /**
  * Warps an input image and blend it with the content of the output image.
  */
-void WarpImageBlend(const FloatImage &image_in,
-                    const Mat3 &H,
-                    FloatImage *image_out,
+void WarpImageBlend(const FloatImage& image_in,
+                    const Mat3& H,
+                    FloatImage* image_out,
                     float blending_ratio) {
   assert(image_out != NULL);
   assert(image_in.Depth() == image_out->Depth());
@@ -211,8 +223,8 @@ void WarpImageBlend(const FloatImage &image_in,
             for (int d = 0; d < image_out->Depth(); ++d) {
               // Let's fade the previous frames
               (*image_out)(j, i, d) =
-                 (1 - blending_ratio) * (*image_out)(j, i, d) +
-                 blending_ratio * SampleLinear(image_in, qi(1), qi(0), d);
+                  (1 - blending_ratio) * (*image_out)(j, i, d) +
+                  blending_ratio * SampleLinear(image_in, qi(1), qi(0), d);
             }
             continue;
           } else {  // only image_in contrib

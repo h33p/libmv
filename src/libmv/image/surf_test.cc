@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/numeric/numeric.h"
-#include "libmv/image/array_nd.h"
 #include "libmv/image/surf.h"
+#include "libmv/image/array_nd.h"
+#include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
 
 using namespace libmv;
@@ -37,7 +37,7 @@ TEST(RefineMaxima3D, SimpleRefinement) {
         int p = x - 2;
         int q = y - 2;
         int r = z - 2;
-        f(x, y, z) = p*p + q*q + r*r;
+        f(x, y, z) = p * p + q * q + r * r;
       }
     }
   }

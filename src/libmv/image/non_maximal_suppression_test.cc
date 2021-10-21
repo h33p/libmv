@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/image/array_nd.h"
 #include "libmv/image/non_maximal_suppression.h"
+#include "libmv/image/array_nd.h"
 #include "testing/testing.h"
 
 namespace libmv {
@@ -131,5 +131,5 @@ TEST(FindLocalMaxima3D, MultipleMaxesInSameBlock) {
   EXPECT_EQ(2, results[1][2]);
   EXPECT_EQ(2, results.size());
 }
-}  // namespace libmv
 }  // namespace
+}  // namespace libmv

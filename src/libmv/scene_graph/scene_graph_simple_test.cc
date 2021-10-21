@@ -20,8 +20,8 @@
 
 #include <string>
 
-#include "libmv/scene_graph/scene_graph_simple.h"
 #include "libmv/logging/logging.h"
+#include "libmv/scene_graph/scene_graph_simple.h"
 #include "testing/testing.h"
 
 using libmv::scene::Node;
@@ -32,8 +32,8 @@ TEST(SceneGraph, IteratingOverAddedNodes) {
   scene.AddChild(new Node<int>("zap", new int(10)));
   scene.AddChild(new Node<int>("foo", new int(4)));
 
-  const char * expected_names[] = { "bar", "foo", "zap" };
-  int expected_values[] = { 5, 4, 10 };
+  const char* expected_names[] = {"bar", "foo", "zap"};
+  int expected_values[] = {5, 4, 10};
   int i = 0;
   for (Node<int>::iterator it = scene.begin(); it != scene.end(); ++it, ++i) {
     EXPECT_EQ(expected_names[i], it->GetName());
@@ -49,10 +49,10 @@ TEST(SceneGraph, IteratingOverAddedNodes) {
 TEST(SceneGraph, GetChildReturnsNullIfNotFound) {
   Node<int> scene("root node", new int(0));
 
-  const char * test_names[] = { "bar", "foo", "zap" };
+  const char* test_names[] = {"bar", "foo", "zap"};
   for (int i = 0; i < 3; ++i) {
     EXPECT_TRUE(NULL == scene.GetChild(test_names[i]));
-    Node<int> *node = new Node<int>(test_names[i], new int(10));
+    Node<int>* node = new Node<int>(test_names[i], new int(10));
     scene.AddChild(node);
     EXPECT_EQ(node, scene.GetChild(test_names[i]));
   }
@@ -65,13 +65,13 @@ TEST(SceneGraph, GetChildReturnsNullIfNotFound) {
 TEST(SceneGraph, SetName) {
   Node<int> scene("root node", new int(0));
 
-  const char * test_names[] = { "bar", "foo", "zap" };
+  const char* test_names[] = {"bar", "foo", "zap"};
   for (int i = 0; i < 3; ++i) {
-    Node<int> *node = new Node<int>(test_names[i], new int(10));
+    Node<int>* node = new Node<int>(test_names[i], new int(10));
     scene.AddChild(node);
   }
 
-  Node<int> *node = scene.GetChild("bar");
+  Node<int>* node = scene.GetChild("bar");
   EXPECT_TRUE(node);
   node->SetName("something");
   EXPECT_EQ(node->GetName(), "something");
@@ -84,9 +84,9 @@ TEST(SceneGraph, SetName) {
 
 TEST(SceneGraph, HangingPtrs) {
   Node<int> scene("root node", new int(0));
-  const char * test_names[] = { "bar", "foo", "zap" };
+  const char* test_names[] = {"bar", "foo", "zap"};
   for (int i = 0; i < 3; ++i) {
-    Node<int> *node = new Node<int>(test_names[i], new int(10));
+    Node<int>* node = new Node<int>(test_names[i], new int(10));
     scene.AddChild(node);
   }
   for (Node<int>::iterator it = scene.begin(); it != scene.end();) {

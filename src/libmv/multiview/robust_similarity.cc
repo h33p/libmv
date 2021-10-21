@@ -21,28 +21,32 @@
 #include "libmv/multiview/robust_similarity.h"
 
 #include "libmv/base/vector.h"
-#include "libmv/multiview/similarity_kernel.h"
 #include "libmv/multiview/robust_estimation.h"
+#include "libmv/multiview/similarity_kernel.h"
 #include "libmv/numeric/numeric.h"
 
 namespace libmv {
 
 // Estimate robustly the 2d similarity matrix between two dataset of 2D point
-// (image coords space). The 2d similarity solver relies on the 2 points solution.
+// (image coords space). The 2d similarity solver relies on the 2 points
+// solution.
 double Similarity2DFromCorrespondences2PointRobust(
-    const Mat &x1,
-    const Mat &x2,
+    const Mat& x1,
+    const Mat& x2,
     double max_error,
-    Mat3 *H,
-    vector<int> *inliers,
+    Mat3* H,
+    vector<int>* inliers,
     double outliers_probability) {
   // The threshold is on the sum of the squared errors in the two images.
   double threshold = 2 * Square(max_error);
   double best_score = HUGE_VAL;
   typedef similarity::similarity2D::kernel::Kernel KernelH;
   KernelH kernel(x1, x2);
-  *H = Estimate(kernel, MLEScorer<KernelH>(threshold), inliers,
-                &best_score, outliers_probability);
+  *H = Estimate(kernel,
+                MLEScorer<KernelH>(threshold),
+                inliers,
+                &best_score,
+                outliers_probability);
   if (best_score == HUGE_VAL)
     return HUGE_VAL;
   else

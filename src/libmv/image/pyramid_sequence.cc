@@ -29,7 +29,8 @@
 
 namespace libmv {
 
-PyramidSequence::~PyramidSequence() {}
+PyramidSequence::~PyramidSequence() {
+}
 
 class ImageSequenceBackedImagePyramid : public ImagePyramid {
  public:
@@ -41,24 +42,20 @@ class ImageSequenceBackedImagePyramid : public ImagePyramid {
     }
   }
 
-  ImageSequenceBackedImagePyramid(const std::vector<ImageSequence *> levels,
+  ImageSequenceBackedImagePyramid(const std::vector<ImageSequence*> levels,
                                   int frame)
-      : levels_(levels),
-        pinned_levels_(levels.size()),
-        frame_(frame) {
+      : levels_(levels), pinned_levels_(levels.size()), frame_(frame) {
     for (size_t i = 0; i < pinned_levels_.size(); ++i) {
       pinned_levels_[i] = 0;
     }
   }
 
-  virtual const FloatImage &Level(int i) {
+  virtual const FloatImage& Level(int i) {
     pinned_levels_[i] = 1;
     return *levels_[i]->GetFloatImage(frame_);
   }
 
-  virtual int NumLevels() const {
-    return levels_.size();
-  }
+  virtual int NumLevels() const { return levels_.size(); }
 
   virtual int MemorySizeInBytes() const {
     // TODO(pau) this is ugly!
@@ -66,7 +63,7 @@ class ImageSequenceBackedImagePyramid : public ImagePyramid {
   }
 
  private:
-  const std::vector<ImageSequence *> levels_;
+  const std::vector<ImageSequence*> levels_;
   std::vector<int> pinned_levels_;
   int frame_;
 };
@@ -85,11 +82,11 @@ class ConcretePyramidSequence : public PyramidSequence {
     }
   }
 
-  ConcretePyramidSequence(ImageSequence *source, int levels, double sigma) {
+  ConcretePyramidSequence(ImageSequence* source, int levels, double sigma) {
     downsamples_.resize(levels);
     downsamples_[0] = source;
     for (int i = 1; i < levels; ++i) {
-      downsamples_[i] = DownsampleSequenceBy2(downsamples_[i-1]);
+      downsamples_[i] = DownsampleSequenceBy2(downsamples_[i - 1]);
     }
     levels_.resize(levels);
     for (int i = 0; i < levels; ++i) {
@@ -101,11 +98,9 @@ class ConcretePyramidSequence : public PyramidSequence {
     }
   }
 
-  virtual int Length() {
-    return source_->Length();
-  }
+  virtual int Length() { return source_->Length(); }
 
-  virtual ImagePyramid *Pyramid(int frame) {
+  virtual ImagePyramid* Pyramid(int frame) {
     if (!constructed_pyramids_[frame]) {
       constructed_pyramids_[frame] =
           new ImageSequenceBackedImagePyramid(levels_, frame);
@@ -114,43 +109,38 @@ class ConcretePyramidSequence : public PyramidSequence {
   }
 
  private:
-  ImageSequence *source_;
-  std::vector<ImageSequence *> levels_;
-  std::vector<ImageSequence *> downsamples_;
-  std::vector<ImagePyramid *> constructed_pyramids_;
+  ImageSequence* source_;
+  std::vector<ImageSequence*> levels_;
+  std::vector<ImageSequence*> downsamples_;
+  std::vector<ImagePyramid*> constructed_pyramids_;
 };
 
-PyramidSequence *MakePyramidSequence(ImageSequence *source,
+PyramidSequence* MakePyramidSequence(ImageSequence* source,
                                      int levels,
                                      double sigma) {
   return new ConcretePyramidSequence(source, levels, sigma);
 }
-
 
 /////////////////////////////////////////////////////////////
 // This is pau trying things.
 
 class SimpleConcretePyramidSequence : public PyramidSequence {
  public:
-  virtual ~SimpleConcretePyramidSequence() {
-  }
+  virtual ~SimpleConcretePyramidSequence() {}
 
-  SimpleConcretePyramidSequence(ImageSequence *source,
-                                 int levels,
-                                 double sigma)
-    : source_(source), levels_(levels), sigma_(sigma), cache_(10*1024*1024) {
-  }
+  SimpleConcretePyramidSequence(ImageSequence* source, int levels, double sigma)
+      : source_(source),
+        levels_(levels),
+        sigma_(sigma),
+        cache_(10 * 1024 * 1024) {}
 
-  virtual int Length() {
-    return source_->Length();
-  }
+  virtual int Length() { return source_->Length(); }
 
-  virtual ImagePyramid *Pyramid(int frame) {
-    ImagePyramid *pyramid;
+  virtual ImagePyramid* Pyramid(int frame) {
+    ImagePyramid* pyramid;
     if (!cache_.FetchAndPin(frame, &pyramid)) {
-      pyramid = MakeImagePyramid(*source_->GetFloatImage(frame),
-                                 levels_,
-                                 sigma_);
+      pyramid =
+          MakeImagePyramid(*source_->GetFloatImage(frame), levels_, sigma_);
       source_->Unpin(frame);
       cache_.StoreAndPinSized(frame, pyramid, pyramid->MemorySizeInBytes());
     }
@@ -158,15 +148,15 @@ class SimpleConcretePyramidSequence : public PyramidSequence {
   }
 
  private:
-  ImageSequence *source_;
+  ImageSequence* source_;
   int levels_;
   double sigma_;
   LRUCache<int, ImagePyramid> cache_;
 };
 
-PyramidSequence *MakeSimplePyramidSequence(ImageSequence *source,
-                                            int levels,
-                                            double sigma) {
+PyramidSequence* MakeSimplePyramidSequence(ImageSequence* source,
+                                           int levels,
+                                           double sigma) {
   return new SimpleConcretePyramidSequence(source, levels, sigma);
 }
 

@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/euclidean_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "testing/testing.h"
 
 namespace {
@@ -27,7 +27,8 @@ using namespace libmv;
 
 TEST(Euclidean2DEulerParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec3 p; p << 1, 2, 3;
+  Vec3 p;
+  p << 1, 2, 3;
   Vec3 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -46,7 +47,8 @@ TEST(Euclidean2DEulerParameterization, Roundtripping) {
 
 TEST(Euclidean2DSCParameterization, Roundtripping) {
   Mat3 h, h_roundtrip;
-  Vec4 p; p << 1, 2, 3, 4;
+  Vec4 p;
+  p << 1, 2, 3, 4;
   Vec4 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -65,7 +67,8 @@ TEST(Euclidean2DSCParameterization, Roundtripping) {
 
 TEST(Euclidean3DEulerParameterization, Roundtripping) {
   Mat4 h, h_roundtrip;
-  Vec6 p; p << M_PI/2, 1, 2, 3, 4, 5;
+  Vec6 p;
+  p << M_PI / 2, 1, 2, 3, 4, 5;
   Vec6 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.
@@ -84,7 +87,8 @@ TEST(Euclidean3DEulerParameterization, Roundtripping) {
 
 TEST(Euclidean3DQuaternionParameterization, Roundtripping) {
   Mat4 h, h_roundtrip;
-  Vec7 p; p << 0.5, 0.7, 1, 2, 3, 4, 5;
+  Vec7 p;
+  p << 0.5, 0.7, 1, 2, 3, 4, 5;
   Vec7 p_roundtrip;
 
   // Use the parameterization to get some arbitrary H matrix.

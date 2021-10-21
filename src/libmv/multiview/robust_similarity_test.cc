@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/robust_similarity.h"
 #include "libmv/base/vector.h"
 #include "libmv/logging/logging.h"
-#include "libmv/multiview/robust_similarity.h"
 #include "libmv/multiview/test_data_sets.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
@@ -38,20 +38,18 @@ TEST(RobustSimilarity, Similarity2DFromCorrespondences2PointRobust) {
 
   double angle = 0.3;
   double scale = 2.1;
-  H_gt[1] << scale*cos(angle), -scale*sin(angle), -4,
-             scale*sin(angle),  scale*cos(angle),  5,
-             0,  0,  1;
+  H_gt[1] << scale * cos(angle), -scale * sin(angle), -4, scale * sin(angle),
+      scale * cos(angle), 5, 0, 0, 1;
   angle = 2.3;
   scale = 0.2;
-  H_gt[2] << scale*cos(angle), -scale*sin(angle),  3,
-             scale*sin(angle),  scale*cos(angle), -6,
-             0,  0,  1;
+  H_gt[2] << scale * cos(angle), -scale * sin(angle), 3, scale * sin(angle),
+      scale * cos(angle), -6, 0, 0, 1;
 
   // Define a set of points.
   int n = 20;
   Mat x(2, n), xh;
-  x << 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3,
-       0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4;
+  x << 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 1, 2, 3,
+      4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4;
   EuclideanToHomogeneous(x, &xh);
 
   Mat3 H[num_h];

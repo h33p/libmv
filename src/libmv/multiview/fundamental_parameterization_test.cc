@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/logging/logging.h"
 #include "libmv/multiview/fundamental_parameterization.h"
+#include "libmv/logging/logging.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
 
@@ -28,9 +28,10 @@ using namespace libmv;
 
 TEST(FundamentalParameterization, Roundtripping) {
   Mat3 f, f_roundtrip;
-  Vec9 p; p << 1, 2, 3, 4,  // u
-               0.,          // s
-               5, 6, 7, 1;  // vt
+  Vec9 p;
+  p << 1, 2, 3, 4,  // u
+      0.,           // s
+      5, 6, 7, 1;   // vt
   p.head<4>().normalize();
   p.tail<4>().normalize();
   Vec9 p_roundtrip;

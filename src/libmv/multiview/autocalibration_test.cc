@@ -20,8 +20,8 @@
 
 #include <iostream>
 
-#include "libmv/multiview/projection.h"
 #include "libmv/multiview/autocalibration.h"
+#include "libmv/multiview/projection.h"
 #include "testing/testing.h"
 
 namespace {
@@ -29,9 +29,7 @@ using namespace libmv;
 
 TEST(AutoCalibration, K_From_AbsoluteConic) {
   Mat3 K, Kp;
-  K << 10,  1, 30,
-        0, 20, 40,
-        0,  0,  1;
+  K << 10, 1, 30, 0, 20, 40, 0, 0, 1;
 
   Mat3 w = (K * K.transpose()).inverse();
   K_From_AbsoluteConic(w, &Kp);
@@ -42,12 +40,10 @@ TEST(AutoCalibration, K_From_AbsoluteConic) {
 // Tests that K computed from the IAC has positive elements in its diagonal.
 TEST(AutoCalibration, K_From_AbsoluteConic_SignedDiagonal) {
   Mat3 K, Kpositive, Kp;
-  K << 10,   1, 30,
-        0, -20, 40,
-        0,   0,  -1;
+  K << 10, 1, 30, 0, -20, 40, 0, 0, -1;
   Kpositive << 10, -1, -30,  // K with column signs changed so that the
-                0, 20, -40,  // diagonal is positive.
-                0,  0,   1;
+      0, 20, -40,            // diagonal is positive.
+      0, 0, 1;
 
   Mat3 w = (K * K.transpose()).inverse();
   K_From_AbsoluteConic(w, &Kp);
@@ -58,17 +54,16 @@ TEST(AutoCalibration, K_From_AbsoluteConic_SignedDiagonal) {
 TEST(AutoCalibrationLinear, MetricTransformation_MetricInput) {
   double width = 1000, height = 800;
   Mat3 K;
-  K << width,     0,  width / 2,  // 1000x800 image with 35mm equiv focal length.
-           0, width, height / 2,
-           0,     0,          1;
+  K << width, 0, width / 2,  // 1000x800 image with 35mm equiv focal length.
+      0, width, height / 2, 0, 0, 1;
 
   AutoCalibrationLinear a;
 
   // Add cameras with random rotation and translation.
   for (int i = 0; i < 3; ++i) {
-    Mat3 R = RotationAroundX(double(rand()) / RAND_MAX * 3)
-           * RotationAroundY(double(rand()) / RAND_MAX * 3)
-           * RotationAroundZ(double(rand()) / RAND_MAX * 3);
+    Mat3 R = RotationAroundX(double(rand()) / RAND_MAX * 3) *
+             RotationAroundY(double(rand()) / RAND_MAX * 3) *
+             RotationAroundZ(double(rand()) / RAND_MAX * 3);
     Vec3 t(double(rand()) / RAND_MAX,
            double(rand()) / RAND_MAX,
            double(rand()) / RAND_MAX);
@@ -96,24 +91,20 @@ TEST(AutoCalibrationLinear, RandomInput) {
   const int num_cams = 10;
   double width = 1000, height = 800;
   Mat3 K;
-  K << width,     0,  width / 2,  // 1000x800 image with 35mm equiv focal length.
-           0, width, height / 2,
-           0,     0,          1;
+  K << width, 0, width / 2,  // 1000x800 image with 35mm equiv focal length.
+      0, width, height / 2, 0, 0, 1;
 
   Mat4 H_real;
-  H_real << 1,  0, -4,  2,
-            1, -1,  1, -7,
-           -4,  0,  2,  0,
-            1,  2,  3,  1;
+  H_real << 1, 0, -4, 2, 1, -1, 1, -7, -4, 0, 2, 0, 1, 2, 3, 1;
 
   AutoCalibrationLinear a;
 
   // Add cameras with random rotation and translation.
   Mat34 Ps[num_cams];
   for (int i = 0; i < num_cams; ++i) {
-    Mat3 R = RotationAroundX(double(rand()) / RAND_MAX * 3)
-           * RotationAroundY(double(rand()) / RAND_MAX * 3)
-           * RotationAroundZ(double(rand()) / RAND_MAX * 3);
+    Mat3 R = RotationAroundX(double(rand()) / RAND_MAX * 3) *
+             RotationAroundY(double(rand()) / RAND_MAX * 3) *
+             RotationAroundZ(double(rand()) / RAND_MAX * 3);
     Vec3 t(double(rand()) / RAND_MAX,
            double(rand()) / RAND_MAX,
            double(rand()) / RAND_MAX);

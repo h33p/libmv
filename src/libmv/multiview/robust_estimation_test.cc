@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/robust_estimation.h"
 #include "libmv/base/vector.h"
 #include "libmv/multiview/random_sample.h"
-#include "libmv/multiview/robust_estimation.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
 
@@ -44,17 +44,15 @@ TEST(UniformSampleTest, NoRepetions) {
 }
 
 struct LineKernel {
-  LineKernel(const Mat2X &xs) : xs_(xs) {}
+  LineKernel(const Mat2X& xs) : xs_(xs) {}
 
   typedef Vec2 Model;  // a, b;
 
   enum { MINIMUM_SAMPLES = 2 };
 
-  int NumSamples() const {
-    return xs_.cols();
-  }
+  int NumSamples() const { return xs_.cols(); }
 
-  void Fit(const vector<int> &samples, vector<Vec2> *lines) const {
+  void Fit(const vector<int>& samples, vector<Vec2>* lines) const {
     assert(samples.size() >= (uint)MINIMUM_SAMPLES);
     // Standard least squares solution.
     Mat2X sampled_xs = ExtractColumns(xs_, samples);
@@ -67,24 +65,23 @@ struct LineKernel {
     lines->push_back(ba);
   }
 
-  double Error(int sample, const Vec2 &ba) const {
+  double Error(int sample, const Vec2& ba) const {
     double b = ba[0];
     double a = ba[1];
     double x = xs_(0, sample);
     double y = xs_(1, sample);
-    double e = y - (a*x + b);
-    return e*e;
+    double e = y - (a * x + b);
+    return e * e;
   }
 
-  const Mat2X &xs_;
+  const Mat2X& xs_;
 };
 
 // Since the line fitter isn't so simple, test it in isolation.
 TEST(LineFitter, ItWorks) {
   Mat2X xy(2, 5);
   // y = 2x + 1
-  xy << 1, 2, 3, 4,  5,
-        3, 5, 7, 9, 11;
+  xy << 1, 2, 3, 4, 5, 3, 5, 7, 9, 11;
   vector<Vec2> models;
   LineKernel kernel(xy);
   vector<int> samples;
@@ -100,8 +97,7 @@ TEST(LineFitter, ItWorks) {
 TEST(RobustLineFitter, OutlierFree) {
   Mat2X xy(2, 5);
   // y = 2x + 1
-  xy << 1, 2, 3, 4,  5,
-        3, 5, 7, 9, 11;
+  xy << 1, 2, 3, 4, 5, 3, 5, 7, 9, 11;
 
   LineKernel kernel(xy);
   vector<int> inliers;
@@ -114,8 +110,7 @@ TEST(RobustLineFitter, OutlierFree) {
 TEST(RobustLineFitter, OutlierFree_DoNotGetBackInliers) {
   Mat2X xy(2, 5);
   // y = 2x + 1
-  xy << 1, 2, 3, 4,  5,
-        3, 5, 7, 9, 11;
+  xy << 1, 2, 3, 4, 5, 3, 5, 7, 9, 11;
 
   LineKernel kernel(xy);
   Vec2 ba = Estimate(kernel, MLEScorer<LineKernel>(4));
@@ -126,8 +121,7 @@ TEST(RobustLineFitter, OutlierFree_DoNotGetBackInliers) {
 TEST(RobustLineFitter, OneOutlier) {
   Mat2X xy(2, 6);
   // y = 2x + 1 with an outlier
-  xy << 1, 2, 3, 4,  5, /* outlier! */  100,
-        3, 5, 7, 9, 11, /* outlier! */ -123;
+  xy << 1, 2, 3, 4, 5, /* outlier! */ 100, 3, 5, 7, 9, 11, /* outlier! */ -123;
 
   LineKernel kernel(xy);
   vector<int> inliers;
@@ -142,12 +136,11 @@ TEST(RobustLineFitter, OneOutlier) {
 TEST(RobustLineFitter, TooFewPoints) {
   Mat2X xy(2, 1);
   // y = 2x + 1
-  xy << 1,
-        3;
+  xy << 1, 3;
   LineKernel kernel(xy);
   vector<int> inliers;
   Vec2 ba = Estimate(kernel, MLEScorer<LineKernel>(4), &inliers);
-  (void) ba;
+  (void)ba;
   ASSERT_EQ(0, inliers.size());
 }
 

@@ -18,9 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/multiview/euclidean_kernel.h"
 #include "libmv/base/vector.h"
 #include "libmv/logging/logging.h"
-#include "libmv/multiview/euclidean_kernel.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
 
@@ -32,11 +32,9 @@ using namespace libmv;
 using namespace libmv::euclidean::euclidean2D::kernel;
 
 template <class Kernel>
-struct EuclideanKernelTest : public testing::Test {
-};
+struct EuclideanKernelTest : public testing::Test {};
 
-typedef Types<Kernel>
-  EuclideanKernelImplementations;
+typedef Types<Kernel> EuclideanKernelImplementations;
 
 TYPED_TEST_CASE(EuclideanKernelTest, EuclideanKernelImplementations);
 
@@ -46,18 +44,16 @@ TYPED_TEST(EuclideanKernelTest, Fitting) {
 
   H_gt[0] = Mat3::Identity();
 
-  H_gt[1] << 1, 0, -4,
-             0, 1,  5,
-             0, 0,  1;
+  H_gt[1] << 1, 0, -4, 0, 1, 5, 0, 0, 1;
   double angle = 0.3;
-  H_gt[2] << cos(angle), -sin(angle),  3,
-             sin(angle),  cos(angle), -6,
-             0,  0,  1;
+  H_gt[2] << cos(angle), -sin(angle), 3, sin(angle), cos(angle), -6, 0, 0, 1;
 
   // Define a set of points.
   Mat x(2, 9), xh;
+  // clang-format off
   x << 0, 0, 0, 1, 1, 1, 2, 2, 2,
        0, 1, 2, 0, 1, 2, 0, 1, 2;
+  // clang-format on
   EuclideanToHomogeneous(x, &xh);
 
   for (int i = 2; i < H_gt.size(); ++i) {

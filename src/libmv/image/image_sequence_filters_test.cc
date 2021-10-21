@@ -24,10 +24,10 @@
 #include "libmv/image/mock_image_sequence.h"
 #include "testing/testing.h"
 
-using libmv::MockImageSequence;
+using libmv::Array3Df;
 using libmv::ImageCache;
 using libmv::ImageSequence;
-using libmv::Array3Df;
+using libmv::MockImageSequence;
 
 namespace {
 
@@ -43,7 +43,7 @@ TEST(BlurAndDerivative, Simple) {
   source.Append(&image0);
   source.Append(&image1);
 
-  ImageSequence *filtered = BlurSequenceAndTakeDerivatives(&source, 0.9);
+  ImageSequence* filtered = BlurSequenceAndTakeDerivatives(&source, 0.9);
 
   const Array3Df filtered_image0 = *filtered->GetFloatImage(0);
   const Array3Df filtered_image1 = *filtered->GetFloatImage(1);
@@ -68,7 +68,7 @@ TEST(DownsampleBy2, Simple) {
   image0(0, 0) = 1.0;
   source.Append(&image0);
 
-  ImageSequence *filtered = DownsampleSequenceBy2(&source);
+  ImageSequence* filtered = DownsampleSequenceBy2(&source);
 
   const Array3Df filtered_image = *filtered->GetFloatImage(0);
   ASSERT_EQ(1, filtered_image.Height());

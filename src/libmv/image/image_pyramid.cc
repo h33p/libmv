@@ -30,16 +30,15 @@ class ConcreteImagePyramid : public ImagePyramid {
  public:
   ConcreteImagePyramid() {}
 
-  ConcreteImagePyramid(const FloatImage &image,
+  ConcreteImagePyramid(const FloatImage& image,
                        int num_levels,
                        double sigma = 0.9) {
     Init(image, num_levels, sigma);
   }
 
-  virtual ~ConcreteImagePyramid() {
-  }
+  virtual ~ConcreteImagePyramid() {}
 
-  void Init(const FloatImage &image, int num_levels, double sigma = 0.9) {
+  void Init(const FloatImage& image, int num_levels, double sigma = 0.9) {
     assert(image.Depth() == 1);
 
     levels_.resize(num_levels);
@@ -50,19 +49,17 @@ class ConcreteImagePyramid : public ImagePyramid {
     downsamples[0] = image;  // FIXME: useless copy
 
     for (int i = 1; i < NumLevels(); ++i) {
-      DownsampleChannelsBy2(downsamples[i-1], &downsamples[i]);
+      DownsampleChannelsBy2(downsamples[i - 1], &downsamples[i]);
       BlurredImageAndDerivativesChannels(downsamples[i], sigma, &levels_[i]);
     }
   }
 
-  virtual const FloatImage &Level(int i) {
+  virtual const FloatImage& Level(int i) {
     assert(0 <= i && i < NumLevels());
     return levels_[i];
   }
 
-  virtual int NumLevels() const {
-    return levels_.size();
-  }
+  virtual int NumLevels() const { return levels_.size(); }
 
   int MemorySizeInBytes() const {
     int sum = 0;
@@ -76,11 +73,10 @@ class ConcreteImagePyramid : public ImagePyramid {
   vector<FloatImage> levels_;
 };
 
-ImagePyramid *MakeImagePyramid(const FloatImage &image,
+ImagePyramid* MakeImagePyramid(const FloatImage& image,
                                int num_levels,
                                double sigma) {
   return new ConcreteImagePyramid(image, num_levels, sigma);
 }
 
 }  // namespace libmv
-

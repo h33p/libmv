@@ -27,11 +27,11 @@
 namespace libmv {
 
 // TODO(keir): This interface is a bit ugly; consider fixing it.
-double FundamentalFromCorrespondences8PointRobust(const Mat &x1,
-                                                  const Mat &x2,
+double FundamentalFromCorrespondences8PointRobust(const Mat& x1,
+                                                  const Mat& x2,
                                                   double max_error,
-                                                  Mat3 *F,
-                                                  vector<int> *inliers,
+                                                  Mat3* F,
+                                                  vector<int>* inliers,
                                                   double outliers_probability) {
   // The threshold is on the sum of the squared errors in the two images.
   // Actually, Sampson's approximation of this error.
@@ -39,19 +39,22 @@ double FundamentalFromCorrespondences8PointRobust(const Mat &x1,
   double best_score = HUGE_VAL;
   typedef fundamental::kernel::NormalizedEightPointKernel Kernel;
   Kernel kernel(x1, x2);
-  *F = Estimate(kernel, MLEScorer<Kernel>(threshold), inliers,
-                &best_score, outliers_probability);
+  *F = Estimate(kernel,
+                MLEScorer<Kernel>(threshold),
+                inliers,
+                &best_score,
+                outliers_probability);
   if (best_score == HUGE_VAL)
     return HUGE_VAL;
   else
     return std::sqrt(best_score / 2.0);
 }
 
-double FundamentalFromCorrespondences7PointRobust(const Mat &x1,
-                                                  const Mat &x2,
+double FundamentalFromCorrespondences7PointRobust(const Mat& x1,
+                                                  const Mat& x2,
                                                   double max_error,
-                                                  Mat3 * F,
-                                                  vector<int> *inliers,
+                                                  Mat3* F,
+                                                  vector<int>* inliers,
                                                   double outliers_probability) {
   // The threshold is on the sum of the squared errors in the two images.
   // Actually, Sampson's approximation of this error.
@@ -59,8 +62,11 @@ double FundamentalFromCorrespondences7PointRobust(const Mat &x1,
   double best_score = HUGE_VAL;
   typedef fundamental::kernel::NormalizedSevenPointKernel Kernel;
   Kernel kernel(x1, x2);
-  *F = Estimate(kernel, MLEScorer<Kernel>(threshold), inliers,
-                &best_score, outliers_probability);
+  *F = Estimate(kernel,
+                MLEScorer<Kernel>(threshold),
+                inliers,
+                &best_score,
+                outliers_probability);
   if (best_score == HUGE_VAL)
     return HUGE_VAL;
   else

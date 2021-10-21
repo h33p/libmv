@@ -18,10 +18,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "libmv/correspondence/klt.h"
+#include "libmv/image/convolve.h"
 #include "libmv/image/image.h"
 #include "libmv/image/image_pyramid.h"
-#include "libmv/image/convolve.h"
-#include "libmv/correspondence/klt.h"
 #include "testing/testing.h"
 
 using std::vector;
@@ -80,12 +80,12 @@ TEST(KLTContext, TrackFeature) {
 
   int x0 = 32, y0 = 64;
   int dx = 3, dy = 5;
-  image1(y0,      x0     ) = 1.0f;
+  image1(y0, x0) = 1.0f;
   image2(y0 + dy, x0 + dx) = 1.0f;
 
   int pyramid_levels = 3;
-  ImagePyramid *pyramid1 = MakeImagePyramid(image1, pyramid_levels, 0.9);
-  ImagePyramid *pyramid2 = MakeImagePyramid(image2, pyramid_levels, 0.9);
+  ImagePyramid* pyramid1 = MakeImagePyramid(image1, pyramid_levels, 0.9);
+  ImagePyramid* pyramid2 = MakeImagePyramid(image2, pyramid_levels, 0.9);
 
   KLTContext klt;
   KLTPointFeature feature1, feature2;

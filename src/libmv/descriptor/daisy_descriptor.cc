@@ -20,11 +20,11 @@
 
 #include "libmv/descriptor/daisy_descriptor.h"
 
-#include "libmv/logging/logging.h"
+#include "libmv/correspondence/feature.h"
 #include "libmv/descriptor/descriptor.h"
 #include "libmv/descriptor/vector_descriptor.h"
-#include "libmv/correspondence/feature.h"
 #include "libmv/image/image.h"
+#include "libmv/logging/logging.h"
 #include "third_party/daisy/include/daisy/daisy.h"
 
 namespace libmv {
@@ -33,11 +33,11 @@ namespace descriptor {
 // TODO(keir): This is utterly untested!
 class DaisyDescriber : public Describer {
  public:
-  virtual void Describe(const vector<Feature *> &features,
-                        const Image &image,
-                        const detector::DetectorData *detector_data,
-                        vector<Descriptor *> *descriptors) {
-    (void) detector_data;  // There is no matching detector for DAISY.
+  virtual void Describe(const vector<Feature*>& features,
+                        const Image& image,
+                        const detector::DetectorData* detector_data,
+                        vector<Descriptor*>* descriptors) {
+    (void)detector_data;  // There is no matching detector for DAISY.
 
     daisy desc;
 
@@ -46,21 +46,20 @@ class DaisyDescriber : public Describer {
 
     // Defaults from README.
     desc.set_parameters(15, 3, 8, 8);
-    //desc.scale_invariant(true);
+    // desc.scale_invariant(true);
 
     // Push the image into daisy. This will make a copy and convert to float.
-    ByteImage *byte_image = image.AsArray3Du();
-    desc.set_image(byte_image->Data(),
-                   byte_image->Height(),
-                   byte_image->Width());
+    ByteImage* byte_image = image.AsArray3Du();
+    desc.set_image(
+        byte_image->Data(), byte_image->Height(), byte_image->Width());
 
     // Only use sparse descriptors; the default is dense.
     desc.initialize_single_descriptor_mode();
 
     descriptors->resize(features.size());
     for (int i = 0; i < features.size(); ++i) {
-      PointFeature *point = dynamic_cast<PointFeature *>(features[i]);
-      VecfDescriptor *descriptor = NULL;
+      PointFeature* point = dynamic_cast<PointFeature*>(features[i]);
+      VecfDescriptor* descriptor = NULL;
       if (point) {
         descriptor = new VecfDescriptor(desc.descriptor_size());
         desc.get_descriptor(point->y(),
@@ -73,7 +72,7 @@ class DaisyDescriber : public Describer {
   }
 };
 
-Describer *CreateDaisyDescriber() {
+Describer* CreateDaisyDescriber() {
   return new DaisyDescriber;
 }
 

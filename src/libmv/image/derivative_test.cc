@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/image/array_nd.h"
 #include "libmv/image/derivative.h"
+#include "libmv/image/array_nd.h"
 #include "testing/testing.h"
 
 using namespace libmv;
@@ -31,7 +31,7 @@ TEST(Derivatives3D, SimpleCase) {
   for (int x = 0; x < 5; ++x) {
     for (int y = 0; y < 5; ++y) {
       for (int z = 0; z < 5; ++z) {
-        f(x, y, z) = x + y*y + 5*z*z;
+        f(x, y, z) = x + y * y + 5 * z * z;
       }
     }
   }
@@ -42,9 +42,7 @@ TEST(Derivatives3D, SimpleCase) {
 
   Mat3 H = Hessian3D(f, 2, 2, 2);
   Mat3 H_expected;
-  H_expected << 0, 0,  0,
-                0, 2,  0,
-                0, 0, 10;
+  H_expected << 0, 0, 0, 0, 2, 0, 0, 0, 10;
   EXPECT_MATRIX_NEAR(H_expected, H, 1e-8);
 }
 
@@ -53,15 +51,13 @@ TEST(Derivatives3D, CrossTerms) {
   for (int x = 0; x < 5; ++x) {
     for (int y = 0; y < 5; ++y) {
       for (int z = 0; z < 5; ++z) {
-        f(x, y, z) = x + y*y + 5*z*z + 3*x*y + 2*x*z + 7*y*z;
+        f(x, y, z) = x + y * y + 5 * z * z + 3 * x * y + 2 * x * z + 7 * y * z;
       }
     }
   }
   Mat3 H = Hessian3D(f, 2, 2, 2);
   Mat3 H_expected;
-  H_expected << 0, 3,  2,
-                3, 2,  7,
-                2, 7, 10;
+  H_expected << 0, 3, 2, 3, 2, 7, 2, 7, 10;
   EXPECT_MATRIX_NEAR(H_expected, H, 1e-8);
 }
 
