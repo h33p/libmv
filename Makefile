@@ -6,7 +6,7 @@ debug :
 
 release :
 	mkdir -p bin-opt
-	cd bin-opt && cmake -DCMAKE_BUILD_TYPE=Release ../src && make
+	cd bin-opt && cmake -DCMAKE_BUILD_TYPE=Release ../src && make -j8
 
 clean :
 	rm -rf bin-opt
