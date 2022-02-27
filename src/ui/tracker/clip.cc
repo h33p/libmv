@@ -157,7 +157,7 @@ void Clip::DecodeVideo(QString path) {
   int i=0;
   for (AVPacket packet; av_read_frame(file, &packet) >= 0; ) {
     if ( packet.stream_index == video_stream ) {
-      AVFrame* frame = avcodec_alloc_frame();
+      AVFrame* frame = av_frame_alloc();
       int complete_frame = 0;
       avcodec_decode_video2(video, frame, &complete_frame, &packet);
       if (complete_frame) {

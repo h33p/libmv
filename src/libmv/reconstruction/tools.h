@@ -33,7 +33,7 @@ inline void VectorToMatrix(vector<Tvec> &vs, Tmat *m) {
   Tvec v;
   m->resize(v.size(), vs.size());
   size_t c = 0;
-  for (Tvec * vec = vs.begin(); vec != vs.end(); ++vec) {
+  for (typename vector<Tvec>::iterator vec = vs.begin(); vec != vs.end(); ++vec) {
     m->col(c) = *vec;
     c++;
   }

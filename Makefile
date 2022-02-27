@@ -22,7 +22,7 @@ install : debug
 	cd bin-dbg && make install
 
 install-release : release
-	cd bin-opt && make install
+	cd bin-opt && sudo make install
 
 uninstall : debug
 	cd bin-dbg && make uninstall

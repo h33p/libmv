@@ -69,7 +69,7 @@ ENDIF(MSVC)
 
 OPTION(WITH_SYSTEM_CERES "Use the system Ceres library instead of bundled one" OFF)
 OPTION(WITH_FAST_DETECTOR "Enable FAST detector" ON)
-OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." OFF)
+OPTION(BUILD_SHARED_LIBS "Build dynamic shared libraries (.dll/.so)." ON)
 
 INCLUDE(ConfigureBuild)
 INCLUDE(Documentation)
@@ -116,6 +116,7 @@ INCLUDE_DIRECTORIES(
   third_party/gflags
   third_party/OpenExif/src
   third_party/OpenExif/src/OpenExifJpeg
+  /usr/include/ffmpeg
   ${CERES_INCLUDE_DIRS}
 )
 
@@ -147,7 +148,7 @@ IF (BUILD_TESTS)
   ADD_SUBDIRECTORY(testing)
 ENDIF (BUILD_TESTS)
 
-OPTION(BUILD_GUI "Build Qt Tracker" ON)
+OPTION(BUILD_GUI "Build Qt Tracker" OFF)
 IF (BUILD_GUI)
  MESSAGE(STATUS "GUI enabled. Make sure you have Qt (and qt-devel for binary distributions)")
  ADD_SUBDIRECTORY(ui)

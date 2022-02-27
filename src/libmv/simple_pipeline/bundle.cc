@@ -668,7 +668,7 @@ void EuclideanBundleCommonIntrinsics(const Tracks& tracks,
   vector<Marker> markers = tracks.AllMarkers();
 
   // N-th element denotes whether track N is a constant zero-weighted track.
-  vector<bool> zero_weight_tracks_flags(tracks.MaxTrack() + 1, true);
+  std::vector<bool> zero_weight_tracks_flags(tracks.MaxTrack() + 1, true);
 
   // Pack all intrinsics parameters into a single block and rely on local
   // parameterizations to control which intrinsics are allowed to vary.

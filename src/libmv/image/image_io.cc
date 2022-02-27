@@ -303,7 +303,7 @@ int ReadPngStream(FILE* file, ByteImage* im) {
 
   png_read_info(png_ptr, info_ptr);
 
-  im->Resize(info_ptr->height, info_ptr->width, info_ptr->channels);
+  im->Resize(png_get_image_height(png_ptr, info_ptr), png_get_image_width(png_ptr, info_ptr), png_get_channels(png_ptr, info_ptr));
 
   png_read_update_info(png_ptr, info_ptr);
 
@@ -311,12 +311,12 @@ int ReadPngStream(FILE* file, ByteImage* im) {
     return 0;
 
   png_bytep* row_pointers =
-      (png_bytep*)malloc(sizeof(png_bytep) * info_ptr->channels * im->Height());
+      (png_bytep*)malloc(sizeof(png_bytep) * png_get_channels(png_ptr, info_ptr) * im->Height());
 
   unsigned char* ptr = (unsigned char*)im->Data();
   int y;
   for (y = 0; y < im->Height(); ++y)
-    row_pointers[y] = (png_byte*)ptr + info_ptr->rowbytes * y;
+    row_pointers[y] = (png_byte*)ptr + png_get_rowbytes(png_ptr, info_ptr) * y;
 
   png_read_image(png_ptr, row_pointers);
 
@@ -391,7 +391,7 @@ int WritePngStream(const ByteImage& im, FILE* file) {
   unsigned char* ptr = (unsigned char*)im.Data();
   int y;
   for (y = 0; y < im.Height(); ++y)
-    row_pointers[y] = (png_byte*)ptr + info_ptr->rowbytes * y;
+    row_pointers[y] = (png_byte*)ptr + png_get_rowbytes(png_ptr, info_ptr) * y;
 
   png_write_image(png_ptr, row_pointers);
 
